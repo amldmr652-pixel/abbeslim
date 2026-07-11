@@ -101,3 +101,22 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 **Sonraki Adımlar (Bırakılan İş):**
 - Projede Supabase tarafında SQL script'i çalıştırılarak tabloların oluşturulması gerekiyor (Kullanıcı panel üzerinden bu betiği çalıştırabilir).
 - Ardından Faz 5'e (Hızlı Not Sistemi veya Finans Modülü) geçilebilir.
+
+---
+
+## [2026-07-12] Faz 5: Not Sistemi (Notes) - Tamamlandı
+
+**Durum:** Faz 5 (Not Sistemi, Markdown & Ses Kaydı) başarıyla tamamlandı.
+
+**Yapılan İşlemler:**
+1. **Veritabanı (Supabase) Şemaları:** `notes` tablosu eklendi. Ayrıca ses dosyalarının kaydedileceği `audio_notes` adında bir Supabase Storage Bucket oluşturan komutlar eklendi (`scripts/phase5-migration.sql`).
+2. **Markdown Desteği:** `react-markdown` ve `remark-gfm` paketleri projeye kurularak güvenli ve şık bir Markdown okuyucu komponent eklendi.
+3. **Global Durum Yönetimi (Zustand):** `src/stores/useNoteStore.ts` oluşturuldu. Metin notları eklemenin yanı sıra `uploadAudio` fonksiyonu ile Blob dosyalarının buluta yüklenmesi (Storage upload) sağlandı.
+4. **Notlar Sayfası (`/notes`):** Kart tarzı grid görünümü eklendi. Kullanıcılar notlarını görebilir, silebilir, iğneleyebilir (pin).
+5. **Not Ekleme Modal'ı & Ses Kaydı:** Tarayıcının yerleşik `MediaRecorder` API'si kullanılarak doğrudan arayüz içinden mikrofonla ses kaydetme (Blob olarak) özelliği geliştirildi. Yazılan Markdown anlık olarak sisteme aktarılırken, sesler de .webm uzantısıyla Supabase'e atılıyor.
+6. **Dashboard Entegrasyonu:** Dashboard üzerindeki `QuickNoteWidget.tsx` artık sahte bekleme süresi yerine, gerçek bir şekilde `useNoteStore` kullanarak arka plana not kaydediyor (Audio olmadan sadece metin olarak).
+7. **Navigasyon ve Build:** Sidebar üzerindeki "Yakında" (Badge) etiketi Notlar sekmesinden kaldırıldı. `npm run build` kontrolü yapıldı ve başarılı oldu.
+
+**Sonraki Adımlar (Bırakılan İş):**
+- SQL betiğinin (phase5-migration.sql) Supabase SQL Editor üzerinden çalıştırılması gerekiyor.
+- Ardından hedefler / finans takip sistemlerine geçilebilir.
