@@ -81,3 +81,23 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 **Sonraki Adımlar (Bırakılan İş):**
 - Faz 4: Görev & Takvim Sistemi altyapısının (Supabase) inşası ve Dashboard'a gerçek verilerin akışının sağlanması.
+
+---
+
+## [2026-07-12] Faz 4: Görev & Takvim Sistemi - Tamamlandı
+
+**Durum:** Faz 4 (Görev & Takvim Sistemi) veritabanı kurulumu, arayüz inşası ve Dashboard bağlantısı başarıyla tamamlandı.
+
+**Yapılan İşlemler:**
+1. **Veritabanı (Supabase) Şemaları:** `tasks` ve `calendar_events` tabloları, User bağlantıları ve RLS (Row Level Security) politikaları eklendi (`scripts/phase4-migration.sql`).
+2. **Global Durum Yönetimi (Zustand):** `src/stores/useTaskStore.ts` ve `useCalendarStore.ts` hook'ları yazılarak API çağrıları (Fetch, Add, Update, Delete, Toggle) global state içine entegre edildi. 
+3. **Görevler Sayfası (`/tasks`):** Görev ekleme, bitiş tarihi (due date) belirleme ve listeyi duruma göre filtreleme (Yapılacaklar / Bitenler) özellikleri eklendi. i18n altyapısı bağlandı.
+4. **Takvim Sayfası (`/calendar`):** Responsive, interaktif ve özel CSS/Tailwind barındıran Takvim görünümlü Grid altyapısı yazıldı. Saatli etkinlikler (All Day opsiyonel) ve etkinlik ekleme modalı eklendi. i18n çevirileri ile Pzt, Sal... ve Ocak, Şubat... ayarları yapıldı.
+5. **Dashboard Entegrasyonu:** 
+   - `TasksWidget` ve `QuickStats` modülleri mock veriden kurtarılıp doğrudan `useTaskStore` içerisindeki Supabase kaynaklı gerçek veriye bağlandı.
+   - Dashboard'da eski tarihli görevler (tamamlanmamış olanlar) veya bugünkü görevler otomatik filtrelenecek şekilde kurgulandı (En fazla 5 adet gösterim).
+6. **Deploy ve Build Testi:** `npm run build` hatasız tamamlandı (`Compiled successfully in 5.2s`).
+
+**Sonraki Adımlar (Bırakılan İş):**
+- Projede Supabase tarafında SQL script'i çalıştırılarak tabloların oluşturulması gerekiyor (Kullanıcı panel üzerinden bu betiği çalıştırabilir).
+- Ardından Faz 5'e (Hızlı Not Sistemi veya Finans Modülü) geçilebilir.

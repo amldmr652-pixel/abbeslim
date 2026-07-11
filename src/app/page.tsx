@@ -14,14 +14,8 @@ import QuickNoteWidget from './components/dashboard/QuickNoteWidget';
 import RecentFilesWidget from './components/dashboard/RecentFilesWidget';
 import GoalsWidget from './components/dashboard/GoalsWidget';
 
+import { useTaskStore } from '@/stores/useTaskStore';
 // Placeholder veriler (Faz 4, 6, 7'de veritabanına bağlanacak)
-const PLACEHOLDER_TASKS = [
-  { id: 1, title: 'Arapça ders notlarını tamamla', done: true },
-  { id: 2, title: 'Fıkıh özetini gözden geçir', done: true },
-  { id: 3, title: 'Hadis quiz\'ine çalış', done: false },
-  { id: 4, title: 'Proje sunumunu hazırla', done: false },
-  { id: 5, title: 'Haftalık planlamayı yap', done: false },
-];
 
 const PLACEHOLDER_FILES = [
   { id: 1, name: 'Fıkıh Usulü - Ders 14', type: 'pdf', date: '11 Tem' },
@@ -37,9 +31,10 @@ const PLACEHOLDER_GOALS = [
 
 function DashboardContent() {
   const { setIsMusicPanelOpen } = useMusicContext();
+  const { tasks } = useTaskStore();
 
-  const completedTasks = PLACEHOLDER_TASKS.filter(t => t.done).length;
-  const totalTasks = PLACEHOLDER_TASKS.length;
+  const completedTasks = tasks.filter(t => t.is_completed).length;
+  const totalTasks = tasks.length;
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
@@ -71,7 +66,7 @@ function DashboardContent() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.8s_ease-out]">
-        <TasksWidget tasks={PLACEHOLDER_TASKS} />
+        <TasksWidget />
         <QuickNoteWidget />
         <RecentFilesWidget files={PLACEHOLDER_FILES} />
         <GoalsWidget goals={PLACEHOLDER_GOALS} />
