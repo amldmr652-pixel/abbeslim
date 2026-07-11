@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "add": "Add",
+    "all": "All",
+    "search": "Search",
+    "error": "Error",
+    "success": "Success"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "search": "Search",
+    "library": "Library",
+    "calendar": "Calendar",
+    "tasks": "Tasks",
+    "goals": "Goals",
+    "finance": "Finance",
+    "games": "Games",
+    "map": "Map",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "goodNight": "Good night",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "tasks": "Tasks",
+    "workTime": "Work Time",
+    "expense": "Monthly Expense",
+    "activeGoals": "Active Goals",
+    "todayTasks": "Today's Tasks",
+    "seeAllTasks": "See all tasks",
+    "quickNote": "Quick Note",
+    "writeNotePlaceholder": "Write something quickly...",
+    "recentFiles": "Recent Files",
+    "allGoals": "See all goals",
+    "noFiles": "No files in your library yet."
+  },
+  "search": {
+    "title": "Say the Note You're Looking For",
+    "micError": "Your browser does not support speech recognition. Please use Chrome or Edge."
+  },
+  "language": {
+    "tr": "Türkçe",
+    "en": "English",
+    "ar": "العربية"
+  }
+}

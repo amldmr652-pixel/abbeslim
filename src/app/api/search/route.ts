@@ -1,0 +1,497 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+import { getEmbedding } from '@/lib/ml';
+
+// -------------------------------------------------------
+// Vektör benzerliği
+// -------------------------------------------------------
+function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (!vecA?.length || !vecB?.length || vecA.length !== vecB.length) return 0;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dot += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+// -------------------------------------------------------
+// Türkçe karakter normalize (arama için)
+// -------------------------------------------------------
+function normalize(text: string): string {
+  if (!text) return '';
+  return text
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
+    .replace(/İ/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
+    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
+    .replace(/[.,!?;:()\[\]{}\*_~="'\/\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// İndeks için (noktalama temizlemeden)
+function normalizeLight(text: string): string {
+  if (!text) return '';
+  return text
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
+    .replace(/İ/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
+    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u');
+}
+
+// -------------------------------------------------------
+// Kelimeyi HTML'de vurgula (Ctrl+F işareti)
+// -------------------------------------------------------
+function highlightWords(text: string, words: string[]): string {
+  let result = text;
+  for (const word of words) {
+    if (!word || word.length < 2) continue;
+    // Türkçe karakterleri içeren fuzzy pattern
+    const pattern = word.split('').map(ch => {
+      const escMap: Record<string, string> = {
+        'c': '[cçCÇ]', 'g': '[gğGĞ]', 'i': '[iıİI]', 'o': '[oöOÖ]',
+        's': '[sşSŞ]', 'u': '[uüUÜ]', 'a': '[aâAÂ]',
+      };
+      return escMap[ch] || ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }).join('');
+    try {
+      result = result.replace(
+        new RegExp(`(${pattern})`, 'gi'),
+        '<mark class="bg-yellow-400/60 text-white px-0.5 rounded font-semibold">$1</mark>'
+      );
+    } catch {}
+  }
+  return result;
+}
+
+// -------------------------------------------------------
+// Metinde sayfa numarası tespit et ([PAGE: N] marker)
+// -------------------------------------------------------
+function findPage(text: string, charIdx: number): string | null {
+  if (charIdx < 0) return null;
+  const before = text.substring(0, charIdx + 10);
+  const markerIdx = before.lastIndexOf('[PAGE: ');
+  if (markerIdx === -1) return null;
+  const end = before.indexOf(']', markerIdx);
+  if (end === -1) return null;
+  return before.substring(markerIdx + 7, end);
+}
+
+// -------------------------------------------------------
+// Bir metindeki tüm eşleşme konumlarını bul (sayfa bazlı)
+// -------------------------------------------------------
+interface PageMatchInfo {
+  page: string;
+  count: number;
+  firstSnippet: string;
+}
+
+function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: string, mode: string): PageMatchInfo[] {
+  if (!cleanText || queryWords.length === 0) return [];
+
+  // PAGE marker'larına göre metni parçalara ayır
+  const pageSegments: { page: string; text: string; normText: string }[] = [];
+  const pageRegex = /\[PAGE: (\d+)\]/g;
+  let lastIdx = 0;
+  let lastPage = '1';
+  let match;
+
+  // İlk PAGE marker'ından önce gelen metni de dahil et
+  const firstMarker = cleanText.indexOf('[PAGE: ');
+  if (firstMarker > 0) {
+    const preText = cleanText.substring(0, firstMarker);
+    if (preText.trim()) {
+      pageSegments.push({ page: '1', text: preText, normText: normalizeLight(preText) });
+    }
+  }
+
+  while ((match = pageRegex.exec(cleanText)) !== null) {
+    lastPage = match[1];
+    const nextMarker = cleanText.indexOf('[PAGE: ', match.index + match[0].length);
+    const segEnd = nextMarker !== -1 ? nextMarker : cleanText.length;
+    const segText = cleanText.substring(match.index + match[0].length, segEnd).trim();
+    if (segText) {
+      pageSegments.push({ page: lastPage, text: segText, normText: normalizeLight(segText) });
+    }
+    lastIdx = segEnd;
+  }
+
+  // PAGE marker yoksa (belge tüm metin olarak işlendi)
+  if (pageSegments.length === 0) {
+    const normFull = normalizeLight(cleanText);
+    let count = 0;
+    let firstSnippet = '';
+
+    // Tam sorgu eşleşmesi dene
+    const normQ = normalizeLight(normQuery.trim());
+    if (normQ.length >= 2) {
+      let idx = 0;
+      while (true) {
+        const found = normFull.indexOf(normQ, idx);
+        if (found === -1) break;
+        count++;
+        if (!firstSnippet) {
+          const start = Math.max(0, found - 60);
+          const end = Math.min(cleanText.length, found + normQ.length + 100);
+          firstSnippet = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, '').trim();
+        }
+        idx = found + 1;
+      }
+    }
+
+    if (mode !== 'phrase' && count === 0) {
+      for (const word of queryWords) {
+        if (word.length < 2) continue;
+        let idx = 0;
+        while (true) {
+          const found = normFull.indexOf(word, idx);
+          if (found === -1) break;
+          count++;
+          if (!firstSnippet) {
+            const start = Math.max(0, found - 60);
+            const end = Math.min(cleanText.length, found + word.length + 100);
+            firstSnippet = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, '').trim();
+          }
+          idx = found + 1;
+        }
+      }
+    }
+
+    if (count > 0) return [{ page: '1', count, firstSnippet }];
+    return [];
+  }
+
+  // Her sayfa segmentinde eşleşme ara
+  const pageMatchMap = new Map<string, PageMatchInfo>();
+
+  for (const seg of pageSegments) {
+    let count = 0;
+    let firstSnippet = '';
+
+    // Tam sorgu eşleşmesi önce dene
+    const normQ = normalizeLight(normQuery.trim());
+    if (normQ.length >= 2) {
+      let idx = 0;
+      while (true) {
+        const found = seg.normText.indexOf(normQ, idx);
+        if (found === -1) break;
+        count++;
+        if (!firstSnippet) {
+          const start = Math.max(0, found - 40);
+          const end = Math.min(seg.text.length, found + normQ.length + 80);
+          firstSnippet = seg.text.substring(start, end).trim();
+        }
+        idx = found + 1;
+      }
+    }
+
+    // Kelime bazlı eşleşme (örtüşmeleri önlemek için) - sadece 'phrase' değilse
+    if (mode !== 'phrase' && count === 0) {
+      for (const word of queryWords) {
+        if (word.length < 2) continue;
+        let idx = 0;
+        while (true) {
+          const found = seg.normText.indexOf(word, idx);
+          if (found === -1) break;
+          count++;
+          if (!firstSnippet) {
+            const start = Math.max(0, found - 40);
+            const end = Math.min(seg.text.length, found + word.length + 80);
+            firstSnippet = seg.text.substring(start, end).trim();
+          }
+          idx = found + 1;
+        }
+      }
+    }
+
+    if (count > 0) {
+      const existing = pageMatchMap.get(seg.page);
+      if (existing) {
+        existing.count += count;
+        if (!existing.firstSnippet) existing.firstSnippet = firstSnippet;
+      } else {
+        pageMatchMap.set(seg.page, {
+          page: seg.page,
+          count,
+          firstSnippet: firstSnippet.substring(0, 120),
+        });
+      }
+    }
+  }
+
+  return Array.from(pageMatchMap.values()).sort((a, b) => parseInt(a.page) - parseInt(b.page));
+}
+
+// -------------------------------------------------------
+// Türkçe stopword'lerini temizle
+// -------------------------------------------------------
+const TR_STOPWORDS = [
+  'nedir', 'nasil', 'nerede', 'ne', 'zaman', 'neden', 'nicin', 'kac',
+  'hangi', 'olan', 'olani', 'hakkinda', 'ile', 'gore', 'icin',
+  'bir', 've', 'ya', 'da', 'veya', 'ama', 'fakat', 'ancak',
+  'acikla', 'anlat', 'tanimla', 'demek', 'bana', 'bul', 'goster',
+  'ac', 'ararmisın', 'arat', 'notlari', 'notu', 'dersini', 'dersi',
+];
+
+function extractKeywords(rawQuery: string): string {
+  const norm = normalize(rawQuery);
+  const words = norm.split(/\s+/);
+  const filtered = words.filter(w => w.length > 1 && !TR_STOPWORDS.includes(w));
+  return filtered.join(' ') || norm;
+}
+
+// -------------------------------------------------------
+// Ana Arama Endpoint
+// -------------------------------------------------------
+export async function GET(request: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const rawQuery = searchParams.get('q')?.trim() || '';
+    const mode = searchParams.get('mode') || 'word'; // 'phrase' | 'word' | 'semantic'
+
+    if (!rawQuery) return NextResponse.json({ results: [] });
+
+    // Anahtar kelimeleri çıkar (cümle ve anlamsal aramada ham sorguyu koru)
+    const keywords = (mode === 'phrase' || mode === 'semantic') ? rawQuery : extractKeywords(rawQuery);
+    const query = keywords || rawQuery;
+    const normQuery = normalize(query);
+    const queryWords = normQuery.split(/\s+/).filter(w => w.length > 1);
+
+    // Kullanıcıya ait dosyaları çek
+    let { data: allFiles } = await supabase.from('files').select('*').eq('user_id', user.id);
+    if (!allFiles || allFiles.length === 0) {
+      const { data: fallback } = await supabase.from('files').select('*');
+      allFiles = fallback || [];
+    }
+    const files = allFiles.filter((f: any) => !f.isDeleted);
+
+    // AI Embedding (isteğe bağlı — API key varsa)
+    // Cümle modunda vektör benzerliğini atlıyoruz
+    const queryEmbedding = mode !== 'phrase' ? await getEmbedding(query) : [];
+    const hasEmbedding = queryEmbedding.length > 0;
+
+    // -------------------------------------------------------
+    // Her dosya için skor hesapla
+    // -------------------------------------------------------
+    const scoredFiles = files.map((file: any) => {
+      let score = 0;
+      let aiScore = 0;
+      let matchedChunkText = '';
+      let isAiMatch = false;
+
+      // --- 1. AI Benzerlik (chunk veya dosya embedding) ---
+      if (hasEmbedding && mode !== 'phrase') {
+        let maxSim = 0;
+        if (file.chunks?.length > 0) {
+          for (const chunk of file.chunks) {
+            if (!chunk.embedding?.length) continue;
+            const s = cosineSimilarity(queryEmbedding, chunk.embedding);
+            if (s > maxSim) { maxSim = s; matchedChunkText = chunk.text; }
+          }
+        } else if (file.embedding?.length > 0) {
+          const s = cosineSimilarity(queryEmbedding, file.embedding);
+          if (s > maxSim) { maxSim = s; }
+        }
+
+        // Gemini embeddings için taban benzerlik eşiği (örn: 0.55)
+        // Bu eşiğin altındaki rastgele/ilgisiz eşleşmeler filtrelenir.
+        const SEMANTIC_THRESHOLD = 0.55;
+        if (maxSim >= SEMANTIC_THRESHOLD) {
+          aiScore = maxSim;
+          isAiMatch = true;
+        }
+      }
+
+      // --- 2. PDF içerik temizle ---
+      let cleanText = file.extractedText || '';
+      // PDF binary/operatör çöplerini kes
+      const garbageIdx = cleanText.indexOf('Artifact    Attached');
+      if (garbageIdx !== -1) cleanText = cleanText.substring(0, garbageIdx);
+      // Çok uzun metni kırp (50k karakter yeterli)
+      if (cleanText.length > 50000) cleanText = cleanText.substring(0, 50000);
+
+      const normFileName = normalize(file.name || '');
+      const normCatId   = normalize(file.categoryId || '');
+      const normFull    = normalizeLight(cleanText);
+
+      // --- 3. Dosya adı / kategori tam eşleşme skoru ---
+      let exactNameMatchScore = 0;
+      if (normFileName.includes(normQuery) || normQuery.includes(normFileName) || normCatId.includes(normQuery)) {
+        exactNameMatchScore = 0.90;
+      }
+
+      // --- 4. İçerik tam eşleşme skoru (Ctrl+F) ---
+      let exactMatchScore = 0;
+      const normQueryLight = normalizeLight(query);
+      if (normQueryLight.length >= 2 && normFull.includes(normQueryLight)) {
+        exactMatchScore = 0.85;
+      }
+
+      // --- 5. Kelime bazlı eşleşme skoru ---
+      let wordScore = 0;
+      let matchedCount = 0;
+      let contentMatchCount = 0;
+      for (const word of queryWords) {
+        if (word.length < 2) continue;
+        const inName = normFileName.includes(word);
+        const inCat  = normCatId.includes(word);
+        const inText = normFull.includes(word);
+        if (inName || inCat || inText) matchedCount++;
+        if (inText) contentMatchCount++;
+      }
+
+      if (queryWords.length > 0 && matchedCount > 0) {
+        const contentBonus = contentMatchCount > 0 ? 0.15 : 0;
+        wordScore = 0.50 + (matchedCount / queryWords.length) * 0.30 + contentBonus;
+      }
+
+      // --- Skor Birleştirme (Moda Göre) ---
+      if (mode === 'semantic') {
+        score = aiScore;
+        if (exactNameMatchScore > 0) {
+          score = Math.max(score, 0.85);
+          isAiMatch = false;
+        }
+      } else if (mode === 'phrase') {
+        const hasExactMatch = exactMatchScore > 0 || exactNameMatchScore > 0;
+        score = hasExactMatch ? Math.max(exactMatchScore, exactNameMatchScore) : 0;
+        isAiMatch = false;
+      } else if (mode === 'word') {
+        score = Math.max(aiScore, exactNameMatchScore, exactMatchScore, wordScore);
+        if (score > aiScore) {
+          isAiMatch = false;
+        }
+      } else if (mode === 'hybrid') {
+        const lexicalScore = Math.max(exactNameMatchScore, exactMatchScore, wordScore);
+        const semanticScore = aiScore;
+        
+        if (lexicalScore > 0 && semanticScore > 0) {
+          score = Math.max(lexicalScore, semanticScore) + 0.08;
+        } else {
+          score = Math.max(lexicalScore, semanticScore);
+        }
+        
+        if (score > aiScore) {
+          isAiMatch = false;
+        }
+      }
+
+      return { file, score, matchedChunkText, isAiMatch, cleanText };
+    });
+
+    // -------------------------------------------------------
+    // Filtrele, sırala, snippet üret
+    // -------------------------------------------------------
+    const THRESHOLD = 0.35; // Daha düşük eşik — içerik araması her zaman sonuç dönsün
+    const results = scoredFiles
+      .filter((s: any) => s.score > THRESHOLD)
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 20) // Maksimum 20 sonuç
+      .map((s: any) => {
+        const { file, cleanText, isAiMatch, matchedChunkText } = s;
+        let snippet = '';
+        let pageMatch: string | null = null;
+
+        // --- Çoklu konum tespiti ---
+        let pageMatches: PageMatchInfo[] = [];
+        let matchCount = 0;
+
+        if (cleanText) {
+          pageMatches = findAllPageMatches(cleanText, queryWords, normQuery, mode);
+          matchCount = pageMatches.reduce((sum, pm) => sum + pm.count, 0);
+        }
+
+        if (cleanText) {
+          const normFull = normalizeLight(cleanText);
+          const normQ    = normalizeLight(query).trim();
+          const words    = normQ.split(/\s+/).filter((w: string) => w.length > 1);
+
+          // ---- Tam sorgu eşleşmesi (önce dene) ----
+          let matchIdx = normFull.indexOf(normQ);
+
+          // ---- Tek tek kelime ara (Sadece 'phrase' değilse) ----
+          if (mode !== 'phrase' && matchIdx === -1) {
+            for (const w of words) {
+              const idx = normFull.indexOf(w);
+              if (idx !== -1) { matchIdx = idx; break; }
+            }
+          }
+
+          if (matchIdx !== -1) {
+            // Etrafındaki bağlamı al (120 karakter önce, 200 karakter sonra)
+            const ctxBefore = 120;
+            const ctxAfter  = 200;
+            const start = Math.max(0, matchIdx - ctxBefore);
+            const end   = Math.min(cleanText.length, matchIdx + normQ.length + ctxAfter);
+            let raw = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, ' ').trim();
+
+            // Sayfa tespiti
+            const page = findPage(cleanText, matchIdx);
+            if (page) { pageMatch = page; }
+
+            // Satır tespiti
+            const lineNum = cleanText.substring(0, matchIdx).split('\n').length;
+
+            // Kelimeleri vurgula (cümle modunda sadece bütün sorguyu vurgula)
+            const highlightList = mode === 'phrase' ? [normQ] : words.filter((w: string) => w.length > 1);
+            raw = highlightWords(raw, highlightList);
+
+            // Elipsis ekle
+            if (start > 0) raw = '…' + raw;
+            if (end < cleanText.length) raw += '…';
+
+            // Konum etiketi
+            const loc = page
+              ? `<span class="bg-blue-900/60 text-blue-200 text-xs px-2 py-0.5 rounded-full border border-blue-500/30 mr-2">📄 Sayfa ${page}</span>`
+              : `<span class="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full mr-2">Satır ${lineNum}</span>`;
+
+            snippet = `${loc}<span class="text-gray-200 text-sm leading-relaxed">${raw}</span>`;
+
+          } else if (isAiMatch && matchedChunkText) {
+            // AI chunk eşleşmesi
+            let raw = matchedChunkText.substring(0, 300).replace(/\[PAGE: \d+\]/g, ' ').trim();
+            const highlightList = mode === 'phrase' ? [normQ] : words.filter((w: string) => w.length > 1);
+            raw = highlightWords(raw, highlightList);
+            const aiBadge = `<span class="bg-purple-900/50 text-purple-300 text-xs px-2 py-0.5 rounded-full border border-purple-500/30 mr-2">✨ Yapay Zeka Eşleşmesi</span>`;
+            snippet = `${aiBadge}<span class="text-gray-200 text-sm leading-relaxed">${raw}…</span>`;
+          }
+        }
+
+        // İçerik yoksa dosya adından göster
+        if (!snippet && file.name) {
+          const highlighted = highlightWords(file.name, queryWords.filter((w: string) => w.length > 1));
+          snippet = `<span class="bg-yellow-900/40 text-yellow-200 text-xs px-2 py-0.5 rounded-full border border-yellow-500/30 mr-2">📁 Dosya Adı Eşleşmesi</span><span class="text-gray-200 text-sm">${highlighted}</span>`;
+        }
+
+        return {
+          ...file,
+          snippet,
+          pageMatch,
+          // YENİ: Çoklu konum bilgisi
+          pageMatches: pageMatches.slice(0, 50).map(pm => ({
+            page: pm.page,
+            count: pm.count,
+            snippet: pm.firstSnippet,
+          })),
+          matchCount,
+          // Hassas verileri client'a gönderme
+          extractedText: undefined,
+          embedding: undefined,
+          chunks: undefined,
+        };
+      });
+
+    return NextResponse.json({ results });
+
+  } catch (error) {
+    console.error('Arama hatası:', error);
+    return NextResponse.json({ error: 'Arama sırasında bir hata oluştu.' }, { status: 500 });
+  }
+}

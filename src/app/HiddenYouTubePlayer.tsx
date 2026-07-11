@@ -1,0 +1,217 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useMusicContext } from './context/MusicContext';
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: (() => void) | undefined;
+    _ytApiQueued: boolean;
+  }
+}
+
+/**
+ * Çift modlu ses oynatıcı:
+ * 1. HTML5 Audio  → http(s):// ile başlayan MP3/stream URL'leri
+ * 2. YouTube IFrame API → 'yt-playlist:PLAYLIST_ID' kaynakları
+ *
+ * YouTube modu: 200×113 px görünür boyutta ancak %1 opaklıkta tutulan gerçek player.
+ * Bu boyutun altında YouTube autoplay politikasını devreye sokuyor ve ses gelmiyor.
+ */
+export default function HiddenYouTubePlayer() {
+  const ctx = useMusicContext();
+  const ctxRef = useRef(ctx);
+  useEffect(() => { ctxRef.current = ctx; });
+
+  // ── HTML5 Audio ──────────────────────────────────────────────
+  const audioRef   = useRef<HTMLAudioElement | null>(null);
+  const prevMp3Ref = useRef<string | null>(null);
+
+  // ── YouTube IFrame API ────────────────────────────────────────
+  const ytContainerRef = useRef<HTMLDivElement>(null); // Dış sarmalayicı (DOM'da kalır)
+  const ytInnerRef     = useRef<HTMLDivElement>(null); // YouTube bu div'i iframe ile değiştirir
+  const ytPlayerRef    = useRef<any>(null);
+  const ytReadyRef     = useRef(false);
+  const prevPidRef     = useRef<string | null>(null);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Yardımcılar
+  const isYT  = (s?: string | null) => !!s?.startsWith('yt-playlist:');
+  const getPid = (s?: string | null) => s?.replace('yt-playlist:', '') ?? '';
+
+  const currentSrc = ctx.activeTrack?.audioSrc ?? null;
+  const ytMode     = isYT(currentSrc);
+
+  // ─────────────────────────────────────────────────────────────
+  // HTML5 Audio: element oluştur (bir kez)
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mounted) return;
+    const audio = new Audio();
+    audio.preload = 'none';
+    audioRef.current = audio;
+    audio.addEventListener('ended', () => ctxRef.current.handleNextTrack());
+    return () => { audio.pause(); audio.src = ''; audioRef.current = null; };
+  }, [mounted]);
+
+  // HTML5 Audio: kaynak değişimi
+  useEffect(() => {
+    if (!mounted || ytMode || !audioRef.current || !currentSrc) return;
+    if (currentSrc === prevMp3Ref.current) return;
+    prevMp3Ref.current = currentSrc;
+    audioRef.current.pause();
+    audioRef.current.src = currentSrc;
+    audioRef.current.load();
+  }, [mounted, ytMode, currentSrc]);  // eslint-disable-line
+
+  // HTML5 Audio: oynat / duraklat
+  useEffect(() => {
+    if (!mounted || ytMode || !audioRef.current) return;
+    if (ctx.isMusicPlaying) {
+      audioRef.current.play().catch(e => console.warn('Audio:', e));
+    } else {
+      audioRef.current.pause();
+    }
+  }, [mounted, ytMode, ctx.isMusicPlaying, currentSrc]);  // eslint-disable-line
+
+  // HTML5 Audio: ses
+  useEffect(() => {
+    if (!mounted || ytMode || !audioRef.current) return;
+    audioRef.current.volume = ctx.isMuted ? 0 : ctx.volume;
+  }, [mounted, ytMode, ctx.volume, ctx.isMuted]);
+
+  // ─────────────────────────────────────────────────────────────
+  // YouTube IFrame API: script yükle (bir kez)
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mounted || !ytMode || window._ytApiQueued) return;
+    window._ytApiQueued = true;
+    const tag = document.createElement('script');
+    tag.src   = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    document.head.appendChild(tag);
+  }, [mounted, ytMode]);
+
+  // ─────────────────────────────────────────────────────────────
+  // YouTube: playlist değişince player oluştur
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mounted || !ytMode || !currentSrc) return;
+    const pid = getPid(currentSrc);
+    if (pid === prevPidRef.current && ytPlayerRef.current) return;
+    prevPidRef.current = pid;
+    ytReadyRef.current = false;
+
+    const buildPlayer = () => {
+      if (!ytContainerRef.current) return;
+
+      // Önceki player'ı temizle
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
+        ytPlayerRef.current = null;
+      }
+
+      // YouTube inner div'i iframe ile değiştirir
+      // ytContainerRef (wrapper) DOM'da kalır ve pointer-events:none özelliği
+      // iframe'e de uygulanır — tıklama artık geçemez
+      if (!ytInnerRef.current) return;
+      ytPlayerRef.current = new window.YT.Player(ytInnerRef.current, {
+        width : 200,
+        height: 113,
+        playerVars: {
+          listType   : 'playlist',
+          list       : pid,
+          autoplay   : 1,
+          controls   : 0,
+          rel        : 0,
+          playsinline: 1,
+          iv_load_policy: 3,
+        },
+        events: {
+          onReady: (e: any) => {
+            ytReadyRef.current = true;
+            ctx.registerYTPlayer(ytPlayerRef.current);
+            // Ek güvenlik: getIframe() ile de pointer-events:none zorla
+            try {
+              const iframe = e.target.getIframe() as HTMLElement;
+              if (iframe) {
+                iframe.style.setProperty('pointer-events', 'none', 'important');
+                iframe.style.setProperty('z-index', '-9999', 'important');
+              }
+            } catch { /* ignore */ }
+            const vol = ctxRef.current.isMuted ? 0 : Math.round(ctxRef.current.volume * 100);
+            e.target.setVolume(vol);
+            if (ctxRef.current.isMusicPlaying) e.target.playVideo();
+          },
+          onError: (e: any) => console.warn('YT Error:', e.data),
+        },
+      });
+    };
+
+    // API hazırsa hemen kur, değilse callback zincirine ekle
+    if (window.YT?.Player) {
+      buildPlayer();
+    } else {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        prev?.();
+        buildPlayer();
+      };
+    }
+
+    return () => {
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
+        ytPlayerRef.current = null;
+        ytReadyRef.current  = false;
+        ctx.registerYTPlayer(null);
+      }
+    };
+  }, [mounted, ytMode, currentSrc]);  // eslint-disable-line
+
+  // YouTube: oynat / duraklat
+  useEffect(() => {
+    if (!mounted || !ytMode || !ytReadyRef.current || !ytPlayerRef.current) return;
+    ctx.isMusicPlaying
+      ? ytPlayerRef.current.playVideo?.()
+      : ytPlayerRef.current.pauseVideo?.();
+  }, [mounted, ytMode, ctx.isMusicPlaying]);
+
+  // YouTube: ses
+  useEffect(() => {
+    if (!mounted || !ytMode || !ytReadyRef.current || !ytPlayerRef.current) return;
+    ytPlayerRef.current.setVolume?.(ctx.isMuted ? 0 : Math.round(ctx.volume * 100));
+  }, [mounted, ytMode, ctx.volume, ctx.isMuted]);
+
+  if (!mounted) return null;
+
+  return (
+    /**
+     * Dış wrapper: pointer-events:none — YouTube'un iframe'i buraya yerlenir
+     * ve wrapper'dan bu özelliği miras alır. Pomodoro butonu güvende.
+     * İç div: YouTube bu div'i iframe ile değiştirir (DOM'dan kaldırır).
+     */
+    <div
+      ref={ytContainerRef}
+      style={{
+        position    : 'fixed',
+        top         : 0,
+        left        : 0,
+        width       : ytMode ? 200 : 0,
+        height      : ytMode ? 113 : 0,
+        opacity     : 0.01,
+        overflow    : 'hidden',
+        pointerEvents: 'none',   // ← wrapper'da kalır, iframe de dahil etkiler
+        zIndex      : -9999,
+      }}
+    >
+      <div
+        ref={ytInnerRef}
+        style={{ width: '100%', height: '100%' }}
+      />
+    </div>
+  );
+}

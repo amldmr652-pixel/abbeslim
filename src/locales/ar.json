@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "add": "إضافة",
+    "all": "الكل",
+    "search": "بحث",
+    "error": "خطأ",
+    "success": "نجاح"
+  },
+  "sidebar": {
+    "dashboard": "لوحة القيادة",
+    "search": "بحث",
+    "library": "مكتبة",
+    "calendar": "التقويم",
+    "tasks": "المهام",
+    "goals": "الأهداف",
+    "finance": "المالية",
+    "games": "ألعاب",
+    "map": "خريطة",
+    "settings": "إعدادات"
+  },
+  "dashboard": {
+    "goodNight": "طابت ليلتك",
+    "goodMorning": "صباح الخير",
+    "goodAfternoon": "طاب مساؤك",
+    "goodEvening": "مساء الخير",
+    "tasks": "المهام",
+    "workTime": "وقت العمل",
+    "expense": "المصاريف الشهرية",
+    "activeGoals": "الأهداف النشطة",
+    "todayTasks": "مهام اليوم",
+    "seeAllTasks": "عرض كل المهام",
+    "quickNote": "ملاحظة سريعة",
+    "writeNotePlaceholder": "اكتب شيئًا بسرعة...",
+    "recentFiles": "الملفات الأخيرة",
+    "allGoals": "عرض كل الأهداف",
+    "noFiles": "لا توجد ملفات في مكتبتك بعد."
+  },
+  "search": {
+    "title": "قل الملاحظة التي تبحث عنها",
+    "micError": "متصفحك لا يدعم التعرف على الصوت. يرجى استخدام Chrome أو Edge."
+  },
+  "language": {
+    "tr": "Türkçe",
+    "en": "English",
+    "ar": "العربية"
+  }
+}

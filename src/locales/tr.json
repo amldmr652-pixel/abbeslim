@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Yükleniyor...",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "add": "Ekle",
+    "all": "Tümü",
+    "search": "Ara",
+    "error": "Hata",
+    "success": "Başarılı"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "search": "Arama",
+    "library": "Kütüphane",
+    "calendar": "Takvim",
+    "tasks": "Görevler",
+    "goals": "Hedefler",
+    "finance": "Finans",
+    "games": "Oyunlar",
+    "map": "Harita",
+    "settings": "Ayarlar"
+  },
+  "dashboard": {
+    "goodNight": "İyi geceler",
+    "goodMorning": "Günaydın",
+    "goodAfternoon": "İyi günler",
+    "goodEvening": "İyi akşamlar",
+    "tasks": "Görevler",
+    "workTime": "Çalışma Süresi",
+    "expense": "Bu Ay Harcama",
+    "activeGoals": "Aktif Hedef",
+    "todayTasks": "Bugünkü Görevler",
+    "seeAllTasks": "Tüm görevleri gör",
+    "quickNote": "Hızlı Not",
+    "writeNotePlaceholder": "Aklına gelen bir şeyi hızlıca yaz...",
+    "recentFiles": "Son Dosyalar",
+    "allGoals": "Tüm hedefleri gör",
+    "noFiles": "Kütüphanenizde henüz dosya yok."
+  },
+  "search": {
+    "title": "Aradığın Notu Söyle",
+    "micError": "Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome veya Edge kullanın."
+  },
+  "language": {
+    "tr": "Türkçe",
+    "en": "English",
+    "ar": "العربية"
+  }
+}

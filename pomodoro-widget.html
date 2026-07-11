@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Sayacı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #0e0e0e;
+            --bg-card: #1a1a1a;
+            --accent: #22c55e; /* Neon yeşil */
+            --accent-hover: #16a34a;
+            --text-main: #f0f0f0;
+            --text-muted: #888888;
+            --bg-circle: #2a2a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        .widget-card {
+            background-color: var(--bg-card);
+            width: 380px;
+            border-radius: 24px;
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Titreşim (Shake) Animasyonu */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+            animation-iteration-count: 2;
+        }
+
+        /* Başlık Alanı */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .brand {
+            font-size: 12px;
+            color: var(--text-muted);
+            opacity: 0.4;
+            font-weight: 600;
+        }
+
+        /* Mod Seçici (Tabs) */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background-color: #222;
+            padding: 4px;
+            border-radius: 100px;
+            margin-bottom: 32px;
+            width: 100%;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent);
+            color: #000;
+        }
+
+        /* Dairesel İlerleme ve Sayaç */
+        .timer-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+        }
+
+        .timer-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .time-text {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-main);
+            transition: color 0.3s;
+        }
+
+        .time-text.finished {
+            color: #ef4444; /* Bittiğinde kırmızı */
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Kontrol Butonları */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: 2px solid #333;
+            color: var(--text-muted);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s, border-color 0.2s, color 0.2s;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.05);
+            border-color: #555;
+            color: var(--text-main);
+        }
+
+        .btn-main {
+            background-color: var(--accent);
+            color: #000;
+            border: none;
+            padding: 12px 36px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .btn-main:hover {
+            transform: scale(1.05);
+            background-color: var(--accent-hover);
+        }
+
+        /* Alt Bilgi */
+        .footer {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="widget-card" id="widget-card">
+        <div class="header">
+            <div class="header-title">
+                <span>⏱️</span>
+                <span>Pomodoro</span>
+            </div>
+            <div class="brand">abbeslim</div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-mode="pomodoro">Pomodoro</button>
+            <button class="tab-btn" data-mode="shortBreak">Kısa Mola</button>
+            <button class="tab-btn" data-mode="longBreak">Uzun Mola</button>
+        </div>
+
+        <div class="timer-container">
+            <svg class="progress-ring" width="240" height="240">
+                <circle cx="120" cy="120" r="114" fill="transparent" stroke="var(--bg-circle)" stroke-width="5"/>
+                <circle class="progress-ring__circle" id="progress-circle" cx="120" cy="120" r="114" fill="transparent" stroke="var(--accent)" stroke-width="5"/>
+            </svg>
+            <div class="timer-display">
+                <div class="time-text" id="time-display">25:00</div>
+                <div class="status-text" id="status-text">Odaklanma Süresi</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-icon" id="btn-reset" title="Sıfırla">◀◀</button>
+            <button class="btn-main" id="btn-play">▶ Başla</button>
+            <button class="btn-icon" id="btn-skip" title="Atla">⏭</button>
+        </div>
+
+        <div class="footer" id="session-count">🍅 1. Pomodoro</div>
+    </div>
+
+    <script>
+        const MODES = {
+            pomodoro: { time: 25 * 60, label: 'Odaklanma Süresi' },
+            shortBreak: { time: 5 * 60, label: 'Kısa Mola' },
+            longBreak: { time: 15 * 60, label: 'Uzun Mola' }
+        };
+
+        let currentMode = 'pomodoro';
+        let timeLeft = MODES[currentMode].time;
+        let timerInterval = null;
+        let isRunning = false;
+        let pomodoroCount = 1;
+
+        // DOM Elementleri
+        const timeDisplay = document.getElementById('time-display');
+        const statusText = document.getElementById('status-text');
+        const btnPlay = document.getElementById('btn-play');
+        const btnReset = document.getElementById('btn-reset');
+        const btnSkip = document.getElementById('btn-skip');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const sessionCountDisplay = document.getElementById('session-count');
+        const widgetCard = document.getElementById('widget-card');
+        
+        // SVG Dairesel İlerleme Ayarları
+        const circle = document.getElementById('progress-circle');
+        const radius = circle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI; // stroke-dasharray = 2 * Math.PI * r formülü
+        
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+        circle.style.strokeDashoffset = 0;
+
+        function setProgress(percent) {
+            const offset = circumference - percent * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(timeLeft);
+            const totalTime = MODES[currentMode].time;
+            const percent = timeLeft / totalTime;
+            setProgress(percent);
+        }
+
+        function playFinishSoundAndNotify() {
+            if (Notification.permission === "granted") {
+                new Notification("Süre Doldu!", {
+                    body: currentMode === 'pomodoro' ? "Harika iş çıkardın, şimdi mola zamanı!" : "Mola bitti, odaklanma zamanı!",
+                    icon: "⏱️"
+                });
+            }
+        }
+
+        function handleTimerFinish() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            btnPlay.innerHTML = '▶ Başla';
+            
+            // Görsel geri bildirimler
+            timeDisplay.classList.add('finished');
+            widgetCard.classList.add('shake');
+            
+            setTimeout(() => {
+                timeDisplay.classList.remove('finished');
+                widgetCard.classList.remove('shake');
+            }, 3000);
+
+            playFinishSoundAndNotify();
+
+            if (currentMode === 'pomodoro') {
+                pomodoroCount++;
+                sessionCountDisplay.textContent = `🍅 ${pomodoroCount}. Pomodoro`;
+            }
+            
+            // Bittiğinde otomatik atlamayı dilerseniz buraya skipSession() ekleyebilirsiniz.
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            btnPlay.innerHTML = '⏸ Duraklat';
+            
+            // Bildirim izni iste
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    handleTimerFinish();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            btnPlay.innerHTML = '▶ Devam Et';
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                if (timeLeft <= 0) resetTimer(); // Süre bittikten sonra tekrar başlarsa sıfırla
+                startTimer();
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = MODES[currentMode].time;
+            btnPlay.innerHTML = '▶ Başla';
+            timeDisplay.classList.remove('finished');
+            updateDisplay();
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            statusText.textContent = MODES[mode].label;
+            
+            tabBtns.forEach(btn => {
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            resetTimer();
+        }
+
+        function skipSession() {
+            if (currentMode === 'pomodoro') {
+                // Her 4. pomodoro'da uzun mola
+                if (pomodoroCount % 4 === 0) {
+                    switchMode('longBreak');
+                } else {
+                    switchMode('shortBreak');
+                }
+            } else {
+                switchMode('pomodoro');
+            }
+        }
+
+        // Olay Dinleyicileri (Event Listeners)
+        btnPlay.addEventListener('click', toggleTimer);
+        btnReset.addEventListener('click', resetTimer);
+        btnSkip.addEventListener('click', skipSession);
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                switchMode(e.target.dataset.mode);
+            });
+        });
+
+        // Başlangıç Ayarı
+        updateDisplay();
+    </script>
+</body>
+</html>
