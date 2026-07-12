@@ -581,3 +581,21 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** Kullanıcı sayfayı açar açmaz sarı vurgulu alanlar anlık olarak ekrana yansıtılmakta, görsel gecikme (lag) hissi tamamen ortadan kalkmaktadır.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T02:08] V2.20 — Sıfır Gecikmeli Render ve Arapça Kelime Sınırı Kontrolü (search/route.ts & PDFViewerClient.tsx)
+
+### 1. Sıfır Gecikmeli Doğrudan Vurgulama (`customTextRenderer` - PDFViewerClient.tsx)
+- **Sorun:** Sayfa ilk render edildiğinde, tarayıcının asenkron TextLayer (metin katmanı) oluşturma sürecini beklemek zorunda olduğumuz için sarı vurgular hala kısa süreli de olsa sonradan geliyordu.
+- **Çözüm:**
+  - React-PDF bileşeninin native **`customTextRenderer`** prop'u devreye sokuldu.
+  - `customTextRenderer={textRenderer}` callback fonksiyonu, metin elemanları (span) daha tarayıcı DOM'una yazılmadan önce ham string üzerinde çalışarak, eşleşen kelimeleri doğrudan `<mark class="custom-word-highlight">` etiketleriyle sarmalayıp HTML olarak döndürür.
+  - Böylece sayfa yüklendiği ilk milisaniyede, metin katmanı ekrana çıktığı an hiçbir sonradan çizilme, titreme (flicker) veya bekleme olmaksızın sarı vurgular hazır bir şekilde ekranda belirir.
+
+### 2. Alt Kelime Eşleşmelerinin (Örn: `التَّدَلُّلِ`) Önlenmesi (Arapça Kelime Sınırı Kontrolü)
+- **Sorun:** Kullanıcı bağımsız bir edat olan `هل` (He-Lam) kelimesini arattığında, `التَّدَلُّلِ` (et-tedelluli) kelimesinin sonundaki `ل` ve `ه` harfleri bozuk fontta `ģĤ` (`هل`) olarak kodlandığı için, bu kelimenin sonundaki kısım da yanlışlıkla sarıya boyanıyordu.
+- **Çözüm:**
+  - Hem arama motoru API'sinde (`route.ts`) hem de PDF vurgulayıcıda (`PDFViewerClient.tsx`) Arapça kelimeler için **kelime sınırı (word boundary)** kontrolü eklendi.
+  - Bir eşleşme bulunduğunda, aranan kelimenin hemen önündeki ve arkasındaki karakterler incelenir. Eğer önünde veya arkasında başka bir Arapça harf (`[\u0600-\u06FF]`) bulunuyorsa, bu eşleşme bir alt-kelime (kelime içi parça) olarak kabul edilir ve yoksayılır.
+- **Sonuç:** `التَّدَلُّلِ` kelimesinin sonundaki parça bağımsız bir kelime olmadığı için artık `هل` olarak algılanmaz ve sarıya boyanmaz. Sadece bağımsız `هَلْ` kelimeleri yakalanır.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
