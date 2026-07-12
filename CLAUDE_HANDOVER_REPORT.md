@@ -664,3 +664,26 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** Bozuk karakterler (`ġ`, `ĵ`, `Ĩ`) ve yön kontrolü kararlı çalıştığı için, kitaplardaki gerçek `هل` kelimelerinin tamamı hem arama motorunda listelenmekte hem de sayfa içinde sarı renkle doğru biçimde vurgulanmaktadır.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+# Konsolide Seans Devir Teslim Raporu (Claude İçin)
+
+## Çözülen Sorunlar & Kritik Kararlar
+
+1. **Gemini Otomatik Font Haritalama (`ml.ts`, `extract/route.ts`, `process/route.ts`)**:
+   - PDF metin katmanından Gemini API ile dinamik JSON karakter eşlemesi çıkartıldı.
+   - Metinlerin başına `[FONTMAP:...]` metadata tagi olarak eklenmesi sağlandı.
+   - Arama motorunda `[FONTMAP:...` satırının silinerek (strip) temiz metin aranması ve snippete dahil edilmemesi sağlandı.
+
+2. **Sıfır Gecikmeli Render (`PDFViewerClient.tsx`)**:
+   - `customTextRenderer` callback fonksiyonu eklenerek sarı vurguların tarayıcı DOM'una yazılmadan önce sarmalanması ve anlık (eş zamanlı) gösterilmesi sağlandı.
+
+3. **Dinamik Yön Tespiti & Tek Yönlü Arama (`route.ts`, `SearchResultsList.tsx`, `PDFViewerClient.tsx`)**:
+   - `detectRtlDirection` ile yaygın Arapça edatlar (`في`, `ان`, `من`) üzerinden kitabın yönü algılandı.
+   - Harekelerden temizlenmiş `normalizeLight` metin üzerinde yön analizi yapılarak kararlılık sağlandı.
+   - Kitap düzse (`RTL_NORMAL`) visual reversed araması tamamen devre dışı bırakıldı. Bu sayede `هل` arandığında `له` kelimelerinin yanlışlıkla vurgulanması engellendi.
+   - Harita eşleme listesine eksik olan `ġ`/`Ġ` -> `ه`, `ĵ`/`Ĵ` -> `م`, `Ĩ` -> `ي` harfleri eklenerek tüm sayfalardaki (örn. Sayfa 220 ve 221) gerçek `هل` (`ġĤ`) kelimelerinin bulunması sağlandı.
+
+4. **Arama Karakter Limitinin Kaldırılması & Sayfa Segmentasyonu**:
+   - 50.000 karakterlik limit 5 Milyon karaktere çıkarıldı.
+   - `findAllPageMatches` içinde regex lastIndex çakışmalarını önlemek için indeks bazlı segmentasyon algoritmasına geçildi.
+
+
