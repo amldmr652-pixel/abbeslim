@@ -4,11 +4,13 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Clock, LogOut, ShieldCheck } from 'lucide-react'
+import { useTranslation } from '@/app/hooks/useTranslation'
 
 export default function PendingApprovalPage() {
   const router = useRouter()
   const supabase = createClient()
   const redirectingRef = useRef(false)
+  const { t } = useTranslation()
 
   const goToHome = () => {
     if (redirectingRef.current) return
@@ -114,10 +116,9 @@ export default function PendingApprovalPage() {
 
         {/* Başlık */}
         <div className="text-3xl font-bold tracking-wider text-yellow-500 mb-2">abbeslim.</div>
-        <h1 className="text-xl font-semibold text-white mb-3">Onay Bekleniyor</h1>
+        <h1 className="text-xl font-semibold text-white mb-3">{t('auth.pendingApproval')}</h1>
         <p className="text-gray-400 text-sm leading-relaxed mb-8">
-          Hesabın oluşturuldu ancak henüz admin tarafından onaylanmadı.
-          Onaylandığında <span className="text-yellow-400 font-medium">otomatik olarak</span> yönlendirileceksin.
+          {t('auth.pendingMessage')}
         </p>
 
         {/* Durum göstergesi */}
@@ -130,9 +131,9 @@ export default function PendingApprovalPage() {
         >
           <ShieldCheck size={18} className="text-yellow-500 shrink-0" />
           <div>
-            <p className="text-yellow-400 text-sm font-medium">Bekleme listesinde</p>
+            <p className="text-yellow-400 text-sm font-medium">{t('auth.waitingList')}</p>
             <p className="text-gray-500 text-xs mt-0.5">
-              Onay verildiği an otomatik giriş yapılacak
+              {t('auth.autoLoginWhenApproved')}
             </p>
           </div>
           <div className="ml-auto">
@@ -146,7 +147,7 @@ export default function PendingApprovalPage() {
           className="w-full py-3 px-4 rounded-2xl border border-gray-800 text-gray-400 hover:text-white hover:border-gray-600 transition-all flex items-center justify-center gap-2 text-sm"
         >
           <LogOut size={16} />
-          Çıkış Yap
+          {t('sidebar.logout')}
         </button>
       </div>
     </div>

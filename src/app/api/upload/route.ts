@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { addFile, FileRecord } from '@/lib/db';
 import { getEmbedding } from '@/lib/ml';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
+
+const supabaseAdmin = createAdminClient();
 
 export const maxDuration = 60; // Vercel için 60 saniyeye uzat
 
@@ -138,7 +140,7 @@ export async function POST(request: Request) {
       throw storageError;
     }
 
-    const { data: publicUrlData } = supabase.storage.from('uploads').getPublicUrl(fileName);
+    const { data: publicUrlData } = supabaseAdmin.storage.from('uploads').getPublicUrl(fileName);
     const url = publicUrlData.publicUrl;
 
     let extractedText = '';

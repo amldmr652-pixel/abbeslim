@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Cloud, Sun, CloudRain, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/app/hooks/useTranslation';
+import { createClient } from '@/utils/supabase/client';
 
 export default function GreetingWidget() {
   const { t, language } = useTranslation();
@@ -11,6 +12,18 @@ export default function GreetingWidget() {
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [formattedDate, setFormattedDate] = useState('');
   const [greeting, setGreeting] = useState('');
+  const [userName, setUserName] = useState<string>('Kullanıcı');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı');
+      }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     // Saat ve Tarih Güncellemesi
@@ -85,7 +98,7 @@ export default function GreetingWidget() {
     <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 animate-[fadeIn_0.5s_ease-out]">
       <div>
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
-          {greeting}, <span className="text-green-400">Kullanıcı</span> 👋
+          {greeting}, <span className="text-green-400">{userName}</span> 👋
         </h1>
         <p className="text-gray-400 flex items-center gap-3">
           <span>{formattedDate}</span>

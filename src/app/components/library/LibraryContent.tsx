@@ -202,12 +202,25 @@ export function LibraryContent({ libraryState }: Props) {
               const isPdf = file.type === 'application/pdf';
               const fileUrl = isPdf ? `/viewer?url=${encodeURIComponent(file.url)}` : file.url;
 
+              const handleFileClick = async () => {
+                try {
+                  await fetch('/api/files/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: file.id }),
+                  });
+                } catch (e) {
+                  console.error('Failed to update last opened', e);
+                }
+              };
+
               return (
                 <a
                   key={file.id}
                   href={fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleFileClick}
                   className="glass p-7 rounded-3xl flex flex-col justify-between hover:-translate-y-1.5 transition-all duration-300 group relative shadow-2xl border border-green-900/30 hover:border-green-500/50 hover:shadow-[0_0_40px_rgba(34,197,94,0.15)]"
                 >
                   <div>

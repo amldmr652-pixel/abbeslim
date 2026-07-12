@@ -13,8 +13,7 @@ import SearchModeSelector from '@/app/components/search/SearchModeSelector';
 import SearchResultsList from '@/app/components/search/SearchResultsList';
 import SimulationModal from '@/app/components/search/SimulationModal';
 import UploadModal from '@/app/components/search/UploadModal';
-import MusicPanelModal from '@/app/components/search/MusicPanelModal';
-import AIChatWidget from '@/app/components/AIChatWidget';
+
 
 function SearchContent() {
   const search = useSearch();
@@ -121,9 +120,7 @@ function SearchContent() {
         categories={search.categories}
       />
 
-      <MusicPanelModal />
-
-      <AIChatWidget />
+      
     </div>
   );
 }

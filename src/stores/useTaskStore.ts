@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+
+// Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createClient();
+  return _supabase;
+}
 
 export interface Task {
   id: string;
@@ -32,7 +39,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   fetchTasks: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('tasks')
         .select('*')
         .order('created_at', { ascending: false });
@@ -49,7 +56,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   addTask: async (task) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('tasks')
         .insert([task])
         .select()
@@ -65,7 +72,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   updateTask: async (id, updates) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('tasks')
         .update(updates)
         .eq('id', id)
@@ -84,7 +91,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   deleteTask: async (id) => {
     try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
+      const { error } = await getSupabase().from('tasks').delete().eq('id', id);
       if (error) throw error;
       set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== id),
@@ -104,7 +111,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         ),
       }));
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('tasks')
         .update({ is_completed: !currentStatus })
         .eq('id', id);

@@ -2,10 +2,11 @@
 
 import { Target, ChevronRight } from 'lucide-react';
 import { Card } from '@/app/components/ui';
+import Link from 'next/link';
 import { useTranslation } from '@/app/hooks/useTranslation';
 
 interface Goal {
-  id: number;
+  id: string | number;
   title: string;
   progress: number;
   color: string;
@@ -39,9 +40,9 @@ export default function GoalsWidget({ goals }: GoalsWidgetProps) {
         ))}
       </div>
       <div className="mt-5 pt-4 border-t border-green-900/20">
-        <button className="text-sm text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors">
+        <Link href="/goals" className="text-sm text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors w-fit">
           {t('dashboard.allGoals')} <ChevronRight size={14} className="rtl:rotate-180" />
-        </button>
+        </Link>
       </div>
     </Card>
   );

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { StickyNote, Loader2 } from 'lucide-react';
 import { Card } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useNoteStore } from '@/stores/useNoteStore';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
 export default function QuickNoteWidget() {
@@ -14,7 +15,8 @@ export default function QuickNoteWidget() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const { addNote } = useNoteStore();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -79,3 +81,5 @@ export default function QuickNoteWidget() {
     </Card>
   );
 }
+
+

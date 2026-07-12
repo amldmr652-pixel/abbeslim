@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import {
   LayoutDashboard,
   Search,
@@ -18,17 +19,21 @@ import {
   ChevronRight,
   Menu,
   X,
-  Sparkles,
+  Gamepad2,
+  LogOut,
+  Clapperboard,
   Music,
 } from 'lucide-react';
 
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
+import { useMusicContext } from '@/app/context/MusicContext';
 
 interface NavItem {
   id: string;
   icon: React.ReactNode;
-  href: string;
+  href?: string;
+  action?: 'music';
   hasBadge?: boolean;
 }
 
@@ -39,10 +44,11 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'calendar', icon: <Calendar size={20} />, href: '/calendar' },
   { id: 'notes', icon: <StickyNote size={20} />, href: '/notes' },
   { id: 'tasks', icon: <CheckSquare size={20} />, href: '/tasks' },
-  { id: 'goals', icon: <Target size={20} />, href: '/goals', hasBadge: true },
-  { id: 'finance', icon: <Wallet size={20} />, href: '/finance', hasBadge: true },
-  { id: 'games', icon: <Sparkles size={20} />, href: '/games', hasBadge: true },
-  { id: 'map', icon: <Library size={20} />, href: '/tracker', hasBadge: true },
+  { id: 'goals', icon: <Target size={20} />, href: '/goals' },
+  { id: 'finance', icon: <Wallet size={20} />, href: '/finance' },
+  { id: 'games', icon: <Gamepad2 size={20} />, href: '/games' },
+  { id: 'tracker', icon: <Clapperboard size={20} />, href: '/tracker' },
+  { id: 'music', icon: <Music size={20} />, action: 'music' },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
@@ -51,9 +57,18 @@ const BOTTOM_ITEMS: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t, language, setLanguage } = useTranslation();
+  const { setIsMusicPanelOpen } = useMusicContext();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   // Mobilde route değişince menüyü kapat
   useEffect(() => {
@@ -69,7 +84,8 @@ export default function Sidebar() {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  const isActive = (href: string) => {
+  const isActive = (href?: string) => {
+    if (!href) return false;
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
@@ -78,23 +94,10 @@ export default function Sidebar() {
     const active = isActive(item.href);
     const hasBadge = item.hasBadge;
     const label = t(`sidebar.${item.id}`);
-    const badgeText = t('common.loading'); // Yakında için placeholder, şimdilik "Yakında" yazısı sabit değil
+    const badgeText = t('common.comingSoon');
 
-    return (
-      <Link
-        key={item.id}
-        href={hasBadge ? '#' : item.href}
-        onClick={hasBadge ? (e) => e.preventDefault() : undefined}
-        className={`
-          group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
-          ${active
-            ? 'bg-green-600/15 text-green-400 rtl:border-r-2 ltr:border-l-2 border-green-500 rtl:mr-[-1px] ltr:ml-[-1px]'
-            : hasBadge
-              ? 'text-gray-600 cursor-not-allowed'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }
-        `}
-      >
+    const content = (
+      <>
         <span className={`flex-shrink-0 ${active ? 'text-green-400' : ''}`}>
           {item.icon}
         </span>
@@ -105,7 +108,7 @@ export default function Sidebar() {
             </span>
             {hasBadge && (
               <span className="rtl:mr-auto ltr:ml-auto text-[10px] bg-green-900/30 text-green-600 px-2 py-0.5 rounded-full border border-green-900/30 whitespace-nowrap">
-                Yakında
+                {badgeText}
               </span>
             )}
           </>
@@ -114,9 +117,41 @@ export default function Sidebar() {
         {collapsed && (
           <div className="absolute rtl:right-full ltr:left-full rtl:mr-3 ltr:ml-3 px-3 py-1.5 bg-[#1a1a1a] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg border border-green-900/20">
             {label}
-            {hasBadge && <span className="mx-2 text-green-600">(Yakında)</span>}
+            {hasBadge && <span className="mx-2 text-green-600">({badgeText})</span>}
           </div>
         )}
+      </>
+    );
+
+    const className = `
+      group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+      ${active
+        ? 'bg-green-600/15 text-green-400 rtl:border-r-2 ltr:border-l-2 border-green-500 rtl:mr-[-1px] ltr:ml-[-1px]'
+        : hasBadge
+          ? 'text-gray-600 cursor-not-allowed'
+          : 'text-gray-400 hover:text-white hover:bg-white/5'
+      }
+    `;
+
+    if (item.action === 'music') {
+      return (
+        <button
+          key={item.id}
+          onClick={() => setIsMusicPanelOpen(true)}
+          className={`w-full text-left ${className}`}
+        >
+          {content}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={item.id}
+        href={hasBadge ? '#' : (item.href || '#')}
+        className={className}
+      >
+        {content}
       </Link>
     );
   };
@@ -137,7 +172,7 @@ export default function Sidebar() {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-          title={collapsed ? 'Genişlet' : 'Daralt'}
+          title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -152,9 +187,26 @@ export default function Sidebar() {
       <div className="px-3 py-4 border-t border-green-900/20 space-y-1">
         {BOTTOM_ITEMS.map(renderNavItem)}
         
+        {/* Çıkış Yap Butonu */}
+        <button
+          onClick={handleLogout}
+          className={`
+            w-full group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+            text-red-400 hover:text-red-300 hover:bg-red-900/10 mt-2
+          `}
+        >
+          <span className="flex-shrink-0"><LogOut size={20} /></span>
+          {!collapsed && <span className="text-sm font-medium truncate">{t('sidebar.logout')}</span>}
+          {collapsed && (
+            <div className="absolute rtl:right-full ltr:left-full rtl:mr-3 ltr:ml-3 px-3 py-1.5 bg-[#1a1a1a] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg border border-red-900/20">
+              {t('sidebar.logout')}
+            </div>
+          )}
+        </button>
+
         {/* Dil Seçici */}
         <div className={`mt-4 pt-4 border-t border-green-900/20 flex flex-col gap-2 ${collapsed ? 'items-center' : ''}`}>
-          {!collapsed && <span className="text-xs text-gray-500 px-2 uppercase font-bold tracking-wider">Dil / Language</span>}
+          {!collapsed && <span className="text-xs text-gray-500 px-2 uppercase font-bold tracking-wider">{t('sidebar.language')}</span>}
           <div className={`flex ${collapsed ? 'flex-col' : 'flex-row'} gap-1 px-1`}>
             {(['tr', 'en', 'ar'] as Language[]).map(lang => (
               <button

@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+
+// Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createClient();
+  return _supabase;
+}
 
 export interface Note {
   id: string;
@@ -32,7 +39,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   fetchNotes: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('notes')
         .select('*')
         .order('is_pinned', { ascending: false })
@@ -50,7 +57,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   addNote: async (note) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('notes')
         .insert([note])
         .select()
@@ -67,7 +74,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   updateNote: async (id, updates) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('notes')
         .update(updates)
         .eq('id', id)
@@ -86,7 +93,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   deleteNote: async (id) => {
     try {
-      const { error } = await supabase.from('notes').delete().eq('id', id);
+      const { error } = await getSupabase().from('notes').delete().eq('id', id);
       if (error) throw error;
       set((state) => ({
         notes: state.notes.filter((n) => n.id !== id),
@@ -106,7 +113,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         ),
       }));
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('notes')
         .update({ is_pinned: !currentPinStatus })
         .eq('id', id);
@@ -140,6 +147,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   uploadAudio: async (file: File) => {
     try {
+      const supabase = getSupabase();
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${(await supabase.auth.getUser()).data.user?.id}/${fileName}`;

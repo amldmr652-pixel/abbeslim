@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { UserPlus, Key, User, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from '@/app/hooks/useTranslation'
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('')
@@ -16,6 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useTranslation()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,19 +26,19 @@ export default function RegisterPage() {
     const trimmedUsername = username.trim().toLowerCase()
 
     if (trimmedUsername.length < 3) {
-      setError('Kullanıcı adı en az 3 karakter olmalıdır.')
+      setError(t('auth.usernameLengthError'))
       return
     }
     if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
-      setError('Kullanıcı adı sadece harf, rakam ve alt çizgi (_) içerebilir.')
+      setError(t('auth.usernameFormatError'))
       return
     }
     if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.')
+      setError(t('auth.passwordLengthError'))
       return
     }
     if (password !== confirmPassword) {
-      setError('Şifreler eşleşmiyor. Lütfen tekrar kontrol edin.')
+      setError(t('auth.passwordMismatchError'))
       return
     }
 
@@ -49,7 +51,7 @@ export default function RegisterPage() {
 
     if (error) {
       if (error.message.includes('already registered') || error.message.includes('already been registered')) {
-        setError('Bu kullanıcı adı zaten alınmış. Lütfen farklı bir isim seçin.')
+        setError(t('auth.usernameTakenError'))
       } else {
         setError('Kayıt sırasında bir hata oluştu: ' + error.message)
       }
@@ -74,7 +76,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-3xl font-bold tracking-wider text-green-500 mb-2">abbeslim.</div>
-          <p className="text-gray-400 text-sm">Yeni hesap oluşturun</p>
+          <p className="text-gray-400 text-sm">{t('auth.registerSubtitle')}</p>
         </div>
 
         {error && (
@@ -87,14 +89,14 @@ export default function RegisterPage() {
         {success && (
           <div className="mb-6 p-4 rounded-2xl bg-green-950/50 border border-green-500/30 flex items-center gap-3 text-green-400 text-sm">
             <CheckCircle2 size={18} className="shrink-0" />
-            <p>Kayıt başarılı! Hesabın admin onayından sonra aktif olacak.</p>
+            <p>{t('auth.registerSuccess')}</p>
           </div>
         )}
 
         <form onSubmit={handleRegister} className="space-y-5">
           {/* Kullanıcı Adı */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Kullanıcı Adı</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('auth.username')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-green-600">
                 <User size={18} />
@@ -114,7 +116,7 @@ export default function RegisterPage() {
 
           {/* Şifre */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Şifre</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('auth.password')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-green-600">
                 <Key size={18} />
@@ -140,7 +142,7 @@ export default function RegisterPage() {
 
           {/* Şifreyi Onayla */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Şifreyi Onayla</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('auth.confirmPassword')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Key size={18} className={passwordsMatch ? 'text-green-500' : passwordsMismatch ? 'text-red-500' : 'text-green-600'} />
@@ -170,12 +172,12 @@ export default function RegisterPage() {
             </div>
             {passwordsMatch && (
               <p className="text-xs text-green-500 mt-1.5 px-1 flex items-center gap-1">
-                <CheckCircle2 size={12} /> Şifreler eşleşiyor
+                <CheckCircle2 size={12} /> {t('auth.passwordsMatch')}
               </p>
             )}
             {passwordsMismatch && (
               <p className="text-xs text-red-500 mt-1.5 px-1 flex items-center gap-1">
-                <AlertCircle size={12} /> Şifreler eşleşmiyor
+                <AlertCircle size={12} /> {t('auth.passwordsMismatch')}
               </p>
             )}
           </div>
@@ -186,17 +188,17 @@ export default function RegisterPage() {
             className="w-full py-3 px-4 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-bold transition-all focus:ring-4 focus:ring-green-500/20 disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 mt-2"
           >
             {loading ? (
-              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Kaydediliyor...</>
+              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('auth.registering')}</>
             ) : (
-              <><UserPlus size={18} /> Hesap Oluştur</>
+              <><UserPlus size={18} /> {t('auth.register')}</>
             )}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          Zaten hesabınız var mı?{' '}
+          {t('auth.haveAccount')}{' '}
           <a href="/login" className="text-green-500 hover:text-green-400 font-semibold transition-colors">
-            Giriş Yap
+            {t('auth.login')}
           </a>
         </div>
       </div>

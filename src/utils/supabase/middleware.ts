@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
     if (!isApiRoute && !isPendingRoute) {
       const { data: profile } = await adminSupabase
         .from('profiles')
-        .select('status, is_admin')
+        .select('status, role')
         .eq('id', user.id)
         .single()
 
@@ -68,8 +68,8 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
       }
 
-      // Admin paneli için is_admin kontrolü
-      if (isAdminRoute && !profile.is_admin) {
+      // Admin paneli için role kontrolü
+      if (isAdminRoute && profile.role !== 'admin') {
         const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)

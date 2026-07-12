@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+
+// Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createClient();
+  return _supabase;
+}
 
 export interface CalendarEvent {
   id: string;
@@ -32,7 +39,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   fetchEvents: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('calendar_events')
         .select('*')
         .order('start_time', { ascending: true });
@@ -49,7 +56,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
   addEvent: async (event) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('calendar_events')
         .insert([event])
         .select()
@@ -65,7 +72,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
   updateEvent: async (id, updates) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('calendar_events')
         .update(updates)
         .eq('id', id)
@@ -84,7 +91,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
   deleteEvent: async (id) => {
     try {
-      const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+      const { error } = await getSupabase().from('calendar_events').delete().eq('id', id);
       if (error) throw error;
       set((state) => ({
         events: state.events.filter((e) => e.id !== id),

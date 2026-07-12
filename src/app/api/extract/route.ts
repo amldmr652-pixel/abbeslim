@@ -1,7 +1,9 @@
 import '@/lib/polyfill';
 import { NextResponse } from 'next/server';
 import { getEmbedding } from '@/lib/ml';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createAdminClient } from '@/utils/supabase/admin';
+
+const supabaseAdmin = createAdminClient();
 
 export const maxDuration = 60;
 

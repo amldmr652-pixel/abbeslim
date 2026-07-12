@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { Card, Button, Input, Modal, Badge } from '@/app/components/ui';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { CheckCircle2, Circle, Plus, Calendar, Clock, Trash2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 
 export default function TasksPage() {
   const { t, language } = useTranslation();
@@ -14,7 +15,8 @@ export default function TasksPage() {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDate, setNewTaskDate] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -61,7 +63,7 @@ export default function TasksPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh]">
         <AlertCircle size={48} className="text-yellow-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">Giriş Yapmanız Gerekiyor</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">{t('common.loginRequired')}</h2>
         <p className="text-gray-400">Görevlerinizi görmek için lütfen giriş yapın.</p>
       </div>
     );
@@ -76,11 +78,11 @@ export default function TasksPage() {
             {t('sidebar.tasks')}
           </h1>
           <p className="text-gray-400">
-            {tasks.filter(t => !t.is_completed).length} tamamlanmamış görev var.
+            {tasks.filter(t => !t.is_completed).length} {t('tasks.pendingCount')}
           </p>
         </div>
         <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
-          <Plus size={20} /> Yeni Görev
+          <Plus size={20} /> {t('tasks.newTask')}
         </Button>
       </div>
 
@@ -98,28 +100,28 @@ export default function TasksPage() {
           size="sm" 
           onClick={() => setFilter('pending')}
         >
-          Yapılacaklar
+          {t('tasks.pending')}
         </Button>
         <Button 
           variant={filter === 'completed' ? 'primary' : 'ghost'} 
           size="sm" 
           onClick={() => setFilter('completed')}
         >
-          Tamamlananlar
+          {t('tasks.completed')}
         </Button>
       </div>
 
       {/* Görev Listesi */}
       <div className="space-y-3">
         {isLoading && tasks.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
+          <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
         ) : filteredTasks.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-green-900/30 rounded-3xl bg-black/20">
-            <p className="text-gray-500">Hiç görev bulunamadı.</p>
+            <p className="text-gray-500">{t('tasks.noTasks')}</p>
           </div>
         ) : (
           filteredTasks.map((task) => (
-            <Card key={task.id} hover className={`transition-all duration-300 ${task.is_completed ? 'opacity-50' : ''}`}>
+            <Card key={task.id} hover className={`group transition-all duration-300 ${task.is_completed ? 'opacity-50' : ''}`}>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => toggleTaskCompletion(task.id, task.is_completed)}
@@ -146,7 +148,7 @@ export default function TasksPage() {
 
                 <button 
                   onClick={() => deleteTask(task.id)}
-                  className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded-full transition-all opacity-40 group-hover:opacity-100"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -160,7 +162,7 @@ export default function TasksPage() {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Yeni Görev Ekle"
+        title={t('tasks.newTask')}
       >
         <form onSubmit={handleAddTask} className="space-y-4">
           <Input
@@ -189,3 +191,5 @@ export default function TasksPage() {
     </div>
   );
 }
+
+

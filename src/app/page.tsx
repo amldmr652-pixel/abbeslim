@@ -1,10 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Search, BookOpen, Music } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useMusicContext } from './context/MusicContext';
-import AIChatWidget from './components/AIChatWidget';
+import { createClient } from '@/utils/supabase/client';
 
 // Dashboard Alt Bileşenleri
 import GreetingWidget from './components/dashboard/GreetingWidget';
@@ -15,26 +16,65 @@ import RecentFilesWidget from './components/dashboard/RecentFilesWidget';
 import GoalsWidget from './components/dashboard/GoalsWidget';
 
 import { useTaskStore } from '@/stores/useTaskStore';
-// Placeholder veriler (Faz 4, 6, 7'de veritabanına bağlanacak)
-
-const PLACEHOLDER_FILES = [
-  { id: 1, name: 'Fıkıh Usulü - Ders 14', type: 'pdf', date: '11 Tem' },
-  { id: 2, name: 'Arapça Sarf Notları', type: 'pdf', date: '10 Tem' },
-  { id: 3, name: 'Hadis Terminolojisi', type: 'docx', date: '9 Tem' },
-];
-
-const PLACEHOLDER_GOALS = [
-  { id: 1, title: 'Arapça B2 seviyesi', progress: 45, color: 'bg-green-500' },
-  { id: 2, title: '10 kitap oku', progress: 30, color: 'bg-blue-500' },
-  { id: 3, title: 'Hafızlık programı', progress: 65, color: 'bg-purple-500' },
-];
+import { useGoalStore } from '@/stores/useGoalStore';
 
 function DashboardContent() {
   const { setIsMusicPanelOpen } = useMusicContext();
   const { tasks } = useTaskStore();
+  const { goals, fetchGoals } = useGoalStore();
+  
+  const [recentFiles, setRecentFiles] = useState<any[]>([]);
+  const [totalWorkMinutes, setTotalWorkMinutes] = useState(0);
 
   const completedTasks = tasks.filter(t => t.is_completed).length;
   const totalTasks = tasks.length;
+  const activeGoalsCount = goals.length;
+
+  useEffect(() => {
+    fetchGoals();
+    
+    const fetchDashboardData = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Son 5 açılan dosyayı çek
+      const { data: files } = await supabase
+        .from('files')
+        .select('*')
+        .eq('userId', user.id)
+        .order('last_opened_at', { ascending: false, nullsFirst: false })
+        .limit(5);
+
+      if (files) {
+        // format for RecentFilesWidget
+        const formattedFiles = files.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          type: f.name.split('.').pop() || 'file',
+          date: new Date(f.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+        }));
+        setRecentFiles(formattedFiles);
+      }
+
+      // Pomodoro toplam süreyi hesapla
+      const { data: sessions } = await supabase
+        .from('pomodoro_sessions')
+        .select('duration_minutes')
+        .eq('user_id', user.id)
+        .eq('mode', 'pomodoro'); // sadece odaklanma süresi
+
+      if (sessions) {
+        const totalMin = sessions.reduce((sum, s) => sum + s.duration_minutes, 0);
+        setTotalWorkMinutes(totalMin);
+      }
+    };
+
+    fetchDashboardData();
+  }, [fetchGoals]);
+
+  const workTimeHours = Math.floor(totalWorkMinutes / 60);
+  const workTimeMinutes = totalWorkMinutes % 60;
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
@@ -59,20 +99,18 @@ function DashboardContent() {
       <QuickStats 
         completedTasks={completedTasks}
         totalTasks={totalTasks}
-        workTimeHours={2}
-        workTimeMinutes={45}
-        monthlyExpense={245}
-        activeGoalsCount={3}
+        workTimeHours={workTimeHours}
+        workTimeMinutes={workTimeMinutes}
+        monthlyExpense={0} // Faz 8
+        activeGoalsCount={activeGoalsCount}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.8s_ease-out]">
         <TasksWidget />
         <QuickNoteWidget />
-        <RecentFilesWidget files={PLACEHOLDER_FILES} />
-        <GoalsWidget goals={PLACEHOLDER_GOALS} />
+        <RecentFilesWidget files={recentFiles} />
+        <GoalsWidget goals={goals} />
       </div>
-
-      <AIChatWidget />
     </div>
   );
 }

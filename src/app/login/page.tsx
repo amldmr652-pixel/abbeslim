@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { LogIn, Key, User, AlertCircle } from 'lucide-react'
+import { useTranslation } from '@/app/hooks/useTranslation'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useTranslation()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,7 +26,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError('Kullanıcı adı veya şifre hatalı.')
+      setError(t('auth.loginError'))
       setLoading(false)
     } else {
       router.push('/')
@@ -39,7 +41,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-3xl font-bold tracking-wider text-green-500 mb-2">abbeslim.</div>
-          <p className="text-gray-400 text-sm">Hesabınıza giriş yapın</p>
+          <p className="text-gray-400 text-sm">{t('auth.loginSubtitle')}</p>
         </div>
 
         {error && (
@@ -51,7 +53,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Kullanıcı Adı</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('auth.username')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-green-600">
                 <User size={18} />
@@ -69,7 +71,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Şifre</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('auth.password')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-green-600">
                 <Key size={18} />
@@ -92,17 +94,17 @@ export default function LoginPage() {
             className="w-full py-3 px-4 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-bold transition-all focus:ring-4 focus:ring-green-500/20 disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 mt-2"
           >
             {loading ? (
-              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Giriş yapılıyor...</>
+              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('auth.loggingIn')}</>
             ) : (
-              <><LogIn size={18} /> Giriş Yap</>
+              <><LogIn size={18} /> {t('auth.login')}</>
             )}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          Hesabınız yok mu?{' '}
+          {t('auth.noAccount')}{' '}
           <a href="/register" className="text-green-500 hover:text-green-400 font-semibold transition-colors">
-            Kayıt Ol
+            {t('auth.register')}
           </a>
         </div>
       </div>

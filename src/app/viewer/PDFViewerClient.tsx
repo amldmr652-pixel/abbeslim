@@ -361,8 +361,8 @@ function PDFViewerContent() {
         }
       `}</style>
 
-      {/* Üst Bar */}
-      <div className="w-full bg-black/80 backdrop-blur-md p-4 sticky top-0 z-50 border-b border-green-900/30 flex justify-between items-center px-6 gap-4">
+      {/* Üst Bar (Widget'larla çakışmaması için pt-20) */}
+      <div className="w-full bg-black/80 backdrop-blur-md pt-20 pb-4 sticky top-0 z-50 border-b border-green-900/30 flex justify-between items-center px-6 gap-4">
         <div className="text-xl font-bold text-green-500 truncate max-w-xs">
           {url.split('/').pop()}
         </div>

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { addFile, FileRecord } from '@/lib/db';
 import { getEmbedding } from '@/lib/ml';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
+
+const supabaseAdmin = createAdminClient();
 
 export const maxDuration = 60;
 
