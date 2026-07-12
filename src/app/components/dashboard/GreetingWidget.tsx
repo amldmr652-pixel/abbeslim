@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Cloud, Sun, CloudRain, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { createClient } from '@/utils/supabase/client';
@@ -52,7 +52,7 @@ export default function GreetingWidget() {
     updateTimeAndDate();
     const interval = setInterval(updateTimeAndDate, 60000);
     return () => clearInterval(interval);
-  }, [language, t]);
+  }, [language]);
 
   useEffect(() => {
     // Hava Durumu Fetch
@@ -109,14 +109,14 @@ export default function GreetingWidget() {
         });
       } catch (error) {
         console.error("Hava durumu alınamadı:", error);
-        setWeather({ temp: 20, desc: t('common.error'), icon: 'cloud', city: 'Bilinmiyor', humidity: 0, wind: 0 });
+        setWeather({ temp: 20, desc: 'Hata', icon: 'cloud', city: 'Bilinmiyor', humidity: 0, wind: 0 });
       } finally {
         setWeatherLoading(false);
       }
     };
 
     fetchWeather();
-  }, [language, t]);
+  }, []);
 
   const getWeatherIcon = (iconName: string, size = 20) => {
     if (iconName.includes('rain')) return <CloudRain size={size} className="text-blue-400" />;

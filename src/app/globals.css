@@ -83,8 +83,5 @@ body.theme-light .text-gray-400 {
   animation: musicFadeIn 0.2s ease-out;
 }
 
-/* Map tiles dark theme filter */
-.map-tiles {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-}
+
 

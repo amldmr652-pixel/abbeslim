@@ -8,6 +8,7 @@ import AIChatWidget from './components/AIChatWidget';
 import Sidebar from './components/layout/Sidebar';
 import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import MusicPanelModal from './components/search/MusicPanelModal';
 
 // Auth sayfaları — bu route'larda widget'lar gizlenir
@@ -28,6 +29,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'ai'>('none');
   const { setFocusMode } = useFocusStore();
+  const { theme } = useSettingsStore();
 
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
@@ -37,6 +39,14 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       setIsAuthenticated(!!data.user);
     });
   }, [pathname]);
+
+  // Tema sınıfını body'ye uygula
+  useEffect(() => {
+    document.body.classList.remove('theme-dark', 'theme-light', 'theme-amoled');
+    if (theme !== 'dark') {
+      document.body.classList.add(`theme-${theme}`);
+    }
+  }, [theme]);
 
   // Panel dışına tıklanırsa kapat
   const handleBackdropClick = () => {

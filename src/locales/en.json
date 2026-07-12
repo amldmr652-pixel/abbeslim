@@ -10,7 +10,13 @@
     "error": "Error",
     "success": "Success",
     "comingSoon": "Coming Soon",
-    "loginRequired": "Login Required"
+    "loginRequired": "Login Required",
+    "back": "Back",
+    "edit": "Edit",
+    "update": "Update",
+    "confirm": "Confirm",
+    "close": "Close",
+    "noData": "No data yet."
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -179,6 +185,49 @@
     "gameOver": "Game Over!",
     "youWin": "You Win!",
     "restart": "Play Again",
-    "back": "Go Back"
+    "back": "Go Back",
+    "resetTime": "Reset Timer"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure your profile, appearance, and sound preferences.",
+    "personalInfo": "Personal Information",
+    "email": "Email Address",
+    "emailNote": "Email address cannot be changed at this time.",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter your name",
+    "profileUpdated": "Successfully updated!",
+    "themeTitle": "Theme Selection",
+    "themeNote": "Theme changes apply instantly.",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeAmoled": "AMOLED Black",
+    "breakSounds": "Break Sounds",
+    "breakSoundsDesc": "Choose a relaxing nature sound to play when your Pomodoro break starts.",
+    "addCustomSound": "Add Your Own Sound",
+    "soundNamePlaceholder": "Sound Name (e.g., Rain 2)",
+    "soundUrlPlaceholder": "Sound URL (.mp3)",
+    "addSound": "Add Sound"
+  },
+  "map": {
+    "title": "Map",
+    "subtitle": "Mark places you've visited, want to go, and important locations on the map.",
+    "addNewPin": "Add New Location",
+    "clickMap": "Click on the Map...",
+    "category": "Category",
+    "locations": "Locations",
+    "noLocations": "No locations added yet.",
+    "newLocation": "New Location",
+    "locationName": "Location name...",
+    "descriptionOptional": "Description (optional)",
+    "planned": "Want to Visit",
+    "visited": "Visited",
+    "all": "All",
+    "general": "General",
+    "city": "Cities",
+    "sacred": "Sacred Places",
+    "nature": "Nature",
+    "history": "History",
+    "food": "Dining"
   }
 }

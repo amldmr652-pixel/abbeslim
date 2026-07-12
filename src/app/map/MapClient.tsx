@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useMapStore, MapMarker } from '@/stores/useMapStore';
-import { Trash2, Edit2, Check } from 'lucide-react';
-import { Button, Input } from '@/app/components/ui';
+import { useMapStore, MapPin, PinCategory, PinStatus } from '@/stores/useMapStore';
+import { Trash2, Edit2, Plus } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 
-// Fix Leaflet's default icon path issues with Next.js
+// Leaflet ikon düzeltmesi (Next.js uyumluluk)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -16,137 +16,330 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom Icons for different colors
-const createCustomIcon = (color: string) => {
+const STATUS_COLORS: Record<PinStatus, string> = {
+  planned: '#eab308',  // Altın — gitmek istediğim
+  visited: '#22c55e',  // Yeşil — gittim
+};
+
+const CATEGORIES: { id: PinCategory; label: string; emoji: string }[] = [
+  { id: 'general', label: 'Genel', emoji: '📍' },
+  { id: 'city', label: 'Şehirler', emoji: '🏙️' },
+  { id: 'sacred', label: 'Kutsal Mekanlar', emoji: '🕌' },
+  { id: 'nature', label: 'Doğa', emoji: '🌿' },
+  { id: 'history', label: 'Tarih', emoji: '🏛️' },
+  { id: 'food', label: 'Yeme-İçme', emoji: '🍽️' },
+];
+
+// Durum bazlı özel pin ikonu oluşturma
+const createPinIcon = (status: PinStatus) => {
+  const color = STATUS_COLORS[status];
   return L.divIcon({
-    className: 'custom-div-icon',
-    html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
+    className: 'custom-pin-icon',
+    html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:${color};border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.4);transform:rotate(-45deg);"></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
   });
 };
 
-const COLOR_MAP = {
-  red: '#ef4444',
-  blue: '#3b82f6',
-  green: '#22c55e',
-  yellow: '#eab308',
-  purple: '#a855f7'
-};
-
-function MapEvents({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) {
-  useMapEvents({
-    click(e) {
-      onMapClick(e);
-    },
-  });
+// Harita tıklama olayı yakalayıcı
+function ClickHandler({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) {
+  useMapEvents({ click: (e) => onMapClick(e) });
   return null;
 }
 
 export default function MapClient() {
-  const { markers, addMarker, removeMarker, updateMarker } = useMapStore();
+  const { pins, isLoading, fetchPins, addPin, updatePin, removePin } = useMapStore();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<PinCategory | 'all'>('all');
+
+  // Yeni konum ekleme state'leri
+  const [isAddMode, setIsAddMode] = useState(false);
+  const [pendingLatLng, setPendingLatLng] = useState<{ lat: number; lng: number } | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newCategory, setNewCategory] = useState<PinCategory>('general');
+  const [newStatus, setNewStatus] = useState<PinStatus>('planned');
+
+  // Düzenleme state'leri
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
-  const [activeColor, setActiveColor] = useState<'red' | 'blue' | 'green' | 'yellow' | 'purple'>('red');
+  useEffect(() => {
+    fetchPins();
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id);
+    });
+  }, [fetchPins]);
 
   const handleMapClick = (e: L.LeafletMouseEvent) => {
-    addMarker({
-      lat: e.latlng.lat,
-      lng: e.latlng.lng,
-      title: 'Yeni Konum',
-      description: 'Konum açıklaması ekleyin...',
-      color: activeColor
+    if (!isAddMode) return;
+    setPendingLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
+  };
+
+  const handleAddConfirm = async () => {
+    if (!userId || !pendingLatLng || !newTitle.trim()) return;
+    await addPin({
+      user_id: userId,
+      lat: pendingLatLng.lat,
+      lng: pendingLatLng.lng,
+      title: newTitle.trim(),
+      description: newDesc.trim(),
+      category: newCategory,
+      status: newStatus,
+      color: STATUS_COLORS[newStatus],
     });
+    // State sıfırla
+    setPendingLatLng(null);
+    setNewTitle('');
+    setNewDesc('');
+    setNewCategory('general');
+    setNewStatus('planned');
+    setIsAddMode(false);
   };
 
-  const startEdit = (m: MapMarker) => {
-    setEditingId(m.id);
-    setEditTitle(m.title);
-    setEditDesc(m.description);
+  const handleToggleStatus = async (pin: MapPin) => {
+    const next: PinStatus = pin.status === 'planned' ? 'visited' : 'planned';
+    await updatePin(pin.id, { status: next, color: STATUS_COLORS[next] });
   };
 
-  const saveEdit = (id: string) => {
-    updateMarker(id, { title: editTitle, description: editDesc });
+  const startEdit = (pin: MapPin) => {
+    setEditingId(pin.id);
+    setEditTitle(pin.title);
+    setEditDesc(pin.description);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    await updatePin(editingId, { title: editTitle, description: editDesc });
     setEditingId(null);
   };
 
+  const filteredPins = selectedCategory === 'all'
+    ? pins
+    : pins.filter((p) => p.category === selectedCategory);
+
   return (
-    <div className="relative w-full h-[calc(100vh-140px)] rounded-3xl overflow-hidden border border-green-900/30 shadow-2xl z-0 isolate">
-      <div className="absolute top-4 left-4 z-[400] glass p-3 flex flex-col gap-2">
-        <p className="text-white text-sm font-bold mb-1">Yeni İşaretçi Rengi</p>
-        <div className="flex gap-2">
-          {(Object.keys(COLOR_MAP) as Array<keyof typeof COLOR_MAP>).map(c => (
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-180px)]">
+      {/* Sol Panel — Kontroller ve Pin Listesi */}
+      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
+        {/* Yeni Konum Ekle Butonu */}
+        <button
+          onClick={() => { setIsAddMode(!isAddMode); if (isAddMode) setPendingLatLng(null); }}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-medium transition-all ${
+            isAddMode
+              ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]'
+              : 'glass text-gray-300 hover:text-white hover:border-green-500/30'
+          }`}
+        >
+          <Plus size={18} />
+          {isAddMode ? 'Haritaya Tıklayın...' : 'Yeni Konum Ekle'}
+        </button>
+
+        {/* Kategori Filtresi */}
+        <div className="glass p-4 rounded-2xl">
+          <p className="text-xs text-gray-500 uppercase font-bold mb-3 tracking-wider">Kategori</p>
+          <div className="flex flex-wrap gap-2">
             <button
-              key={c}
-              onClick={() => setActiveColor(c)}
-              className={`w-6 h-6 rounded-full border-2 transition-transform ${activeColor === c ? 'border-white scale-125' : 'border-transparent opacity-50 hover:opacity-100'}`}
-              style={{ backgroundColor: COLOR_MAP[c] }}
-            />
-          ))}
+              onClick={() => setSelectedCategory('all')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                selectedCategory === 'all'
+                  ? 'bg-green-600/30 text-green-400 border border-green-500/30'
+                  : 'text-gray-400 hover:text-white glass'
+              }`}
+            >
+              Tümü ({pins.length})
+            </button>
+            {CATEGORIES.map((cat) => {
+              const count = pins.filter((p) => p.category === cat.id).length;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    selectedCategory === cat.id
+                      ? 'bg-green-600/30 text-green-400 border border-green-500/30'
+                      : 'text-gray-400 hover:text-white glass'
+                  }`}
+                >
+                  {cat.emoji} {cat.label} {count > 0 && `(${count})`}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <p className="text-gray-400 text-xs mt-1">Haritaya tıklayarak ekleyin.</p>
+
+        {/* Pin Listesi */}
+        <div className="glass p-4 rounded-2xl flex-1 overflow-y-auto custom-scrollbar">
+          <p className="text-xs text-gray-500 uppercase font-bold mb-3 tracking-wider">
+            Konumlar {isLoading && <span className="text-green-500 ml-1">•</span>}
+          </p>
+          {filteredPins.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-6">
+              {isLoading ? 'Yükleniyor...' : 'Henüz konum eklenmemiş.'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {filteredPins.map((pin) => {
+                const cat = CATEGORIES.find((c) => c.id === pin.category);
+                return (
+                  <div key={pin.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: STATUS_COLORS[pin.status as PinStatus] || '#22c55e' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{pin.title}</p>
+                      <p className="text-xs text-gray-500">
+                        {cat?.emoji} {cat?.label} • {pin.status === 'visited' ? '✅ Gidildi' : '⏳ Planlandı'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removePin(pin.id)}
+                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      <MapContainer 
-        center={[39.0, 35.0]} // Turkey center roughly
-        zoom={6} 
-        style={{ height: '100%', width: '100%', background: '#0a0a0a', zIndex: 0 }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
-          className="map-tiles"
-        />
-        
-        <MapEvents onMapClick={handleMapClick} />
+      {/* Harita Alanı */}
+      <div className="flex-1 rounded-3xl overflow-hidden border border-green-900/30 shadow-2xl z-0 isolate relative">
+        <MapContainer
+          center={[39.0, 35.0]}
+          zoom={6}
+          style={{ height: '100%', width: '100%', background: '#0a0a0a', zIndex: 0 }}
+        >
+          {/* CARTO Dark — doğrudan koyu tema, CSS filter gerekmiyor */}
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          />
+          <ClickHandler onMapClick={handleMapClick} />
 
-        {markers.map(m => (
-          <Marker 
-            key={m.id} 
-            position={[m.lat, m.lng]} 
-            icon={createCustomIcon(COLOR_MAP[m.color])}
-          >
-            <Popup className="custom-popup">
-              <div className="min-w-[200px] text-gray-800">
-                {editingId === m.id ? (
-                  <div className="flex flex-col gap-2">
-                    <input 
-                      value={editTitle} 
-                      onChange={e => setEditTitle(e.target.value)} 
-                      className="border-b border-gray-300 outline-none px-1 text-sm font-bold bg-transparent"
-                      placeholder="Başlık"
-                    />
-                    <textarea 
-                      value={editDesc} 
-                      onChange={e => setEditDesc(e.target.value)}
-                      className="border border-gray-300 rounded outline-none p-1 text-xs resize-none h-16 bg-transparent"
-                      placeholder="Açıklama"
-                    />
-                    <Button onClick={() => saveEdit(m.id)} size="sm" className="w-full justify-center !py-1">
-                      Kaydet
-                    </Button>
-                  </div>
-                ) : (
-                  <div>
-                    <h3 className="font-bold text-base mb-1">{m.title}</h3>
-                    <p className="text-sm text-gray-600 mb-3 break-words">{m.description}</p>
-                    <div className="flex justify-between border-t pt-2 border-gray-200 mt-2">
-                      <button onClick={() => startEdit(m)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 text-xs font-medium">
-                        <Edit2 size={12} /> Düzenle
-                      </button>
-                      <button onClick={() => removeMarker(m.id)} className="text-red-500 hover:text-red-700 flex items-center gap-1 text-xs font-medium">
-                        <Trash2 size={12} /> Sil
+          {filteredPins.map((pin) => (
+            <Marker
+              key={pin.id}
+              position={[pin.lat, pin.lng]}
+              icon={createPinIcon(pin.status as PinStatus)}
+            >
+              <Popup>
+                <div className="min-w-[220px] text-gray-800">
+                  {editingId === pin.id ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="border-b border-gray-300 outline-none px-1 text-sm font-bold bg-transparent"
+                        placeholder="Başlık"
+                      />
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        className="border border-gray-300 rounded outline-none p-1 text-xs resize-none h-16 bg-transparent"
+                        placeholder="Açıklama"
+                      />
+                      <button
+                        onClick={saveEdit}
+                        className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-green-600 transition-colors"
+                      >
+                        Kaydet
                       </button>
                     </div>
-                  </div>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+                  ) : (
+                    <div>
+                      <h3 className="font-bold text-base mb-1">{pin.title}</h3>
+                      {pin.description && (
+                        <p className="text-sm text-gray-600 mb-2 break-words">{pin.description}</p>
+                      )}
+                      <div className="flex gap-2 border-t pt-2 mt-2 border-gray-200">
+                        <button
+                          onClick={() => handleToggleStatus(pin)}
+                          className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
+                        >
+                          {pin.status === 'planned' ? '✅ Gittim' : '⏳ Plana Al'}
+                        </button>
+                        <button
+                          onClick={() => startEdit(pin)}
+                          className="text-blue-500 text-xs flex items-center gap-1 hover:text-blue-700"
+                        >
+                          <Edit2 size={12} /> Düzenle
+                        </button>
+                        <button
+                          onClick={() => removePin(pin.id)}
+                          className="text-red-500 text-xs flex items-center gap-1 hover:text-red-700"
+                        >
+                          <Trash2 size={12} /> Sil
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+
+        {/* Yeni Konum Ekleme Paneli (haritaya tıklandığında açılır) */}
+        {pendingLatLng && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[500] glass p-5 rounded-2xl w-[90%] max-w-md border border-green-500/30 shadow-2xl">
+            <h3 className="text-white font-bold mb-3">Yeni Konum</h3>
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Konum adı..."
+              className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 px-4 text-white text-sm mb-2 outline-none focus:border-green-500 transition-colors"
+            />
+            <textarea
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="Açıklama (opsiyonel)"
+              className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 px-4 text-white text-sm mb-3 outline-none focus:border-green-500 resize-none h-16 transition-colors"
+            />
+            <div className="flex gap-2 mb-3">
+              <select
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value as PinCategory)}
+                className="flex-1 bg-black/50 border border-green-900/50 rounded-xl p-2 text-white text-sm outline-none"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                ))}
+              </select>
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value as PinStatus)}
+                className="flex-1 bg-black/50 border border-green-900/50 rounded-xl p-2 text-white text-sm outline-none"
+              >
+                <option value="planned">⏳ Gitmek İstiyorum</option>
+                <option value="visited">✅ Gittim</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddConfirm}
+                disabled={!newTitle.trim()}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-medium transition-colors"
+              >
+                Ekle
+              </button>
+              <button
+                onClick={() => { setPendingLatLng(null); setIsAddMode(false); }}
+                className="px-4 py-2.5 glass text-gray-400 hover:text-white rounded-xl text-sm transition-colors"
+              >
+                İptal
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

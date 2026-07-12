@@ -109,6 +109,38 @@ export default function SettingsPage() {
               <Card padding="lg">
                 <h2 className="text-xl font-bold text-white mb-6">Kişisel Bilgiler</h2>
                 <div className="space-y-5 max-w-md">
+                  {/* Avatar */}
+                  <div className="flex items-center gap-6 pb-4 border-b border-white/10">
+                    <div className="relative group">
+                      <div className="w-20 h-20 rounded-full bg-green-900/30 flex items-center justify-center text-3xl font-bold text-green-400 overflow-hidden">
+                        {user?.user_metadata?.avatar_url ? (
+                          <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          (fullName || user?.email || '?')[0].toUpperCase()
+                        )}
+                      </div>
+                      <label className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
+                        <Camera size={20} className="text-white" />
+                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !user) return;
+                          const ext = file.name.split('.').pop();
+                          const filePath = `${user.id}/avatar.${ext}`;
+                          const supabaseClient = createClient();
+                          const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, { upsert: true });
+                          if (uploadError) { console.error('Avatar yüklenemedi:', uploadError); return; }
+                          const { data: { publicUrl } } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
+                          await supabaseClient.auth.updateUser({ data: { avatar_url: publicUrl } });
+                          setUser({ ...user, user_metadata: { ...user.user_metadata, avatar_url: publicUrl } });
+                        }} />
+                      </label>
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-lg">{fullName || 'İsimsiz Kullanıcı'}</p>
+                      <p className="text-gray-500 text-sm">{user?.email}</p>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-400 mb-2">E-posta Adresi</label>
                     <Input 
@@ -172,7 +204,7 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-6 text-sm text-gray-500">Not: Tema değişikliği Life OS yapısının temel renklerini etkiler. (Tam destek yakında eklenecektir).</p>
+                <p className="mt-6 text-sm text-gray-500">Not: Tema değişikliği anlık olarak uygulanır. Dark (varsayılan), Açık ve AMOLED Siyah seçenekleri mevcuttur.</p>
               </Card>
             </div>
           )}

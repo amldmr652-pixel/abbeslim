@@ -319,3 +319,52 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 **Sonraki Adımlar (Bırakılan İş):**
 - Kodlar başarıyla Vercel üretim ortamına gönderilmeye hazırdır. 
 - Sıradaki fazlar: Hedefler & Alışkanlıklar (Faz 11) veya Finans Modülü (Faz 12) geliştirilebilir.
+
+---
+
+## [2026-07-12] Grup 1: Son Dosyalar + Finans Bağlantısı - Tamamlandı
+
+**Durum:** Tamamlandı
+
+**Yapılan İşlemler:**
+1. **Son Dosyalar Widget Düzeltmesi (Görev 1.1):** 
+   - `src/app/page.tsx` dosyasında son dosyaları çekip formatlayan `useEffect` bloğu güncellendi. `url` ve `file_url` alanlarının düzgün eşlenmesi (`url: f.file_url || f.url || null`) sağlandı.
+   - `src/app/components/dashboard/RecentFilesWidget.tsx` bileşeni tamamen yenilenerek interaktif hale getirildi; artık son dosyalara tıklandığında (PDF ise `/viewer` sayfasında, değilse doğrudan kendi url/file_url adresinde) yeni sekmede açılmaktadır.
+2. **Dashboard Finans Bağlantısı (Görev 1.2):** 
+   - `src/app/page.tsx` dosyasında `useFinanceStore` entegre edildi.
+   - Dashboard yüklendiğinde `fetchTransactions()` çağrısı `useEffect` içerisine eklendi.
+   - `QuickStats` bileşenindeki `monthlyExpense={0}` statik değeri `monthlyExpense={getTotalExpense()}` çağrısı ile gerçek finansal veri kaynağından çekilecek şekilde dinamikleştirildi.
+3. **Build ve Deploy:** 
+   - Değişiklikler sonrası yerelde `npm run build` başarıyla çalıştırıldı ve test edildi.
+   - `npx vercel --prod --yes` komutuyla abbeslim.vercel.app adresine deploy işlemi sorunsuz gerçekleştirildi.
+
+---
+
+## [2026-07-12T22:30] V2.2 — Kapsamlı Düzeltme ve İyileştirme (Antigravity/Claude)
+
+**Durum:** 5 gruptan 5'i tamamlandı.
+
+### Grup 1: Kritik Bug Düzeltmeleri
+1. **Hava Durumu Widget Flicker (GreetingWidget.tsx):** `useEffect([language, t])` sonsuz döngü — `t` her render'da yeniden oluşuyordu. Çözüm: `t` bağımlılıktan kaldırıldı.
+2. **Son Dosyalar Widget (page.tsx):** `files` tablosu camelCase (`createdAt`, `url`) ama sorgu snake_case (`created_at`, `file_url`) kullanıyordu. Düzeltildi.
+
+### Grup 2: Harita Modülü (Sıfırdan)
+- `useMapStore.ts`: localStorage → Supabase CRUD
+- `MapClient.tsx`: CARTO Dark tile, sol panel kategori filtresi, pin durumu (planlandı/gidildi), `z-0 isolate`
+- `globals.css`: `.map-tiles` CSS filter kaldırıldı
+- `scripts/map-migration.sql`: Yeni tablo + RLS
+
+### Grup 3: Tema Sistemi
+- `LayoutShell.tsx`: `useSettingsStore().theme` → `document.body.classList` ile tema uygulanıyor
+
+### Grup 4: Profil Genişletme
+- `settings/page.tsx`: Avatar yükleme (Supabase Storage `avatars` bucket)
+
+### Grup 5: i18n Genişletme
+- `tr.json`, `en.json`, `ar.json`: `settings`, `map`, ek `common`, `games.resetTime` anahtarları eklendi
+
+### Kullanıcı Aksiyonu Gerekli
+1. `scripts/map-migration.sql` → Supabase SQL Editor'de çalıştır
+2. Supabase Dashboard → Storage → `avatars` public bucket oluştur
+
+

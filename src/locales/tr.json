@@ -10,7 +10,13 @@
     "error": "Hata",
     "success": "Başarılı",
     "comingSoon": "Yakında",
-    "loginRequired": "Giriş Yapmanız Gerekiyor"
+    "loginRequired": "Giriş Yapmanız Gerekiyor",
+    "back": "Geri",
+    "edit": "Düzenle",
+    "update": "Güncelle",
+    "confirm": "Onayla",
+    "close": "Kapat",
+    "noData": "Henüz veri yok."
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -179,6 +185,49 @@
     "gameOver": "Oyun Bitti!",
     "youWin": "Kazandınız!",
     "restart": "Tekrar Oyna",
-    "back": "Geri Dön"
+    "back": "Geri Dön",
+    "resetTime": "Süreyi Sıfırla"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "subtitle": "Profilinizi, görünümü ve ses tercihlerinizi yapılandırın.",
+    "personalInfo": "Kişisel Bilgiler",
+    "email": "E-posta Adresi",
+    "emailNote": "E-posta adresi şu anda değiştirilemez.",
+    "fullName": "Ad Soyad",
+    "fullNamePlaceholder": "Adınızı girin",
+    "profileUpdated": "Başarıyla güncellendi!",
+    "themeTitle": "Tema Seçimi",
+    "themeNote": "Tema değişikliği anlık olarak uygulanır.",
+    "themeDark": "Koyu",
+    "themeLight": "Açık",
+    "themeAmoled": "AMOLED Siyah",
+    "breakSounds": "Mola Sesleri",
+    "breakSoundsDesc": "Pomodoro molası başladığında çalacak rahatlatıcı doğa sesini seçin.",
+    "addCustomSound": "Kendi Sesini Ekle",
+    "soundNamePlaceholder": "Ses Adı (Örn: Yağmur 2)",
+    "soundUrlPlaceholder": "Ses URL'si (.mp3)",
+    "addSound": "Ses Ekle"
+  },
+  "map": {
+    "title": "Harita",
+    "subtitle": "Gezdiğiniz yerleri, gitmek istediğiniz mekanları ve önemli konumları haritada işaretleyin.",
+    "addNewPin": "Yeni Konum Ekle",
+    "clickMap": "Haritaya Tıklayın...",
+    "category": "Kategori",
+    "locations": "Konumlar",
+    "noLocations": "Henüz konum eklenmemiş.",
+    "newLocation": "Yeni Konum",
+    "locationName": "Konum adı...",
+    "descriptionOptional": "Açıklama (opsiyonel)",
+    "planned": "Gitmek İstiyorum",
+    "visited": "Gittim",
+    "all": "Tümü",
+    "general": "Genel",
+    "city": "Şehirler",
+    "sacred": "Kutsal Mekanlar",
+    "nature": "Doğa",
+    "history": "Tarih",
+    "food": "Yeme-İçme"
   }
 }

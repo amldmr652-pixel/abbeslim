@@ -1,23 +1,29 @@
 'use client';
-
 import { FileText, ChevronRight } from 'lucide-react';
 import { Card } from '@/app/components/ui';
 import Link from 'next/link';
 import { useTranslation } from '@/app/hooks/useTranslation';
-
 interface RecentFile {
   id: string | number;
   name: string;
   type: string;
   date: string;
+  url?: string | null;
 }
-
 interface RecentFilesWidgetProps {
   files: RecentFile[];
 }
-
 export default function RecentFilesWidget({ files }: RecentFilesWidgetProps) {
   const { t } = useTranslation();
+  const handleFileClick = (file: RecentFile) => {
+    if (file.url) {
+      if (file.type === 'pdf') {
+        window.open(`/viewer?url=${encodeURIComponent(file.url)}`, '_blank');
+      } else {
+        window.open(file.url, '_blank');
+      }
+    }
+  };
   return (
     <Card padding="lg">
       <div className="flex items-center justify-between mb-5">
@@ -33,7 +39,11 @@ export default function RecentFilesWidget({ files }: RecentFilesWidgetProps) {
           <div className="text-sm text-gray-500 text-center py-4">{t('dashboard.noFiles')}</div>
         ) : (
           files.map(file => (
-            <div key={file.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer">
+            <div 
+              key={file.id} 
+              onClick={() => handleFileClick(file)}
+              className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer"
+            >
               <div className="p-2 bg-orange-900/20 rounded-lg shrink-0">
                 <FileText size={16} className="text-orange-400" />
               </div>

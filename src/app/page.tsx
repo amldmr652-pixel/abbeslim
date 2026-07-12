@@ -22,6 +22,7 @@ import GoalsWidget from './components/dashboard/GoalsWidget';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useGoalStore } from '@/stores/useGoalStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useFinanceStore } from '@/stores/useFinanceStore';
 
 function SortableWidgetWrapper({ id, children }: { id: string, children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({id});
@@ -52,6 +53,7 @@ function DashboardContent() {
   const { tasks } = useTaskStore();
   const { goals, fetchGoals } = useGoalStore();
   const { dashboardOrder, setDashboardOrder } = useSettingsStore();
+  const { fetchTransactions, getTotalExpense } = useFinanceStore();
   
   const [recentFiles, setRecentFiles] = useState<any[]>([]);
   const [totalWorkMinutes, setTotalWorkMinutes] = useState(0);
@@ -62,27 +64,29 @@ function DashboardContent() {
 
   useEffect(() => {
     fetchGoals();
+    fetchTransactions();
     
     const fetchDashboardData = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Son 5 açılan dosyayı çek
+      // Son 5 dosyayı çek
       const { data: files } = await supabase
         .from('files')
-        .select('*')
+        .select('id, name, url, createdAt')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .eq('isDeleted', false)
+        .order('createdAt', { ascending: false })
         .limit(5);
 
-      if (files) {
-        // format for RecentFilesWidget
+      if (files && files.length > 0) {
         const formattedFiles = files.map((f: any) => ({
           id: f.id,
           name: f.name,
           type: f.name.split('.').pop() || 'file',
-          date: new Date(f.created_at || f.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+          date: new Date(f.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+          url: f.url || null
         }));
         setRecentFiles(formattedFiles);
       }
@@ -146,7 +150,7 @@ function DashboardContent() {
         totalTasks={totalTasks}
         workTimeHours={workTimeHours}
         workTimeMinutes={workTimeMinutes}
-        monthlyExpense={0} // Faz 8
+        monthlyExpense={getTotalExpense()}
         activeGoalsCount={activeGoalsCount}
       />
 

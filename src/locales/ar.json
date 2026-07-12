@@ -10,7 +10,13 @@
     "error": "خطأ",
     "success": "نجاح",
     "comingSoon": "قريبا",
-    "loginRequired": "تسجيل الدخول مطلوب"
+    "loginRequired": "تسجيل الدخول مطلوب",
+    "back": "رجوع",
+    "edit": "تعديل",
+    "update": "تحديث",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "noData": "لا توجد بيانات بعد."
   },
   "sidebar": {
     "dashboard": "لوحة القيادة",
@@ -179,6 +185,49 @@
     "gameOver": "انتهت اللعبة!",
     "youWin": "لقد فزت!",
     "restart": "العب مرة أخرى",
-    "back": "عد للخلف"
+    "back": "عد للخلف",
+    "resetTime": "إعادة ضبط المؤقت"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "إدارة ملفك الشخصي والمظهر وإعدادات الأصوات.",
+    "personalInfo": "المعلومات الشخصية",
+    "email": "البريد الإلكتروني",
+    "emailNote": "لا يمكن تغيير البريد الإلكتروني حاليًا.",
+    "fullName": "الاسم الكامل",
+    "fullNamePlaceholder": "أدخل اسمك",
+    "profileUpdated": "تم التحديث بنجاح!",
+    "themeTitle": "اختيار السمة",
+    "themeNote": "يتم تطبيق تغييرات السمة فورًا.",
+    "themeDark": "داكن",
+    "themeLight": "فاتح",
+    "themeAmoled": "أسود AMOLED",
+    "breakSounds": "أصوات الاستراحة",
+    "breakSoundsDesc": "اختر صوتًا مريحًا ليُشغل عند بدء استراحة بومودورو.",
+    "addCustomSound": "أضف صوتك الخاص",
+    "soundNamePlaceholder": "اسم الصوت",
+    "soundUrlPlaceholder": "رابط الصوت (.mp3)",
+    "addSound": "إضافة صوت"
+  },
+  "map": {
+    "title": "الخريطة",
+    "subtitle": "حدد الأماكن التي زرتها والأماكن التي تريد زيارتها على الخريطة.",
+    "addNewPin": "إضافة موقع جديد",
+    "clickMap": "انقر على الخريطة...",
+    "category": "الفئة",
+    "locations": "المواقع",
+    "noLocations": "لم تتم إضافة مواقع بعد.",
+    "newLocation": "موقع جديد",
+    "locationName": "اسم الموقع...",
+    "descriptionOptional": "الوصف (اختياري)",
+    "planned": "أريد الذهاب",
+    "visited": "زرتها",
+    "all": "الكل",
+    "general": "عام",
+    "city": "مدن",
+    "sacred": "أماكن مقدسة",
+    "nature": "طبيعة",
+    "history": "تاريخ",
+    "food": "مطاعم"
   }
 }
