@@ -454,3 +454,16 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **Arayüz Geliştirmesi:** `LibraryModals.tsx` yükleme ekranına progress bar (yükleme ilerleme çubuğu) ve durum metni eklendi. Yükleme esnasında kullanıcının yükleme adımlarını ("Hazırlanıyor...", "Dosya yükleniyor...", "Kayıt oluşturuluyor...") takip etmesi sağlandı.
   - **Doğrulama:** `npm run build` ile proje derlendi ve derleme başarıyla tamamlandı.
 
+---
+
+## [2026-07-13T01:15] V2.10 — Geri Dönüşüm Kutusu Toplu Silme (Çöpü Boşaltma) Desteği (Antigravity/Gemini)
+
+### 1. Geri Dönüşüm Kutusunu Tek Tıkla Boşaltma Butonu (TrashView.tsx, useLibrary.ts & /api/files)
+- **Sorun:** Geri dönüşüm kutusundaki tüm dosyaları kalıcı olarak silmek için kullanıcının her dosyayı tek tek "Kalıcı Sil" diyerek onaylaması gerekiyordu. Toplu bir silme yöntemi yoktu.
+- **Çözüm:**
+  - **API Geliştirmesi:** `/api/files/route.ts` içindeki `DELETE` handler'ına `action === 'clear_trash'` parametresi eklendi. Bu eylem tetiklendiğinde kullanıcının `isDeleted: true` durumundaki tüm dosyaları tespit ediliyor, veritabanından topluca (`delete().in()`) siliniyor ve ilişkili fiziksel dosyalar Supabase Storage üzerinden toplu olarak (`supabase.storage.from('uploads').remove()`) temizleniyor.
+  - **Hook Entegrasyonu:** `useLibrary.ts` hook'una `handleClearTrash` adında yeni bir metot eklenerek API'deki toplu silme eylemi bağlandı ve başarılı silme sonrası `trashedFiles` state'i temizlendi.
+  - **Kullanıcı Arayüzü:** `TrashView.tsx` bileşenine çöp kutusunda dosya bulunduğunda görünmesi için "Geri Dönüşüm Kutusunu Boşalt" butonu ve toplam silinen dosya sayısını gösteren bir bar yerleştirildi. Butona tıklandığında kullanıcıdan onay (`confirm`) alınarak işlem gerçekleştiriliyor.
+  - **Doğrulama:** `npm run build` hatasız tamamlandı.
+
+

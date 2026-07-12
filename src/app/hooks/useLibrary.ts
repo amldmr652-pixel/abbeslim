@@ -217,6 +217,23 @@ export function useLibrary() {
     }
   };
 
+  // Çöpü tamamen boşalt (toplu silme)
+  const handleClearTrash = async () => {
+    if (!confirm('Geri dönüşüm kutusundaki TÜM dosyalar kalıcı olarak silinecek ve kurtarılamayacak. Emin misiniz?')) return;
+    try {
+      const res = await fetch('/api/files?action=clear_trash', { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setTrashedFiles([]);
+        alert('Geri dönüşüm kutusu başarıyla temizlendi.');
+      } else {
+        alert('Hata: ' + (data.error || 'Temizlenemedi.'));
+      }
+    } catch {
+      alert('Geri dönüşüm kutusu temizlenirken hata oluştu.');
+    }
+  };
+
   // Kategori adı kaydet
   const handleSaveCategory = async (id: string) => {
     if (!editingCategoryName.trim()) return;
@@ -458,7 +475,7 @@ export function useLibrary() {
     isMovingCategory, setIsMovingCategory,
 
     handleRenameFile, handleMoveFile, handleMoveCategory, handleTrash,
-    handleRestore, handlePermanentDelete, handleSaveCategory, handleAddCategory,
+    handleRestore, handlePermanentDelete, handleClearTrash, handleSaveCategory, handleAddCategory,
     handleDeleteCategory, handleOpenUploadModal, handleUpload, getBreadcrumbs,
     getDescendants, filteredSidebarCategories, currentCategories, filteredFiles,
     breadcrumbs

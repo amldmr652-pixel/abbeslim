@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function TrashView({ libraryState }: Props) {
-  const { trashLoading, trashedFiles, handleRestore, handlePermanentDelete } = libraryState;
+  const { trashLoading, trashedFiles, handleRestore, handlePermanentDelete, handleClearTrash } = libraryState;
 
   return (
     <div className="w-full flex-1">
@@ -22,38 +22,51 @@ export function TrashView({ libraryState }: Props) {
           🗑️ Geri dönüşüm kutusu boş.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {trashedFiles.map(file => (
-            <div key={file.id} className="glass p-7 rounded-3xl border border-red-900/30 flex flex-col justify-between opacity-80 hover:opacity-100 transition-all shadow-2xl hover:border-red-500/50 hover:shadow-[0_0_40px_rgba(185,28,28,0.15)]">
-              <div>
-                <div className="flex items-start gap-5 mb-6">
-                  <div className="p-4 bg-red-900/20 rounded-2xl flex-shrink-0 shadow-lg">
-                    {getFileIcon(file.type)}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white text-2xl line-clamp-2 mb-2 leading-tight">{file.name}</h3>
-                    <p className="text-sm text-gray-400 font-medium">
-                      Silinme: {file.deletedAt ? new Date(file.deletedAt).toLocaleDateString('tr-TR') : '—'}
-                    </p>
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+            <span className="text-gray-400 text-sm font-medium">
+              Toplam {trashedFiles.length} dosya bulundu
+            </span>
+            <button
+              onClick={handleClearTrash}
+              className="px-6 py-2.5 bg-red-950/40 hover:bg-red-800/80 text-red-200 hover:text-white rounded-full text-sm font-bold transition-all flex items-center gap-2 border border-red-500/20 hover:border-red-500/50 shadow-lg"
+            >
+              <Trash2 size={16} /> Geri Dönüşüm Kutusunu Boşalt
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {trashedFiles.map(file => (
+              <div key={file.id} className="glass p-7 rounded-3xl border border-red-900/30 flex flex-col justify-between opacity-80 hover:opacity-100 transition-all shadow-2xl hover:border-red-500/50 hover:shadow-[0_0_40px_rgba(185,28,28,0.15)]">
+                <div>
+                  <div className="flex items-start gap-5 mb-6">
+                    <div className="p-4 bg-red-900/20 rounded-2xl flex-shrink-0 shadow-lg">
+                      {getFileIcon(file.type)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-2xl line-clamp-2 mb-2 leading-tight">{file.name}</h3>
+                      <p className="text-sm text-gray-400 font-medium">
+                        Silinme: {file.deletedAt ? new Date(file.deletedAt).toLocaleDateString('tr-TR') : '—'}
+                      </p>
+                    </div>
                   </div>
                 </div>
+                <div className="flex gap-4 mt-8">
+                  <button
+                    onClick={() => handleRestore(file.id)}
+                    className="flex-1 py-3.5 bg-green-900/40 hover:bg-green-700 text-green-300 rounded-full text-base font-bold transition-colors flex items-center justify-center gap-2 shadow-lg border border-green-500/30 hover:border-transparent"
+                  >
+                    <RefreshCw size={20} /> Geri Al
+                  </button>
+                  <button
+                    onClick={() => handlePermanentDelete(file.id)}
+                    className="flex-1 py-3.5 bg-red-900/40 hover:bg-red-700 text-red-300 rounded-full text-base font-bold transition-colors flex items-center justify-center gap-2 shadow-lg border border-red-500/30 hover:border-transparent"
+                  >
+                    <Trash2 size={20} /> Kalıcı Sil
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => handleRestore(file.id)}
-                  className="flex-1 py-3.5 bg-green-900/40 hover:bg-green-700 text-green-300 rounded-full text-base font-bold transition-colors flex items-center justify-center gap-2 shadow-lg border border-green-500/30 hover:border-transparent"
-                >
-                  <RefreshCw size={20} /> Geri Al
-                </button>
-                <button
-                  onClick={() => handlePermanentDelete(file.id)}
-                  className="flex-1 py-3.5 bg-red-900/40 hover:bg-red-700 text-red-300 rounded-full text-base font-bold transition-colors flex items-center justify-center gap-2 shadow-lg border border-red-500/30 hover:border-transparent"
-                >
-                  <Trash2 size={20} /> Kalıcı Sil
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -50,6 +50,51 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const action = searchParams.get('action') || 'trash';
+
+    if (action === 'clear_trash') {
+      // 1. Get all deleted files for this user
+      const { data: trashedFiles, error: fetchError } = await supabase
+        .from('files')
+        .select('id, url')
+        .eq('isDeleted', true)
+        .eq('user_id', user.id);
+
+      if (fetchError) throw fetchError;
+
+      if (!trashedFiles || trashedFiles.length === 0) {
+        return NextResponse.json({ success: true, message: 'Çöp kutusu zaten boş.' });
+      }
+
+      // 2. Delete them from database
+      const idsToDelete = trashedFiles.map(f => f.id);
+      const { error: deleteError } = await supabase
+        .from('files')
+        .delete()
+        .in('id', idsToDelete)
+        .eq('user_id', user.id);
+
+      if (deleteError) throw deleteError;
+
+      // 3. Remove them from Storage
+      const filesToRemove = trashedFiles
+        .map(f => {
+          if (!f.url) return null;
+          const urlParts = f.url.split('/');
+          return urlParts[urlParts.length - 1];
+        })
+        .filter((name): name is string => !!name);
+
+      if (filesToRemove.length > 0) {
+        try {
+          await supabase.storage.from('uploads').remove(filesToRemove);
+        } catch (err) {
+          console.error('Toplu storage silme hatası:', err);
+        }
+      }
+
+      return NextResponse.json({ success: true, count: trashedFiles.length });
+    }
+
     if (!id) return NextResponse.json({ error: 'ID gerekli.' }, { status: 400 });
 
     if (action === 'trash') {
