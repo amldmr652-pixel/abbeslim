@@ -611,3 +611,19 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** Boşluklar korunduğu için bağımsız kelimeler sınır kontrolüne takılmadan mükemmel şekilde tespit edilmekte ve sarı vurguları başarıyla çizilmektedir.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T02:18] V2.22 — Arama Karakter Sınırının Kaldırılması ve Sayfa Segmentasyonu Düzeltmesi (route.ts & SearchResultsList.tsx)
+
+### 1. Kitapların Tamamının Taranabilmesi İçin Arama Limitinin Artırılması
+- **Sorun:** Büyük kitaplarda (örn. Muhtarul Enba) sayfa 220 ve 221 gibi kitabın son kısımlarında geçen kelimeler aramalarda hiçbir şekilde görünmüyordu. Arama panelinde sadece ilk 20-30 sayfadaki sonuçlar (örn. Sayfa 10 ve Sayfa 27) listeleniyordu.
+- **Sebep Analizi:** `search/route.ts` API endpoint'i içerisinde metin işlenirken `cleanText.substring(0, 50000)` şeklinde sert kodlanmış 50.000 karakterlik bir sınır bulunuyordu. Bu sınır ortalama 15-20 sayfaya denk geldiği için, kitabın geri kalan %90'lık kısmı arama motoru tarafından tamamen yok sayılıyor ve kırpılıyordu.
+- **Çözüm:** 
+  - `cleanText` üzerindeki 50.000 karakterlik limit 5.000.000 (5 Milyon) karaktere çıkarılarak tüm kitapların baştan sona eksiksiz taranabilmesi sağlandı.
+  - `SearchResultsList.tsx` içinde URL'e aktarılan maksimum sayfa eşleşme listesi (`pmSlice`) boyutu `20` sayfadan `100` sayfaya yükseltilerek yoğun kelimelerin tamamının panelde listelenmesi sağlandı.
+
+### 2. Regex lastIndex Çakışmasının Önlenmesi (Sayfa Marker Bölümleme)
+- **Sorun:** Sayfa marker'ları (`[PAGE: N]`) taranıp segmentasyon yapılırken, regex `exec` döngüsü içinde asenkron `indexOf` aramaları yapıldığı için döngü kararsızlaşıyor ve bazı sayfalardaki verilerin kaybolmasına sebep oluyordu.
+- **Çözüm:** `findAllPageMatches` metodu, önce tüm sayfa marker indekslerini regex ile toplayıp ardından bu indeks aralıklarına göre metni bölecek şekilde tamamen kararlı bir algoritmaya dönüştürüldü.
+- **Sonuç:** Kitaplardaki tüm sayfalar eksiksiz taranmakta ve sayfa 220, 221 gibi arka sayfalardaki eşleşmeler de arama panelinde başarıyla listelenmektedir.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
