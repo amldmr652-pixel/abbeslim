@@ -497,9 +497,11 @@ function PDFViewerContent() {
   }, [query, mode]);
 
   const onTextLayerRender = useCallback(() => {
-    setTimeout(doHighlight, 50);
-    setTimeout(doHighlight, 300);
-    setTimeout(doHighlight, 700);
+    // DOM hazır olduğu anda gecikmesiz çalıştır
+    doHighlight();
+    // Tarayıcı render döngülerinde oluşabilecek gecikmeleri yakalamak için çok küçük bir event loop tetiklemesi yap
+    setTimeout(doHighlight, 0);
+    setTimeout(doHighlight, 100);
   }, [doHighlight]);
 
   useEffect(() => {
