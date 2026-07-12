@@ -557,3 +557,16 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** `Ý` harfi `ت` (Te) olarak eşlendiğinden, `الَّتِي` kelimesi artık `التي` şeklinde doğru transkribe ediliyor ve `هل` kelimesiyle benzerliği/yanlış eşleşmesi tamamen ortadan kaldırıldı.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T01:58] V2.18 — Gemini Destekli Otomatik Bozuk Font Algılama ve Temizleme (Antigravity/Gemini)
+
+### 1. Yapay Zekalı Dinamik Font Haritalandırma Yapısı (`ml.ts`, `extract/route.ts`, `process/route.ts`, `SearchResultsList.tsx` & `PDFViewerClient.tsx`)
+- **Sorun:** Farklı kitaplarda farklı bozuk font kodlamaları olabileceğinden, her yeni yüklenen PDF için tek tek harf eşlemelerini kod tarafında güncellemek sürdürülebilir değildi.
+- **Çözüm (Kendi Kendine Çözülen Sistem):**
+  - **Gemini Font Çözücü (`ml.ts`):** `detectAndExtractArabicFontMap` fonksiyonu eklendi. Bu fonksiyon, yüklenen PDF'in metin katmanından ilk 1500 karakterlik bir kesiti analiz eder. Eğer bozuk font izleri algılarsa, Gemini-2.5-Flash modeline tek bir API çağrısı yaparak o kitaba has karakter dönüşüm tablosunu bir JSON sözlüğü olarak üretir.
+  - **Süreç Entegrasyonu (`extract/route.ts` & `process/route.ts`):** Metin çıkarma veya işleme aşamalarında, Gemini'nin ürettiği bu özel harita metne yerel olarak uygulanır ve `extractedText` temizlenir. Harita bilgisi ise metnin en başına `[FONTMAP:{"bozuk_harf":"düzgün_harf"}]` satırı olarak eklenir.
+  - **Arama Temizliği (`search/route.ts`):** Arama API'si, veritabanından gelen metnin en başındaki `[FONTMAP:...` satırını keserek aramaların ve snippet'lerin temiz metin üzerinde yapılmasını garanti altına alır.
+  - **İstemci Geçişi (`SearchResultsList.tsx` & `PDFViewerClient.tsx`):** Arama sonuçları listelenirken, ilgili dosyanın `FONTMAP` verisi URL'ye `&fm=...` parametresiyle eklenerek PDF Görüntüleyiciye paslanır. PDF Görüntüleyici de bu haritayı yükleyip metin katmanı normalleştirilirken (sarıya boyama konumlandırmalarında) kullanır.
+- **Sonuç:** Kullanıcı artık hiçbir karakteri kendi eliyle bulmak zorunda değildir. Yapay zeka, bozuk fontlu bir PDF yüklendiğinde bunu otomatik algılar, haritasını çıkarır, hem arama motorunda hem de PDF göstericide hatasız çalışmasını sağlar.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
