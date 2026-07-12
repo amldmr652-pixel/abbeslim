@@ -570,3 +570,14 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** Kullanıcı artık hiçbir karakteri kendi eliyle bulmak zorunda değildir. Yapay zeka, bozuk fontlu bir PDF yüklendiğinde bunu otomatik algılar, haritasını çıkarır, hem arama motorunda hem de PDF göstericide hatasız çalışmasını sağlar.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T02:03] V2.19 — Sarı Vurgu Render Lag Optimizasyonu (PDFViewerClient.tsx)
+
+### 1. Sayfa Yüklenmesiyle Eş Zamanlı Vurgulama
+- **Sorun:** Sayfa açıldıktan sonra, sarı vurguların ekrana gelmesi yaklaşık 1 saniye kadar gecikiyordu (timeout değerleri 50ms, 300ms, 700ms idi). Bu durum kullanıcıda aramanın yavaş çalıştığı hissini uyandırıyordu.
+- **Çözüm:**
+  - DOM sarmalama yapısına geçildiğinden beri koordinat (bounding rect) hesaplamalarına ihtiyacımız kalmadığı için tarayıcının render işlemini tamamlamasını (reflow/layout) beklemeye gerek kalmadı.
+  - `onTextLayerRender` fonksiyonundaki gecikmeler (`setTimeout` zinciri) optimize edildi. Sayfa katmanı render edildiği anda `doHighlight()` doğrudan ve gecikmesiz olarak (eş zamanlı) çağrıldı. Hemen arkasından oluşabilecek ufak DOM asenkronluklarını yakalamak için `0ms` ve `100ms` değerlerinde mikro gecikmeli tetiklemeler bırakıldı.
+- **Sonuç:** Kullanıcı sayfayı açar açmaz sarı vurgulu alanlar anlık olarak ekrana yansıtılmakta, görsel gecikme (lag) hissi tamamen ortadan kalkmaktadır.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
