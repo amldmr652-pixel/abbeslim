@@ -75,11 +75,14 @@ export default function GreetingWidget() {
         setWeather({
           temp: Math.round(data.main.temp),
           desc: data.weather[0].description,
-          icon: data.weather[0].main.toLowerCase()
+          icon: data.weather[0].main.toLowerCase(),
+          city: data.name,
+          humidity: data.main.humidity,
+          wind: data.wind.speed
         });
       } catch (error) {
         console.error("Hava durumu alınamadı:", error);
-        setWeather({ temp: 20, desc: t('common.error'), icon: 'cloud' });
+        setWeather({ temp: 20, desc: t('common.error'), icon: 'cloud', city: 'Bilinmiyor', humidity: 0, wind: 0 });
       } finally {
         setWeatherLoading(false);
       }
@@ -88,17 +91,19 @@ export default function GreetingWidget() {
     fetchWeather();
   }, [language, t]);
 
-  const getWeatherIcon = (iconName: string) => {
-    if (iconName.includes('rain')) return <CloudRain size={20} className="text-blue-400" />;
-    if (iconName.includes('sun') || iconName.includes('clear')) return <Sun size={20} className="text-yellow-400" />;
-    return <Cloud size={20} className="text-gray-400" />;
+  const getWeatherIcon = (iconName: string, size = 20) => {
+    if (iconName.includes('rain')) return <CloudRain size={size} className="text-blue-400" />;
+    if (iconName.includes('sun') || iconName.includes('clear')) return <Sun size={size} className="text-yellow-400" />;
+    return <Cloud size={size} className="text-gray-400" />;
   };
+
+  const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
 
   return (
     <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 animate-[fadeIn_0.5s_ease-out]">
       <div>
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
-          {greeting}, <span className="text-green-400">{userName}</span> 👋
+          {greeting}, <span className="text-green-400">{userName}</span> 🌟
         </h1>
         <p className="text-gray-400 flex items-center gap-3">
           <span>{formattedDate}</span>
@@ -108,7 +113,10 @@ export default function GreetingWidget() {
       </div>
 
       {/* Hava Durumu Modülü */}
-      <div className="glass px-4 py-2.5 rounded-2xl flex items-center gap-3 border border-green-900/30">
+      <button 
+        onClick={() => setIsWeatherModalOpen(true)}
+        className="glass px-4 py-2.5 rounded-2xl flex items-center gap-3 border border-green-900/30 hover:border-green-500/50 hover:bg-white/5 transition-colors text-left"
+      >
         {weatherLoading ? (
           <Loader2 size={20} className="animate-spin text-green-500" />
         ) : (
@@ -120,7 +128,42 @@ export default function GreetingWidget() {
             </div>
           </>
         )}
-      </div>
+      </button>
+
+      {/* Hava Durumu Detay Modalı */}
+      {isWeatherModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsWeatherModalOpen(false)}>
+          <div className="bg-black/90 border border-green-900/50 p-6 rounded-3xl w-full max-w-sm relative shadow-2xl" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsWeatherModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <h2 className="text-xl font-bold text-white mb-6 text-center">{t('dashboard.weatherDetails') || 'Hava Durumu Detayı'}</h2>
+            
+            <div className="flex flex-col items-center justify-center gap-4 mb-8">
+              {getWeatherIcon(weather?.icon || 'cloud', 64)}
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white">{weather?.temp}°C</div>
+                <div className="text-lg text-gray-300 capitalize">{weather?.desc}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-green-900/20 p-4 rounded-2xl border border-green-900/30 flex flex-col items-center">
+                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Şehir</span>
+                <span className="text-lg font-semibold text-white">{weather?.city || 'İstanbul'}</span>
+              </div>
+              <div className="bg-green-900/20 p-4 rounded-2xl border border-green-900/30 flex flex-col items-center">
+                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Nem</span>
+                <span className="text-lg font-semibold text-white">%{weather?.humidity || 0}</span>
+              </div>
+              <div className="col-span-2 bg-green-900/20 p-4 rounded-2xl border border-green-900/30 flex flex-col items-center">
+                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Rüzgar</span>
+                <span className="text-lg font-semibold text-white">{weather?.wind || 0} km/s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

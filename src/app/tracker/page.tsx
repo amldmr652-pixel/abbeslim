@@ -128,7 +128,12 @@ export default function TrackerPage() {
     setTmdbId(null);
   };
 
-  const filteredItems = items.filter(item => item.media_type === activeTab);
+  const [activeStatus, setActiveStatus] = useState<MediaStatus | 'all'>('all');
+
+  const filteredItems = items.filter(item => 
+    item.media_type === activeTab && 
+    (activeStatus === 'all' || item.status === activeStatus)
+  );
 
   const getStatusColor = (s: MediaStatus) => {
     switch (s) {
@@ -173,38 +178,69 @@ export default function TrackerPage() {
         </Button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-8 border-b border-green-900/30 pb-4 overflow-x-auto hide-scrollbar">
-        <button
-          onClick={() => setActiveTab('movie')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
-            activeTab === 'movie' 
-              ? 'bg-green-600 text-white shadow-lg shadow-green-900/50' 
-              : 'text-gray-400 hover:text-white glass'
-          }`}
-        >
-          <Clapperboard size={18} /> {t('tracker.movies')}
-        </button>
-        <button
-          onClick={() => setActiveTab('series')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
-            activeTab === 'series' 
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' 
-              : 'text-gray-400 hover:text-white glass'
-          }`}
-        >
-          <Tv size={18} /> {t('tracker.series')}
-        </button>
-        <button
-          onClick={() => setActiveTab('book')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
-            activeTab === 'book' 
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
-              : 'text-gray-400 hover:text-white glass'
-          }`}
-        >
-          <Book size={18} /> {t('tracker.books')}
-        </button>
+      {/* Tabs & Filters */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-green-900/30 pb-4">
+        {/* Type Tabs */}
+        <div className="flex gap-4 overflow-x-auto hide-scrollbar w-full md:w-auto">
+          <button
+            onClick={() => setActiveTab('movie')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
+              activeTab === 'movie' 
+                ? 'bg-green-600 text-white shadow-lg shadow-green-900/50' 
+                : 'text-gray-400 hover:text-white glass'
+            }`}
+          >
+            <Clapperboard size={18} /> {t('tracker.movies')}
+          </button>
+          <button
+            onClick={() => setActiveTab('series')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
+              activeTab === 'series' 
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' 
+                : 'text-gray-400 hover:text-white glass'
+            }`}
+          >
+            <Tv size={18} /> {t('tracker.series')}
+          </button>
+          <button
+            onClick={() => setActiveTab('book')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
+              activeTab === 'book' 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
+                : 'text-gray-400 hover:text-white glass'
+            }`}
+          >
+            <Book size={18} /> {t('tracker.books')}
+          </button>
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex gap-2 bg-black/40 p-1 rounded-full border border-green-900/30 overflow-x-auto hide-scrollbar w-full md:w-auto">
+          <button 
+            onClick={() => setActiveStatus('all')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'all' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            Tümü
+          </button>
+          <button 
+            onClick={() => setActiveStatus('planned')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'planned' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            {t('tracker.planned')}
+          </button>
+          <button 
+            onClick={() => setActiveStatus('active')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'active' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            {t('tracker.active')}
+          </button>
+          <button 
+            onClick={() => setActiveStatus('completed')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'completed' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'}`}
+          >
+            {t('tracker.completed')}
+          </button>
+        </div>
       </div>
 
       {/* Grid */}

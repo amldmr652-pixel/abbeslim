@@ -10,7 +10,7 @@ import Game2048 from '../components/games/Game2048';
 
 export default function GamesPage() {
   const { t } = useTranslation();
-  const { timePlayedToday, dailyLimit, isLimitReached, incrementTime } = useGamesStore();
+  const { timePlayedToday, dailyLimit, isLimitReached, incrementTime, gameStats } = useGamesStore();
   const [activeGame, setActiveGame] = useState<string | null>(null);
   
   // Mounted check to prevent hydration mismatch for time
@@ -21,7 +21,7 @@ export default function GamesPage() {
     let timer: NodeJS.Timeout;
     if (activeGame && !isLimitReached()) {
       timer = setInterval(() => {
-        incrementTime();
+        incrementTime(activeGame);
       }, 1000);
     }
     return () => clearInterval(timer);
@@ -126,29 +126,42 @@ export default function GamesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-        {gamesList.map(game => (
-          <button
-            key={game.id}
-            onClick={() => setActiveGame(game.id)}
-            className="glass rounded-3xl p-6 text-left hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(34,197,94,0.3)] group relative overflow-hidden"
-          >
-            <div className={`absolute inset-0 bg-gradient-to-br ${game.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-            <div className="relative z-10 flex gap-5 items-start">
-              <div className="w-14 h-14 bg-black/50 rounded-2xl flex items-center justify-center border border-white/5 text-gray-300 group-hover:text-green-400 group-hover:border-green-500/30 transition-all shadow-inner">
-                {game.icon}
-              </div>
-              <div className="flex-1 rtl:mr-2">
-                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-green-300 transition-colors">{game.name}</h3>
-                <p className="text-sm text-gray-400 line-clamp-2">{game.desc}</p>
-                
-                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-green-500 opacity-0 ltr:-translate-x-2 rtl:translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-                  <span>{t('games.play')}</span>
-                  <ChevronRight size={14} className="rtl:rotate-180" />
+        {gamesList.map(game => {
+          const gameTime = gameStats[game.id] || 0;
+          const gameMins = Math.floor(gameTime / 60);
+          const gameSecs = gameTime % 60;
+          
+          return (
+            <button
+              key={game.id}
+              onClick={() => setActiveGame(game.id)}
+              className="glass rounded-3xl p-6 text-left hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(34,197,94,0.3)] group relative overflow-hidden"
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${game.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              <div className="relative z-10 flex gap-5 items-start">
+                <div className="w-14 h-14 bg-black/50 rounded-2xl flex items-center justify-center border border-white/5 text-gray-300 group-hover:text-green-400 group-hover:border-green-500/30 transition-all shadow-inner">
+                  {game.icon}
+                </div>
+                <div className="flex-1 rtl:mr-2">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-lg font-bold text-white group-hover:text-green-300 transition-colors">{game.name}</h3>
+                    {gameTime > 0 && (
+                      <span className="text-xs font-mono text-gray-400 bg-black/30 px-2 py-1 rounded-lg">
+                        {gameMins.toString().padStart(2, '0')}:{gameSecs.toString().padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-400 line-clamp-2">{game.desc}</p>
+                  
+                  <div className="mt-4 flex items-center gap-2 text-xs font-bold text-green-500 opacity-0 ltr:-translate-x-2 rtl:translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
+                    <span>{t('games.play')}</span>
+                    <ChevronRight size={14} className="rtl:rotate-180" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
