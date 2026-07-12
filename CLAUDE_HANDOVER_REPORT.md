@@ -510,3 +510,19 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
     - **PDF Vurgulayıcı (`PDFViewerClient.tsx`):** Client-side PDF vurgulama arama listesine (queryWords) Arapça kelimelerin ters karakterli formları da otomatik olarak eklendi. Bu sayede görsel sırayla tersten yazılmış PDF metinleri de başarıyla işaretlenebiliyor.
   - **Doğrulama:** `npm run build` hatasız tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
 
+
+## [2026-07-13T01:35] V2.14 — Konuşma Dili Seçicisi ve Sarı Vurgu Hizalama Düzeltmeleri (Antigravity/Gemini)
+
+### 1. Mikrofon İçin Ses Dili Seçim Paneli (useSpeechRecognition.ts, page.tsx & MicrophoneButton.tsx)
+- **Sorun:** Mikrofondan ses kaydı yapıldığında, algılama dili sistemin genel arayüz diline (yani Türkçe) bağlı kalıyordu. Kullanıcı Arapça konuştuğunda tarayıcı bunu Türkçe akustik modelle transkribe ettiği için kelimeler hatalı çıkıyordu.
+- **Çözüm:**
+  - **Dinamik Dil Desteği (`useSpeechRecognition.ts`):** `UseSpeechRecognitionOptions` arayüzüne opsiyonel `speechLang` parametresi eklendi ve Speech Recognition dilinin arayüzden bağımsız olarak dinamik set edilmesi sağlandı. TypeScript tür uyuşmazlığı hatasını engellemek için `langMap` objesi `Record<string, string>` olarak tanımlandı.
+  - **Arama Arayüzü Butonları (`page.tsx` & `MicrophoneButton.tsx`):** Arama ekranındaki mikrofon butonunun hemen altına **"TR | AR | EN"** ses dili seçim düğmeleri yerleştirildi. Kullanıcı arayüzü Türkçe kullanırken bile "AR" seçerek doğrudan Arapça konuşabiliyor ve ses tarayıcı tarafından kusursuz şekilde Arapça yazılıyor.
+
+### 2. PDF Sarı Vurgu (Highlight) Kayma Hatasının Çözümü (PDFViewerClient.tsx & route.ts)
+- **Sorun:** Orijinal PDF'teki metinlerde harekeler (diacritics/tashkeel) ve uzatma çizgileri (tatweel) yer alırken, normalleştirilmiş arama metninde bunlar silindiği için harf indeksleri kayıyordu. Bu indeks kayması sonucunda PDF Görüntüleyici metin katmanındaki Range API vurguları tamamen yanlış harflerin/kelimelerin üzerini çiziyordu.
+- **Çözüm:**
+  - **İndeks Eşleme Fonksiyonu (`normalizeWithMap`):** `PDFViewerClient.tsx` içerisine yeni bir `normalizeWithMap` fonksiyonu entegre edildi. Bu fonksiyon, diacritics ve boşlukları silerken, normalleştirilmiş metindeki her bir harf indeksinin `fullText` (orijinal metin) içindeki tam fiziksel indeks karşılığını bir dizi (`indexMap`) halinde saklar. Bu sayede Range API, kelimenin orijinal metindeki tam koordinatlarını pixel-perfect düzeyinde tespit edip vurgulamaları tam hedefin üzerine çizebiliyor.
+  - **Harf Haritası Genişletmesi (`route.ts`):** Arapça font eşlemelerine `هل` edatını (`ģَİ`), `كَيْف` edatını (`כĻَْــė`) ve diğer tüm madde başlarını karşılayan harfler (Hebrew `כ`, `ĉ` -> `ح`, `ĝ` -> `ي`, `Ý` -> `ه`, `ę` -> `ف`, `Ĥ` -> `ل`, `ā` -> `ا`, `đ` -> `ر` vb.) eklendi.
+  - **Doğrulama:** Proje `npm run build` ile başarıyla derlendi ve değişiklikler canlıya deploy edildi.
+
