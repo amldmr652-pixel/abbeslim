@@ -526,3 +526,13 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **Harf Haritası Genişletmesi (`route.ts`):** Arapça font eşlemelerine `هل` edatını (`ģَİ`), `كَيْف` edatını (`כĻَْــė`) ve diğer tüm madde başlarını karşılayan harfler (Hebrew `כ`, `ĉ` -> `ح`, `ĝ` -> `ي`, `Ý` -> `ه`, `ę` -> `ف`, `Ĥ` -> `ل`, `ā` -> `ا`, `đ` -> `ر` vb.) eklendi.
   - **Doğrulama:** Proje `npm run build` ile başarıyla derlendi ve değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T01:42] V2.15 — 2 Harfli Arapça Terimlerin Vurgulama ve Analiz Desteği (Antigravity/Gemini)
+
+### 1. PDF Görüntüleyici ve Arama Limiti Hizalaması (PDFViewerClient.tsx)
+- **Sorun:** Kullanıcı `هل اتبعك` gibi bir cümle aradığında, Search API 2 harfli `هل` edatını başarıyla bulup sayfaları listeliyordu. Ancak PDF Görüntüleyici içindeki `cleanQueryStr.split(/\s+/).filter(w => w.length > 2)` filtresi 3 harften küçük kelimeleri elediği için `هل` kelimesi tamamen yok sayılıyor ve client-side PDF sayfasında hiçbir yer sarı renge boyanmıyordu. Bu durum eşleşme sayısı (örn. "3 eşleşme") olmasına rağmen sayfada hiçbir görsel vurgu olmamasına yol açıyordu.
+- **Çözüm:**
+  - **Kelime Boyutu Limiti Güncellendi:** Hem sayfa analizi (`analyzePageMatches`) hem de sayfa içi vurgulama (`doHighlight`) metodunda kelime boyut limiti `w.length > 2` değerinden `w.length > 1` değerine çekilerek `هل`, `أم`, `في`, `من`, `قد` gibi 2 harfli kritik Arapça edatların da taranıp vurgulanabilmesi sağlandı.
+  - **Yerel Analize Ters Arama Entegrasyonu:** URL parametresi olmadan doğrudan PDF dosyası açıldığında çalışan local `analyzePageMatches` tarama döngüsüne Arapça kelimelerin ters visual sıralı (reversed) biçimlerini de tarama yeteneği eklendi.
+  - **Doğrulama:** `npm run build` hatasız tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
+
