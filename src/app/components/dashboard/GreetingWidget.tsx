@@ -8,7 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 export default function GreetingWidget() {
   const { t, language } = useTranslation();
   const [currentTime, setCurrentTime] = useState('');
-  const [weather, setWeather] = useState<{ temp: number; desc: string; icon: string } | null>(null);
+  const [weather, setWeather] = useState<{ temp: number; desc: string; icon: string; city?: string; humidity?: number; wind?: number; } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [formattedDate, setFormattedDate] = useState('');
   const [greeting, setGreeting] = useState('');
@@ -58,27 +58,54 @@ export default function GreetingWidget() {
     // Hava Durumu Fetch
     const fetchWeather = async () => {
       try {
-        const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
-        if (!apiKey) {
-          setTimeout(() => {
-            setWeather({ temp: 24, desc: language === 'en' ? 'Clear' : language === 'ar' ? 'صافي' : 'Açık', icon: 'sun' });
-            setWeatherLoading(false);
-          }, 1000);
-          return;
+        setWeatherLoading(true);
+
+        const getPosition = (): Promise<GeolocationPosition> => {
+          return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+              reject(new Error('Geolocation not supported'));
+            } else {
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+            }
+          });
+        };
+
+        let lat = 41.0082; // Istanbul default
+        let lon = 28.9784;
+        let city = 'İstanbul';
+
+        try {
+          const position = await getPosition();
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+          city = 'Konumunuz';
+        } catch (e) {
+          console.log('Konum alınamadı, varsayılan (İstanbul) kullanılıyor.');
         }
 
-        const langParam = language === 'en' ? 'en' : language === 'ar' ? 'ar' : 'tr';
-        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=Istanbul&units=metric&lang=${langParam}&appid=${apiKey}`);
+        // Open-Meteo API
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m`);
         if (!res.ok) throw new Error('Weather fetch failed');
         const data = await res.json();
         
+        const wmoCode = data.current.weather_code;
+        let icon = 'clear';
+        let desc = 'Açık';
+        
+        if (wmoCode >= 1 && wmoCode <= 3) { icon = 'cloud'; desc = 'Parçalı Bulutlu'; }
+        else if (wmoCode >= 45 && wmoCode <= 48) { icon = 'cloud'; desc = 'Sisli'; }
+        else if (wmoCode >= 51 && wmoCode <= 67) { icon = 'rain'; desc = 'Yağmurlu'; }
+        else if (wmoCode >= 71 && wmoCode <= 77) { icon = 'snow'; desc = 'Kar Yağışlı'; }
+        else if (wmoCode >= 80 && wmoCode <= 82) { icon = 'rain'; desc = 'Sağanak Yağışlı'; }
+        else if (wmoCode >= 95) { icon = 'storm'; desc = 'Fırtına'; }
+
         setWeather({
-          temp: Math.round(data.main.temp),
-          desc: data.weather[0].description,
-          icon: data.weather[0].main.toLowerCase(),
-          city: data.name,
-          humidity: data.main.humidity,
-          wind: data.wind.speed
+          temp: Math.round(data.current.temperature_2m),
+          desc: desc,
+          icon: icon,
+          city: city,
+          humidity: Math.round(data.current.relative_humidity_2m),
+          wind: Math.round(data.current.wind_speed_10m)
         });
       } catch (error) {
         console.error("Hava durumu alınamadı:", error);

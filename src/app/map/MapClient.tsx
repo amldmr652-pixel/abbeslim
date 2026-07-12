@@ -73,8 +73,8 @@ export default function MapClient() {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-140px)] rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
-      <div className="absolute top-4 left-4 z-[1000] glass p-3 flex flex-col gap-2">
+    <div className="relative w-full h-[calc(100vh-140px)] rounded-3xl overflow-hidden border border-green-900/30 shadow-2xl z-0 isolate">
+      <div className="absolute top-4 left-4 z-[400] glass p-3 flex flex-col gap-2">
         <p className="text-white text-sm font-bold mb-1">Yeni İşaretçi Rengi</p>
         <div className="flex gap-2">
           {(Object.keys(COLOR_MAP) as Array<keyof typeof COLOR_MAP>).map(c => (
@@ -92,11 +92,12 @@ export default function MapClient() {
       <MapContainer 
         center={[39.0, 35.0]} // Turkey center roughly
         zoom={6} 
-        style={{ height: '100%', width: '100%', background: '#0a0a0a' }}
+        style={{ height: '100%', width: '100%', background: '#0a0a0a', zIndex: 0 }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
+          className="map-tiles"
         />
         
         <MapEvents onMapClick={handleMapClick} />

@@ -67,7 +67,18 @@ export default function TrackerPage() {
         } else {
           // TMDB API
           const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-          if (!apiKey) return;
+          if (!apiKey) {
+            setTmdbResults([
+              { 
+                id: '0', 
+                title: `${title} (Manuel Kayıt)`, 
+                name: `${title} (Manuel Kayıt)`,
+                release_date: 'API Kapalı',
+                poster_path: null
+              }
+            ]);
+            return;
+          }
           const endpoint = mediaType === 'movie' ? 'search/movie' : 'search/tv';
           const res = await fetch(`https://api.themoviedb.org/3/${endpoint}?api_key=${apiKey}&language=tr-TR&query=${encodeURIComponent(title)}&page=1`);
           const data = await res.json();

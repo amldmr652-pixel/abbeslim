@@ -9,6 +9,7 @@ interface GamesState {
   incrementTime: (gameId?: string) => void;
   checkAndResetDaily: () => void;
   isLimitReached: () => boolean;
+  resetTime: () => void;
 }
 
 export const useGamesStore = create<GamesState>()(
@@ -43,7 +44,9 @@ export const useGamesStore = create<GamesState>()(
       isLimitReached: () => {
         get().checkAndResetDaily();
         return get().timePlayedToday >= get().dailyLimit;
-      }
+      },
+
+      resetTime: () => set({ timePlayedToday: 0 })
     }),
     {
       name: 'lifeos-games-storage',

@@ -72,8 +72,8 @@ function DashboardContent() {
       const { data: files } = await supabase
         .from('files')
         .select('*')
-        .eq('userId', user.id)
-        .order('last_opened_at', { ascending: false, nullsFirst: false })
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(5);
 
       if (files) {
@@ -82,7 +82,7 @@ function DashboardContent() {
           id: f.id,
           name: f.name,
           type: f.name.split('.').pop() || 'file',
-          date: new Date(f.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+          date: new Date(f.created_at || f.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
         }));
         setRecentFiles(formattedFiles);
       }
@@ -140,21 +140,6 @@ function DashboardContent() {
     <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
       <GreetingWidget />
 
-      {/* Hızlı Erişim Butonları */}
-      <div className="flex gap-3 mb-8 flex-wrap animate-[fadeIn_0.6s_ease-out]">
-        <Link href="/search" className="glass px-5 py-2.5 rounded-full flex items-center gap-2 text-sm text-gray-300 hover:text-green-400 hover:border-green-500/30 transition-all shadow-lg">
-          <Search size={16} /> Arama
-        </Link>
-        <Link href="/library" className="glass px-5 py-2.5 rounded-full flex items-center gap-2 text-sm text-gray-300 hover:text-green-400 hover:border-green-500/30 transition-all shadow-lg">
-          <BookOpen size={16} /> Kütüphane
-        </Link>
-        <button
-          onClick={() => setIsMusicPanelOpen(true)}
-          className="glass px-5 py-2.5 rounded-full flex items-center gap-2 text-sm text-gray-300 hover:text-green-400 hover:border-green-500/30 transition-all shadow-lg"
-        >
-          <Music size={16} /> Odak Müzik
-        </button>
-      </div>
 
       <QuickStats 
         completedTasks={completedTasks}

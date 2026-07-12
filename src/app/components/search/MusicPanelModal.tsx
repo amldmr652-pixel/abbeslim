@@ -24,7 +24,7 @@ export default function MusicPanelModal() {
   if (!isMusicPanelOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
       <div className="glass w-full max-w-[400px] rounded-[24px] p-6 relative animate-in fade-in zoom-in duration-200 shadow-[0_0_40px_rgba(34,197,94,0.15)] bg-[#1a1a1a]">
 
         <button

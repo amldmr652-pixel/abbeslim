@@ -7,9 +7,10 @@ interface InputProps {
   type?: string;
   placeholder?: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   required?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function Input({
@@ -20,6 +21,7 @@ export default function Input({
   onChange,
   required = false,
   className = '',
+  disabled = false,
 }: InputProps) {
   const id = label
     ? `input-${label.toLowerCase().replace(/\s+/g, '-')}`
@@ -41,16 +43,18 @@ export default function Input({
         type={type}
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         required={required}
-        className="
+        disabled={disabled}
+        className={`
           w-full px-4 py-3 rounded-2xl
           bg-white/5 border border-white/10
           text-white placeholder-gray-500
           outline-none
           focus:border-green-500/50 focus:ring-2 focus:ring-green-500/20
           transition-all duration-200
-        "
+          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
       />
     </div>
   );

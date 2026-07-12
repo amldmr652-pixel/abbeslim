@@ -10,7 +10,7 @@ import Game2048 from '../components/games/Game2048';
 
 export default function GamesPage() {
   const { t } = useTranslation();
-  const { timePlayedToday, dailyLimit, isLimitReached, incrementTime, gameStats } = useGamesStore();
+  const { timePlayedToday, dailyLimit, isLimitReached, incrementTime, gameStats, resetTime } = useGamesStore();
   const [activeGame, setActiveGame] = useState<string | null>(null);
   
   // Mounted check to prevent hydration mismatch for time
@@ -99,9 +99,17 @@ export default function GamesPage() {
 
   return (
     <div className="flex-1 flex flex-col p-8 max-w-5xl mx-auto w-full">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">{t('games.title')}</h1>
-        <p className="text-gray-400">{t('games.subtitle')}</p>
+      <div className="mb-8 flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('games.title')}</h1>
+          <p className="text-gray-400">{t('games.subtitle')}</p>
+        </div>
+        <button 
+          onClick={resetTime}
+          className="text-xs bg-red-900/30 text-red-400 hover:bg-red-900/50 hover:text-red-300 px-4 py-2 rounded-full border border-red-500/20 transition-all flex items-center gap-2"
+        >
+          Süreyi Sıfırla
+        </button>
       </div>
 
       <div className="glass p-6 rounded-3xl mb-10 border border-green-900/30 relative overflow-hidden">

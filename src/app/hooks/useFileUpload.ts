@@ -90,6 +90,13 @@ export function useFileUpload() {
         (!uploadFile ? '• Dosya seçilmedi\n' : ''));
       return;
     }
+
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    if (uploadFile.size > MAX_FILE_SIZE) {
+      alert(`Dosya boyutu çok büyük. Maksimum 50MB yükleyebilirsiniz. (Seçilen dosya: ${(uploadFile.size / (1024 * 1024)).toFixed(2)}MB)`);
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
     setUploadStatus('Hazırlanıyor...');

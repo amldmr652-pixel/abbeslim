@@ -295,3 +295,27 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 **Sonraki Adımlar (Bırakılan İş):**
 - SQL betiğinin (`scripts/phase9-migration.sql`) Supabase SQL Editor üzerinden çalıştırılması gerekiyor.
 - Faz 10 (Mini Oyunlar - Games) modülüne geçilebilir veya TMDB entegrasyonu istenirse API anahtarı alınarak eklenebilir.
+
+---
+
+## [2026-07-12] V2.1 Bug Fixes & Refinements (Polishing Phase)
+
+**Durum:** Kullanıcının bildirdiği 11 farklı hata ve UX iyileştirme talebi tamamlandı.
+
+**Yapılan İşlemler:**
+1. **Hızlı Not Ses Kaydı:** `QuickNoteWidget.tsx` güncellenerek `useSpeechRecognition` yanına `MediaRecorder` API entegre edildi, böylece ses dosyaları Blob olarak alınıp Supabase Storage'a kaydedilebilir hale geldi.
+2. **Dosya Yükleme Sınırı:** İstemci tarafında büyük dosyaların Next.js / Vercel limitlerine takılmaması için `useFileUpload.ts` dosyasına 50 MB boyutu kontrolü (Client-side validation) eklendi.
+3. **Son Dosyalar Widget'ı:** `page.tsx` içindeki Supabase dosya getirme sorgusundaki hatalı sütun isimleri (`userId` -> `user_id`, `createdAt` -> `created_at`) düzeltilerek widget'ın verileri başarıyla göstermesi sağlandı.
+4. **UI Düzenlemeleri:** 
+   - `Sidebar.tsx` içerisinde eksik çeviri anahtarı nedeniyle "sidebar.music" olarak görünen menü ismi statik "Odak Müzik" olarak güncellendi ve çalışmayan Ayarlar sekmesi rozeti (Coming Soon) kaldırıldı.
+   - Ana sayfadaki `GreetingWidget` altında yer alan kısayol butonları (Arama, Kütüphane, Odak Müzik) kullanıcının talebi üzerine kaldırıldı.
+5. **Oyunlar Süresi Sıfırlama:** `useGamesStore.ts` içine `resetTime` eklendi ve `GamesPage` arayüzüne "Süreyi Sıfırla" butonu koyuldu.
+6. **TMDB API Fallback:** `TrackerPage` içinde `NEXT_PUBLIC_TMDB_API_KEY` eksik olduğunda arama özelliğinin sessizce hata vermesini engellemek için, kullanıcının "Manuel Kayıt" yapmasına olanak sağlayan bir fallback mekanizması eklendi.
+7. **Profil Ayarları:** `settings/page.tsx` sayfasındaki `handleUpdateProfile` fonksiyonu zaten `supabase.auth.updateUser({ data: { full_name } })` kullanıyordu, bu nedenle Supabase `user_metadata` güncellemesi doğru şekilde tetikleniyordu (doğrulandı).
+8. **Gerçek Hava Durumu (Open-Meteo):** `GreetingWidget.tsx` içindeki sahte hava durumu verisi kaldırıldı. Kullanıcıdan konum (`navigator.geolocation`) izni istenerek Open-Meteo API'sinden anlık koordinat bazlı ve ücretsiz gerçek hava durumu çekilmesi sağlandı.
+9. **Harita Modülü Optimizasyonu:** `react-leaflet` z-index değeri nedeniyle diğer modüllerin önünde kalma problemi çözüldü (`z-[400]` ve container izolasyonu eklendi). Tema uyumu için `globals.css` içerisinde harita tile'larına `.map-tiles` CSS filter uygulanarak Dark Theme görünümü daha yumuşak hale getirildi ve Voyager harita stiline geçildi.
+10. **Odak Modu Z-Index:** `MusicPanelModal.tsx` bileşeninin z-index değeri `z-[10000]`'e çıkarılarak, Gelişmiş Odak Modu açıkken müzik butonuna basıldığında panelin arkada kalması sorunu giderildi.
+
+**Sonraki Adımlar (Bırakılan İş):**
+- Kodlar başarıyla Vercel üretim ortamına gönderilmeye hazırdır. 
+- Sıradaki fazlar: Hedefler & Alışkanlıklar (Faz 11) veya Finans Modülü (Faz 12) geliştirilebilir.

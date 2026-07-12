@@ -54,7 +54,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
-  { id: 'settings', icon: <Settings size={20} />, href: '/settings', hasBadge: true },
+  { id: 'settings', icon: <Settings size={20} />, href: '/settings' },
 ];
 
 export default function Sidebar() {
@@ -95,7 +95,7 @@ export default function Sidebar() {
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
     const hasBadge = item.hasBadge;
-    const label = t(`sidebar.${item.id}`);
+    const label = item.id === 'music' ? 'Odak Müzik' : t(`sidebar.${item.id}`);
     const badgeText = t('common.comingSoon');
 
     const content = (

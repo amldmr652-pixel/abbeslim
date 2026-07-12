@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { StickyNote, Loader2, Mic, MicOff } from 'lucide-react';
+import { StickyNote, Loader2, Mic, MicOff, X } from 'lucide-react';
 import { Card } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useNoteStore } from '@/stores/useNoteStore';
@@ -16,7 +16,12 @@ export default function QuickNoteWidget() {
   const [initialNote, setInitialNote] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
-  const { addNote } = useNoteStore();
+  
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const { addNote, uploadAudio } = useNoteStore();
   const [user, setUser] = useState<User | null>(null);
   const supabase = createClient();
 
@@ -30,12 +35,45 @@ export default function QuickNoteWidget() {
     onTranscriptChange: (text) => {
       setNoteText(initialNote + (initialNote && text ? ' ' : '') + text);
     },
-    onSearch: () => {}, // Hızlı notta arama tetiklenmez
+    onSearch: () => {}, 
   });
+
+  const startRecordingAudio = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+    } catch (err) {
+      console.error("Audio recording failed:", err);
+    }
+  };
+
+  const stopRecordingAudio = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
   const handleToggleListen = () => {
     if (!speech.listening) {
       setInitialNote(noteText);
+      setAudioBlob(null);
+      startRecordingAudio();
+    } else {
+      stopRecordingAudio();
     }
     speech.toggleListen();
   };
@@ -45,17 +83,24 @@ export default function QuickNoteWidget() {
     setIsSaving(true);
     
     try {
+      let uploadedAudioUrl = null;
+      if (audioBlob) {
+        const file = new File([audioBlob], 'quick_audio.webm', { type: 'audio/webm' });
+        uploadedAudioUrl = await uploadAudio(file);
+      }
+
       await addNote({
         user_id: user.id,
         title: 'Hızlı Not',
         content: noteText,
         is_pinned: false,
-        audio_url: null
+        audio_url: uploadedAudioUrl
       });
       
       setSaveStatus('saved');
       setNoteText('');
       setInitialNote('');
+      setAudioBlob(null);
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (error) {
       console.error('Error saving quick note:', error);
@@ -92,6 +137,16 @@ export default function QuickNoteWidget() {
         </div>
       </div>
       
+      {audioBlob && (
+        <div className="flex items-center gap-3 p-3 bg-green-900/20 rounded-xl border border-green-500/30 mb-3">
+          <Mic size={16} className="text-green-400" />
+          <span className="text-sm text-green-100 flex-1">Ses kaydı eklendi</span>
+          <button onClick={() => setAudioBlob(null)} className="p-1 hover:bg-black/20 rounded-lg text-gray-400 hover:text-white">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <textarea
         value={noteText}
         onChange={(e) => {

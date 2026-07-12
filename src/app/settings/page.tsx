@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { User, Settings, Palette, Music, Upload, Check, Loader2, Save, Trash2, Camera } from 'lucide-react';
 import { Card, Input, Button } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
-import { useSettingsStore, BreakSound } from '@/stores/useSettingsStore';
+import { useSettingsStore, BreakSound, ThemeType } from '@/stores/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
 
 export default function SettingsPage() {
@@ -123,7 +123,7 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium text-gray-400 mb-2">Ad Soyad</label>
                     <Input 
                       value={fullName} 
-                      onChange={(e) => setFullName(e.target.value)} 
+                      onChange={setFullName} 
                       placeholder="Adınızı girin"
                     />
                   </div>
@@ -219,14 +219,14 @@ export default function SettingsPage() {
                   <h3 className="text-lg font-bold text-white mb-4">Kendi Sesini Ekle</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <Input 
-                      placeholder="Ses Adı (örn: Yağmur 2)" 
+                      placeholder="Ses Adı (Örn: Yağmur 2)" 
                       value={soundName}
-                      onChange={(e) => setSoundName(e.target.value)}
+                      onChange={setSoundName}
                     />
                     <Input 
                       placeholder="Ses URL'si (.mp3)" 
                       value={soundUrl}
-                      onChange={(e) => setSoundUrl(e.target.value)}
+                      onChange={setSoundUrl}
                     />
                   </div>
                   <Button onClick={handleAddSound} variant="secondary" className="w-full sm:w-auto" disabled={!soundName.trim() || !soundUrl.trim()}>
