@@ -12,6 +12,7 @@ export function LibraryModals({ libraryState }: Props) {
     isUploadModalOpen, setIsUploadModalOpen, isUploading, handleUpload,
     uploadName, setUploadName, uploadCategory, setUploadCategory,
     categories, uploadDate, setUploadDate, setUploadFile,
+    uploadProgress, uploadStatus,
     renamingFileId, setRenamingFileId, isRenaming, handleRenameFile,
     renamingFileName, setRenamingFileName,
     movingFileId, setMovingFileId, isMovingFile, handleMoveFile,
@@ -58,9 +59,24 @@ export function LibraryModals({ libraryState }: Props) {
                 <label className="block text-sm font-medium text-gray-300 mb-1 px-1">Dosya (Video, Ses, PDF vb.) *</label>
                 <input type="file" required onChange={(e) => setUploadFile(e.target.files?.[0] || null)} className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-2 text-white file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-900/30 file:text-green-500 hover:file:bg-green-900/50 transition-colors cursor-pointer" />
               </div>
-              <button type="submit" disabled={isUploading} className="mt-6 bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-full transition-colors flex items-center justify-center gap-2 shadow-lg">
+              {/* Progress Bar */}
+              {isUploading && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1 px-1">
+                    <span>{uploadStatus}</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-black/50 rounded-full h-2 border border-green-900/30">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <button type="submit" disabled={isUploading} className="mt-6 bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-full transition-colors flex items-center justify-center gap-2 shadow-lg">
                 {isUploading ? <Loader2 className="animate-spin" size={20} /> : null}
-                {isUploading ? 'Yükleniyor...' : 'Dosyayı Yükle'}
+                {isUploading ? uploadStatus || 'Yükleniyor...' : 'Dosyayı Yükle'}
               </button>
             </form>
           </div>

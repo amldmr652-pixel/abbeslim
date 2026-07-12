@@ -399,3 +399,58 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 ### 1. Görsel Hata Yakalama Desteği (src/app/tracker/page.tsx)
 - **Sorun:** Türkiye'de TMDB (`image.tmdb.org`) DNS seviyesinde engellendiğinden (127.0.0.1'e yönlendiriliyor), istemcide VPN veya DoH (Secure DNS) açık değilse yeni eklenen medyalara ait afiş görselleri yüklenemiyor ve tarayıcıda kırık görsel ikonları ile ham `alt` metinleri görünüyor.
 - **Çözüm:** `TrackerPage` bileşenine `imageErrors` state'i eklendi. `<img>` bileşenine `onError` tetikleyicisi tanımlanarak yüklenemeyen (engelli veya hatalı) resimlerin yerine otomatik olarak sistemin kendi şık "No Poster" placeholder'ının gösterilmesi sağlandı.
+
+### 2. Sağ Üst Butonların Sola Doğru Kayarak Açılan Menü Yapılması (src/app/LayoutShell.tsx)
+- **İstek:** Sağ üstteki 3 butonun ekranın sağında tek bir buton altında toplanması, bu ana buton (Odak Modu ikonu) tıklandığında diğer araç butonlarının (Pomodoro, AI Asistan ve Gelişmiş Odak Modu) sola doğru kayarak açılması sağlandı.
+- **Çözüm:** `LayoutShell` bileşenine `isMenuOpen` state'i eklendi. Ana buton olarak `Maximize` ikonu kullanıldı. Tıklandığında `isMenuOpen` durumunu tersine çevirerek, sol tarafındaki Pomodoro, AI Asistan ve Gelişmiş Odak Modunu tetikleyen butonları flexbox yapısı ve CSS transition animasyonları ile sola doğru kayarak genişleyecek şekilde düzenledik. Dışarı tıklandığında (Backdrop tetiklendiğinde) menünün otomatik kapanması sağlandı. Lucide-react import çakışmaları düzeltildi.
+
+## [2026-07-13T00:25] V2.6 — Sağ Menü Radyal Tasarıma ve Ekranın Sağına Taşınması (Antigravity/Gemini)
+
+### 1. Ekranın Sağ Ortasına Radyal/Yelpaze Menü Yapılması (src/app/LayoutShell.tsx)
+- **İstek:** Butonların sağ üst yerine ekranın sağ kenar ortasında (`fixed right-4 top-1/2 -translate-y-1/2`) konumlandırılması ve sarı renkli ana tetiğe tıklandığında mor renkli 3 alt butonun (Gelişmiş Odak Modu, Pomodoro, AI Asistan) yelpaze şeklinde sola doğru açılması sağlandı.
+- **Çözüm:** 
+  - Buton grubu ekranın sağ kenar ortasına taşındı.
+  - Ana tetikleyici buton sarı (yellow-500) renk yapıldı.
+  - Diğer 3 sub-button mor (purple-600) olarak ayarlandı.
+  - Yelpaze şeklinde açılabilmesi için CSS `transform` ve `translate` kullanıldı:
+    - Gelişmiş Odak: `translate(-65px, -65px)` (Sol Üst)
+    - Pomodoro: `translate(-90px, 0px)` (Sol)
+    - AI Asistan: `translate(-65px, 65px)` (Sol Alt)
+  - Açılış animasyonuna yaylanma (elastic bounce) efekti katmak için özel bir cubic-bezier zamanlama fonksiyonu (`cubic-bezier(0.175, 0.885, 0.32, 1.275)`) eklendi.
+  - Açılan widget panelleri (Pomodoro ve AI Chat) de menü hizasına uygun olarak ekranın sağ ortasında (`right-[160px] top-1/2 -translate-y-1/2`) açılacak şekilde yeniden konumlandırıldı.
+
+## [2026-07-13T00:26] V2.7 — Sağ Menü Yarım Daire Yapılması ve Site Temasına Uyarlanması (Antigravity/Gemini)
+
+### 1. Yarım Daire Menü Tetikleyicisi ve Temalandırma (src/app/LayoutShell.tsx)
+- **İstek:** Sağ tarafta açılan tetiğin tam bir daire değil, sadece sol yarısının görünmesi ve ekranın sağ sınırına tam sıfır (bitişik) durması sağlandı. Sarı ve mor renkler kaldırılarak sitenin orijinal yeşil/glassmorphism temasına uyarlanması talep edildi.
+- **Çözüm:** 
+  - Ana tetikleyici butonun genişliği `w-8` (32px), yüksekliği `h-12` (48px) olarak ayarlandı, sol köşeleri yuvarlatıldı (`rounded-l-full rounded-r-none`), sağ kenara sıfırlandı (`right-0`) ve kenarlıkları sadece üst, alt ve sola uygulandı (`border-y border-l`). Böylece sağa tam bitişik kusursuz bir yarım daire elde edildi.
+  - Asimetrik sınır yapısından ötürü butonun dönmesini engellemek için dönüş efekti sadece içerisindeki ikona (`Maximize` / `X`) uygulandı.
+  - Sarı ve mor geçici renkler kaldırılarak sitenin orijinal glassmorphism ve yeşil vurgu temasına dönüldü:
+    - Normal durum: `.glass` arka planı + `text-gray-400` + yeşil hover.
+    - Aktif durum (açık menü / açık panel): `bg-green-500` / `bg-green-600` + `text-white` + yeşil gölge.
+  - Açılan widget panellerinin konumu radial menünün sağa yanaşmasıyla birlikte sola kaydırılarak `right-[130px]` olarak güncellendi.
+
+## [2026-07-13T00:30] V2.8 — Global Scrollbar İyileştirmesi ve Çakışma Çözümü (Antigravity/Gemini)
+
+### 1. Global İnce ve Şeffaf Scrollbar Uygulanması (src/app/globals.css)
+- **Sorun:** Sağ sınırda konumlandırılan yarım daire menü butonu, tarayıcının varsayılan kalın ve arka planlı (gri/beyaz) dikey dikey kaydırma çubuğu (scrollbar) ile üst üste biniyor ve görsel/tıklama çakışmasına neden oluyordu.
+- **Çözüm:** 
+  - `globals.css` içinde tüm scrollbar yapıları (`*`) özelleştirildi.
+  - Scrollbar genişliği `8px` (`width: 8px`) seviyesine düşürüldü.
+  - Kaydırma çubuğu kanalı (track) tamamen şeffaf (`background: transparent`) yapıldı. Böylece çubuğun beyaz arka plan şeridi ortadan kalktı ve yarım daire butonunun arkası pürüzsüzce görünür hale geldi.
+  - Kaydırma kulpu (thumb) son derece ince ve minimalist yarı şeffaf bir çizgiye (`rgba(255, 255, 255, 0.12)`) dönüştürüldü. Üzerine gelindiğinde yeşil vurgulu (`rgba(34, 197, 94, 0.6)`) olarak parlaması sağlandı.
+  - Bu değişiklik sayesinde buton hem görsel olarak kesilmiyor hem de genişliği (32px) scrollbar'dan (8px) daha fazla olduğu için sol kısmı her koşulda çakışmadan rahatça tıklanabiliyor. Sitenin tüm diğer alanlarında da kaydırma çubukları bu modern görünüme kavuştu.
+
+---
+
+## [2026-07-13T01:10] V2.9 — Kütüphane Yükleme Sınırı Düzeltmesi (Antigravity/Gemini)
+
+### 1. 4.5 MB Dosya Yükleme Sınırının Bypass Edilmesi (useLibrary.ts & LibraryModals.tsx)
+- **Sorun:** Kütüphane sayfasında 4.5 MB üzerindeki dosyaların yüklenmesi esnasında hata alınıyordu. Bunun sebebi, dosyaların `/api/upload` rotasına POST edilip Vercel'in 4.5 MB Serverless Function payload limitine takılmasıydı.
+- **Çözüm:**
+  - **Yeni Yardımcı Modül:** `src/utils/fileExtractor.ts` oluşturularak istemci tarafında (tarayıcıda) PDF, DOCX, XLSX ve PPTX dosyalarından metin çıkaran `extractTextClientSide` fonksiyonu buraya taşındı. `useFileUpload.ts` hook'u da bu ortak modülü kullanacak şekilde refaktör edildi.
+  - **Doğrudan Supabase Yükleme Mantığı:** `useLibrary.ts` hook'undaki `handleUpload` fonksiyonu güncellendi. Artık dosya gövdesi Vercel üzerinden POST edilmiyor; onun yerine `/api/get-upload-url` ile imzalı URL alınıyor, dosya tarayıcıda okunup doğrudan bu imzalı URL'ye (`PUT` metoduyla) Supabase Storage'a yükleniyor. Ardından `/api/process` rotası çağrılarak sadece metadata ve çıkarılan metinler veritabanına işleniyor.
+  - **Arayüz Geliştirmesi:** `LibraryModals.tsx` yükleme ekranına progress bar (yükleme ilerleme çubuğu) ve durum metni eklendi. Yükleme esnasında kullanıcının yükleme adımlarını ("Hazırlanıyor...", "Dosya yükleniyor...", "Kayıt oluşturuluyor...") takip etmesi sağlandı.
+  - **Doğrulama:** `npm run build` ile proje derlendi ve derleme başarıyla tamamlandı.
+
