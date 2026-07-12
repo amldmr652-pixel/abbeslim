@@ -268,7 +268,11 @@ function PDFViewerContent() {
 
     for (let i = 0; i < fullText.length; i++) {
       const origChar = fullText[i];
-      if (/\s/.test(origChar)) continue;
+      if (/\s/.test(origChar)) {
+        normalizedText += origChar;
+        indexMap.push(i);
+        continue;
+      }
 
       let char = origChar;
 
@@ -397,11 +401,11 @@ function PDFViewerContent() {
       let queryWords: string[] = [];
       if (mode === 'phrase') {
         const normQ = normalizeChar(query);
-        queryWords = [normQ.replace(/\s+/g, '')];
+        queryWords = [normQ];
         
         const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
         if (isArabicPhrase) {
-          const revQ = normQ.split(/\s+/).reverse().join('').replace(/\s+/g, '');
+          const revQ = normQ.split(/\s+/).reverse().join(' ');
           if (revQ !== queryWords[0]) {
             queryWords.push(revQ);
           }
@@ -539,11 +543,11 @@ function PDFViewerContent() {
     let queryWords: string[] = [];
     if (mode === 'phrase') {
       const normQ = normalizeChar(query);
-      queryWords = [normQ.replace(/\s+/g, '')];
+      queryWords = [normQ];
       
       const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
       if (isArabicPhrase) {
-        const revQ = normQ.split(/\s+/).reverse().join('').replace(/\s+/g, '');
+        const revQ = normQ.split(/\s+/).reverse().join(' ');
         if (revQ !== queryWords[0]) {
           queryWords.push(revQ);
         }
