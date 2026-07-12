@@ -467,3 +467,18 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **Doğrulama:** `npm run build` hatasız tamamlandı.
 
 
+## [2026-07-13T01:17] V2.11 — Ayarlar Sekmesine Kısayol Tuşları Atama Sistemi (Antigravity/Gemini)
+
+### 1. Klavye Kısayolları Atama ve Yönetim Sistemi (useSettingsStore, Sidebar, LayoutShell & Settings Page)
+- **Sorun:** Kullanıcıların sistem genelindeki farklı sayfalara (Dashboard, Arama, Kütüphane, vb.) ve yüzen modüllere (Odak Müzik, Pomodoro, AI Asistan) hızlı erişebilmelerini sağlayacak klavye kısayollarını özelleştirebilecekleri ve yönetebilecekleri bir arayüz/altyapı bulunmuyordu.
+- **Çözüm:**
+  - **Durum Yönetimi (`useSettingsStore.ts`):** `ShortcutConfig` tipi ve 16 temel eylemi içeren varsayılan kısayol haritası (`DEFAULT_SHORTCUTS`) oluşturuldu. `shortcuts` ve `sidebarCollapsed` durumları eklenerek persist (yerel depolama) ile kalıcı hale getirildi. Kısayolları düzenleyen `setShortcut` ve varsayılana sıfırlayan `resetShortcuts` metotları yazıldı.
+  - **Sidebar Güncellemesi (`Sidebar.tsx`):** Local state olarak tutulan `collapsed` durumu, store içindeki global `sidebarCollapsed` ile değiştirildi. Bu sayede kısayol tuşu ile menünün açılıp kapatılabilmesi ve bu durumun sayfa geçişlerinde korunması sağlandı.
+  - **Global Dinleyici (`LayoutShell.tsx`):** Global bir klavye dinleyicisi eklenerek kullanıcının bastığı tuş kombinasyonları (`Ctrl`, `Alt`, `Shift`, `Meta` + Tuş) store'daki tanımlarla eşleştirildi. Form/veri kaybını önlemek amacıyla, odaklanılan eleman bir metin alanı (`input`, `textarea`, `contenteditable`) ise kısayol tetiklemeleri devre dışı bırakıldı.
+  - **Ayarlar Kısayol Arayüzü (`src/app/settings/page.tsx`):** Ayarlar ekranına "Kısayollar" (shortcuts) adında yeni bir sekme eklendi. Burada tüm kısayollar şık `kbd` etiketleri ile listeleniyor.
+    - **Etkileşimli Kayıt Arayüzü:** "Düzenle" butonuna tıklandığında tuş vuruşları anlık olarak yakalanır (kullanıcı tuşları basılı tuttukça Ctrl/Alt gibi modifier'lar canlı olarak ekrana yansır).
+    - **Çakışma Kontrolü:** Atanmak istenen yeni kombinasyon başka bir eyleme aitse kırmızı bir çakışma uyarı şeridi gösterilir ve kaydedilmesi engellenir.
+    - **Yönetim:** Her kısayol tek tek kaldırılabilir ("Kısayol Yok" durumuna getirilebilir) veya "Varsayılanlara Dön" butonu ile orijinal haline sıfırlanabilir.
+  - **i18n Desteği (`tr.json`, `en.json`, `ar.json`):** Kısayol başlıkları, hata mesajları ve 16 eylem tanımının tamamı Türkçe, İngilizce ve Arapça olarak yerelleştirildi.
+  - **Doğrulama:** `npm run build` ile projede derleme hatası olmadığı doğrulandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
+
