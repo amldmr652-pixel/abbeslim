@@ -65,22 +65,9 @@ export default function TrackerPage() {
           });
           setTmdbResults(formattedResults);
         } else {
-          // TMDB API
-          const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-          if (!apiKey) {
-            setTmdbResults([
-              { 
-                id: '0', 
-                title: `${title} (Manuel Kayıt)`, 
-                name: `${title} (Manuel Kayıt)`,
-                release_date: 'API Kapalı',
-                poster_path: null
-              }
-            ]);
-            return;
-          }
-          const endpoint = mediaType === 'movie' ? 'search/movie' : 'search/tv';
-          const res = await fetch(`https://api.themoviedb.org/3/${endpoint}?api_key=${apiKey}&language=tr-TR&query=${encodeURIComponent(title)}&page=1`);
+          // TMDB search via server-side proxy
+          const res = await fetch(`/api/tracker/search?type=${mediaType}&query=${encodeURIComponent(title)}`);
+          if (!res.ok) throw new Error('Search failed');
           const data = await res.json();
           setTmdbResults(data.results?.slice(0, 5) || []);
         }
@@ -120,23 +107,27 @@ export default function TrackerPage() {
     e.preventDefault();
     if (!userId || !title.trim()) return;
 
-    await addItem({
-      user_id: userId,
-      title,
-      media_type: mediaType,
-      status,
-      rating,
-      poster_url: posterUrl.trim() || null,
-      tmdb_id: tmdbId,
-    });
+    try {
+      await addItem({
+        user_id: userId,
+        title,
+        media_type: mediaType,
+        status,
+        rating,
+        poster_url: posterUrl.trim() || null,
+        tmdb_id: tmdbId,
+      });
 
-    setIsModalOpen(false);
-    setTitle('');
-    setMediaType('movie');
-    setStatus('planned');
-    setPosterUrl('');
-    setRating(0);
-    setTmdbId(null);
+      setIsModalOpen(false);
+      setTitle('');
+      setMediaType('movie');
+      setStatus('planned');
+      setPosterUrl('');
+      setRating(0);
+      setTmdbId(null);
+    } catch (error: any) {
+      alert("Öğe kaydedilirken bir hata oluştu: " + (error.message || error));
+    }
   };
 
   const [activeStatus, setActiveStatus] = useState<MediaStatus | 'all'>('all');
@@ -372,7 +363,11 @@ export default function TrackerPage() {
                   >
                     {res.poster_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`https://image.tmdb.org/t/p/w92${res.poster_path}`} alt="" className="w-8 h-12 object-cover rounded" />
+                      <img 
+                        src={res.is_google_book ? res.poster_path : `https://image.tmdb.org/t/p/w92${res.poster_path}`} 
+                        alt="" 
+                        className="w-8 h-12 object-cover rounded" 
+                      />
                     ) : (
                       <div className="w-8 h-12 bg-white/5 rounded flex items-center justify-center">
                         <ImageIcon size={16} className="text-gray-500" />

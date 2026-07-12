@@ -16,7 +16,14 @@ CREATE TABLE IF NOT EXISTS map_pins (
 -- RLS
 ALTER TABLE map_pins ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own pins" ON map_pins;
 CREATE POLICY "Users can view own pins" ON map_pins FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own pins" ON map_pins;
 CREATE POLICY "Users can insert own pins" ON map_pins FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own pins" ON map_pins;
 CREATE POLICY "Users can update own pins" ON map_pins FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own pins" ON map_pins;
 CREATE POLICY "Users can delete own pins" ON map_pins FOR DELETE USING (auth.uid() = user_id);

@@ -128,10 +128,11 @@ export default function SettingsPage() {
                           const filePath = `${user.id}/avatar.${ext}`;
                           const supabaseClient = createClient();
                           const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, { upsert: true });
-                          if (uploadError) { console.error('Avatar yüklenemedi:', uploadError); return; }
+                          if (uploadError) { alert('Avatar yüklenemedi: ' + uploadError.message); return; }
                           const { data: { publicUrl } } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
-                          await supabaseClient.auth.updateUser({ data: { avatar_url: publicUrl } });
-                          setUser({ ...user, user_metadata: { ...user.user_metadata, avatar_url: publicUrl } });
+                          const urlWithCacheBust = publicUrl + '?t=' + Date.now();
+                          await supabaseClient.auth.updateUser({ data: { avatar_url: urlWithCacheBust } });
+                          setUser({ ...user, user_metadata: { ...user.user_metadata, avatar_url: urlWithCacheBust } });
                         }} />
                       </label>
                     </div>

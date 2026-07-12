@@ -12,9 +12,16 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own transactions" ON transactions;
 CREATE POLICY "Users can view own transactions" ON transactions FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own transactions" ON transactions;
 CREATE POLICY "Users can insert own transactions" ON transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own transactions" ON transactions;
 CREATE POLICY "Users can update own transactions" ON transactions FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own transactions" ON transactions;
 CREATE POLICY "Users can delete own transactions" ON transactions FOR DELETE USING (auth.uid() = user_id);
 
 -- Medya Takibi: media_tracker tablosu
@@ -33,11 +40,14 @@ CREATE TABLE IF NOT EXISTS media_tracker (
 
 ALTER TABLE media_tracker ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own media" ON media_tracker;
 CREATE POLICY "Users can view own media" ON media_tracker FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert own media" ON media_tracker FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own media" ON media_tracker FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own media" ON media_tracker FOR DELETE USING (auth.uid() = user_id);
 
--- ⚠️ SUPABASE DASHBOARD'DAN ELLE YAPILMASI GEREKENLER:
--- 1. Storage → "audio_notes" adlı PUBLIC bucket oluştur (sesli not kayıtları için)
--- 2. Storage → "avatars" adlı PUBLIC bucket oluştur (profil fotoğrafı için)
+DROP POLICY IF EXISTS "Users can insert own media" ON media_tracker;
+CREATE POLICY "Users can insert own media" ON media_tracker FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own media" ON media_tracker;
+CREATE POLICY "Users can update own media" ON media_tracker FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own media" ON media_tracker;
+CREATE POLICY "Users can delete own media" ON media_tracker FOR DELETE USING (auth.uid() = user_id);

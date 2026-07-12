@@ -78,6 +78,13 @@ export default function QuickNoteWidget() {
     speech.toggleListen();
   };
 
+  // Synchronize MediaRecorder with useSpeechRecognition state
+  useEffect(() => {
+    if (!speech.listening) {
+      stopRecordingAudio();
+    }
+  }, [speech.listening]);
+
   const handleSave = async () => {
     if (!noteText.trim() || !user) return;
     setIsSaving(true);
@@ -85,8 +92,12 @@ export default function QuickNoteWidget() {
     try {
       let uploadedAudioUrl = null;
       if (audioBlob) {
-        const file = new File([audioBlob], 'quick_audio.webm', { type: 'audio/webm' });
-        uploadedAudioUrl = await uploadAudio(file);
+        try {
+          const file = new File([audioBlob], `quick_audio_${Date.now()}.webm`, { type: 'audio/webm' });
+          uploadedAudioUrl = await uploadAudio(file);
+        } catch (audioErr: any) {
+          alert('Ses dosyası yüklenemedi: ' + (audioErr.message || 'Bilinmeyen hata') + '\nNot metin olarak kaydedilecek.');
+        }
       }
 
       await addNote({
@@ -102,7 +113,8 @@ export default function QuickNoteWidget() {
       setInitialNote('');
       setAudioBlob(null);
       setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (error) {
+    } catch (error: any) {
+      alert('Not kaydedilemedi: ' + (error.message || 'Bilinmeyen hata'));
       console.error('Error saving quick note:', error);
     } finally {
       setIsSaving(false);
