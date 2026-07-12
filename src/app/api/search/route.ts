@@ -233,11 +233,24 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
           : foundNormal !== -1 ? foundNormal : foundReversed;
 
         if (found === -1) break;
-        count++;
-        if (!firstSnippet) {
-          const start = Math.max(0, found - 60);
-          const end = Math.min(cleanText.length, found + normQ.length + 100);
-          firstSnippet = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, '').trim();
+
+        // Arapça için kelime sınırı kontrolü
+        let isValid = true;
+        if (isArabicPhrase) {
+          const prev = found > 0 ? normFull[found - 1] : '';
+          const next = found + normQ.length < normFull.length ? normFull[found + normQ.length] : '';
+          if (/[\u0600-\u06FF]/.test(prev) || /[\u0600-\u06FF]/.test(next)) {
+            isValid = false;
+          }
+        }
+
+        if (isValid) {
+          count++;
+          if (!firstSnippet) {
+            const start = Math.max(0, found - 60);
+            const end = Math.min(cleanText.length, found + normQ.length + 100);
+            firstSnippet = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, '').trim();
+          }
         }
         idx = found + 1;
       }
@@ -258,11 +271,24 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
             : foundNormal !== -1 ? foundNormal : foundReversed;
 
           if (found === -1) break;
-          count++;
-          if (!firstSnippet) {
-            const start = Math.max(0, found - 60);
-            const end = Math.min(cleanText.length, found + word.length + 100);
-            firstSnippet = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, '').trim();
+
+          // Arapça kelime sınırı kontrolü
+          let isValid = true;
+          if (isArabicW) {
+            const prev = found > 0 ? normFull[found - 1] : '';
+            const next = found + word.length < normFull.length ? normFull[found + word.length] : '';
+            if (/[\u0600-\u06FF]/.test(prev) || /[\u0600-\u06FF]/.test(next)) {
+              isValid = false;
+            }
+          }
+
+          if (isValid) {
+            count++;
+            if (!firstSnippet) {
+              const start = Math.max(0, found - 60);
+              const end = Math.min(cleanText.length, found + word.length + 100);
+              firstSnippet = cleanText.substring(start, end).replace(/\[PAGE: \d+\]/g, '').trim();
+            }
           }
           idx = found + 1;
         }
@@ -295,11 +321,24 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
           : foundNormal !== -1 ? foundNormal : foundReversed;
 
         if (found === -1) break;
-        count++;
-        if (!firstSnippet) {
-          const start = Math.max(0, found - 40);
-          const end = Math.min(seg.text.length, found + normQ.length + 80);
-          firstSnippet = seg.text.substring(start, end).trim();
+
+        // Arapça kelime sınırı kontrolü
+        let isValid = true;
+        if (isArabicPhrase) {
+          const prev = found > 0 ? seg.normText[found - 1] : '';
+          const next = found + normQ.length < seg.normText.length ? seg.normText[found + normQ.length] : '';
+          if (/[\u0600-\u06FF]/.test(prev) || /[\u0600-\u06FF]/.test(next)) {
+            isValid = false;
+          }
+        }
+
+        if (isValid) {
+          count++;
+          if (!firstSnippet) {
+            const start = Math.max(0, found - 40);
+            const end = Math.min(seg.text.length, found + normQ.length + 80);
+            firstSnippet = seg.text.substring(start, end).trim();
+          }
         }
         idx = found + 1;
       }
@@ -321,11 +360,24 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
             : foundNormal !== -1 ? foundNormal : foundReversed;
 
           if (found === -1) break;
-          count++;
-          if (!firstSnippet) {
-            const start = Math.max(0, found - 40);
-            const end = Math.min(seg.text.length, found + word.length + 80);
-            firstSnippet = seg.text.substring(start, end).trim();
+
+          // Arapça kelime sınırı kontrolü
+          let isValid = true;
+          if (isArabicW) {
+            const prev = found > 0 ? seg.normText[found - 1] : '';
+            const next = found + word.length < seg.normText.length ? seg.normText[found + word.length] : '';
+            if (/[\u0600-\u06FF]/.test(prev) || /[\u0600-\u06FF]/.test(next)) {
+              isValid = false;
+            }
+          }
+
+          if (isValid) {
+            count++;
+            if (!firstSnippet) {
+              const start = Math.max(0, found - 40);
+              const end = Math.min(seg.text.length, found + word.length + 80);
+              firstSnippet = seg.text.substring(start, end).trim();
+            }
           }
           idx = found + 1;
         }

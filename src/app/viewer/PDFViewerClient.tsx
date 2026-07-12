@@ -432,6 +432,7 @@ function PDFViewerContent() {
       const spanMatches = new Map<HTMLElement, { start: number; end: number }[]>();
 
       queryWords.forEach(qw => {
+        const isArabicW = /[\u0600-\u06FF]/.test(qw);
         let idx = 0;
         while (true) {
           const foundClean = cleanTextNorm.indexOf(qw, idx);
@@ -440,19 +441,35 @@ function PDFViewerContent() {
           const foundFull = cleanToFullMap[foundClean];
           const matchEndFull = cleanToFullMap[foundClean + qw.length - 1] + 1;
           
-          spanData.forEach(sd => {
-            if (sd.startIdx + sd.text.length > foundFull && sd.startIdx < matchEndFull) {
-              const localStart = Math.max(0, foundFull - sd.startIdx);
-              const localEnd = Math.min(sd.text.length, matchEndFull - sd.startIdx);
-              
-              if (localStart < localEnd) {
-                if (!spanMatches.has(sd.el)) {
-                  spanMatches.set(sd.el, []);
-                }
-                spanMatches.get(sd.el)!.push({ start: localStart, end: localEnd });
-              }
+          // Arapça kelimeler için kelime sınırı kontrolü (Alt kelime eşleşmelerini önler, örn: تدلّل)
+          let isValidWordBoundary = true;
+          if (isArabicW) {
+            const prevChar = foundClean > 0 ? cleanTextNorm[foundClean - 1] : '';
+            const nextChar = foundClean + qw.length < cleanTextNorm.length ? cleanTextNorm[foundClean + qw.length] : '';
+            
+            const isPrevArabic = /[\u0600-\u06FF]/.test(prevChar);
+            const isNextArabic = /[\u0600-\u06FF]/.test(nextChar);
+            
+            if (isPrevArabic || isNextArabic) {
+              isValidWordBoundary = false;
             }
-          });
+          }
+
+          if (isValidWordBoundary) {
+            spanData.forEach(sd => {
+              if (sd.startIdx + sd.text.length > foundFull && sd.startIdx < matchEndFull) {
+                const localStart = Math.max(0, foundFull - sd.startIdx);
+                const localEnd = Math.min(sd.text.length, matchEndFull - sd.startIdx);
+                
+                if (localStart < localEnd) {
+                  if (!spanMatches.has(sd.el)) {
+                    spanMatches.set(sd.el, []);
+                  }
+                  spanMatches.get(sd.el)!.push({ start: localStart, end: localEnd });
+                }
+              }
+            });
+          }
           idx = foundClean + 1;
         }
       });
@@ -503,6 +520,123 @@ function PDFViewerContent() {
     setTimeout(doHighlight, 0);
     setTimeout(doHighlight, 100);
   }, [doHighlight]);
+
+  // Sıfır gecikmeli (Zero-Lag) metin vurgulama renderersı
+  const textRenderer = useCallback((textItem: any) => {
+    const str = textItem.str || '';
+    if (!query || !str.trim()) return str;
+
+    const { normalizedText: cleanTextNorm, indexMap: cleanToFullMap } = normalizeWithMap(str);
+
+    const TR_STOPWORDS = [
+      'nedir', 'nasıl', 'nerede', 'ne zaman', 'neden', 'niçin', 'kaç',
+      'hangi', 'olan', 'olanı', 'hakkında', 'ile', 'göre', 'için',
+      'bir', 've', 'ya da', 'veya', 'ama', 'fakat', 'ancak',
+      'açıkla', 'anlat', 'tanımla', 'ne anlama gelir', 'ne demek',
+      'bana', 'bul', 'göster', 'aç', 'ararmısın', 'arat', 'notları', 'notu'
+    ];
+
+    let queryWords: string[] = [];
+    if (mode === 'phrase') {
+      const normQ = normalizeChar(query);
+      queryWords = [normQ.replace(/\s+/g, '')];
+      
+      const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
+      if (isArabicPhrase) {
+        const revQ = normQ.split(/\s+/).reverse().join('').replace(/\s+/g, '');
+        if (revQ !== queryWords[0]) {
+          queryWords.push(revQ);
+        }
+      }
+    } else {
+      let cleanQueryStr = query.toLocaleLowerCase('tr-TR').replace(/[.,!?;:]/g, ' ');
+      TR_STOPWORDS.forEach(sw => {
+        cleanQueryStr = cleanQueryStr.replace(new RegExp(`\\b${sw}\\b`, 'g'), ' ');
+      });
+      queryWords = cleanQueryStr.split(/\s+/).filter(w => w.length > 1).map(w => normalizeChar(w));
+    }
+
+    const expandedQueryWords: string[] = [];
+    queryWords.forEach(qw => {
+      expandedQueryWords.push(qw);
+      const isArabic = /[\u0600-\u06FF]/.test(qw);
+      if (isArabic) {
+        const rev = qw.split('').reverse().join('');
+        if (rev !== qw) {
+          expandedQueryWords.push(rev);
+        }
+      }
+    });
+    queryWords = expandedQueryWords;
+
+    if (queryWords.length === 0 || !queryWords[0]) return str;
+
+    const intervals: { start: number; end: number }[] = [];
+    queryWords.forEach(qw => {
+      const isArabicW = /[\u0600-\u06FF]/.test(qw);
+      let idx = 0;
+      while (true) {
+        const foundClean = cleanTextNorm.indexOf(qw, idx);
+        if (foundClean === -1) break;
+
+        const foundFull = cleanToFullMap[foundClean];
+        const matchEndFull = cleanToFullMap[foundClean + qw.length - 1] + 1;
+
+        let isValid = true;
+        if (isArabicW) {
+          const prevChar = foundClean > 0 ? cleanTextNorm[foundClean - 1] : '';
+          const nextChar = foundClean + qw.length < cleanTextNorm.length ? cleanTextNorm[foundClean + qw.length] : '';
+          if (/[\u0600-\u06FF]/.test(prevChar) || /[\u0600-\u06FF]/.test(nextChar)) {
+            isValid = false;
+          }
+        }
+
+        if (isValid && foundFull < matchEndFull) {
+          intervals.push({ start: foundFull, end: matchEndFull });
+        }
+        idx = foundClean + 1;
+      }
+    });
+
+    if (intervals.length === 0) return str;
+
+    // Aralıkları birleştir
+    intervals.sort((a, b) => a.start - b.start);
+    const merged: { start: number; end: number }[] = [];
+    intervals.forEach(interval => {
+      if (merged.length === 0) {
+        merged.push(interval);
+      } else {
+        const last = merged[merged.length - 1];
+        if (interval.start <= last.end) {
+          last.end = Math.max(last.end, interval.end);
+        } else {
+          merged.push(interval);
+        }
+      }
+    });
+
+    const escapeHtml = (text: string) => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    let html = '';
+    let lastIdx = 0;
+    merged.forEach(interval => {
+      html += escapeHtml(str.substring(lastIdx, interval.start));
+      html += '<mark class="custom-word-highlight">';
+      html += escapeHtml(str.substring(interval.start, interval.end));
+      html += '</mark>';
+      lastIdx = interval.end;
+    });
+    html += escapeHtml(str.substring(lastIdx));
+    return html;
+  }, [query, mode, dynamicFontMap]);
 
   useEffect(() => {
     window.addEventListener('resize', doHighlight);
@@ -684,6 +818,7 @@ function PDFViewerContent() {
                     pageNumber={index + 1}
                     scale={scale}
                     onRenderTextLayerSuccess={onTextLayerRender}
+                    customTextRenderer={textRenderer}
                     loading={<div className="h-[800px] w-[600px] bg-gray-900/50 animate-pulse rounded-2xl" />}
                     className="rounded-2xl overflow-hidden relative"
                   />
