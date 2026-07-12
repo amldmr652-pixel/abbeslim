@@ -367,4 +367,35 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 1. `scripts/map-migration.sql` → Supabase SQL Editor'de çalıştır
 2. Supabase Dashboard → Storage → `avatars` public bucket oluştur
 
+---
 
+## [2026-07-12T23:55] V2.4 — Ses Notu, Avatar ve TMDB Düzeltmeleri (Antigravity/Gemini)
+
+### 1. Hızlı Not Ses Kayıt Düzeltmesi (QuickNoteWidget.tsx)
+- **Sorun:** Mikrofon butonu tıklandığında ses metne çevriliyor ancak ses dosyası (.webm blob) kaydedilmiyordu. Nedeni; ses tanıma (SpeechRecognition) sessizlik algılayıp kendiliğinden kapandığında `listening` durumunun otomatik `false` olması ama `MediaRecorder`'ın arka planda durdurulmamasıydı. Durdurulmadığı için `onstop` tetiklenmiyor ve ses dosyası oluşmuyordu.
+- **Çözüm:** `speech.listening` durumunu izleyen bir `useEffect` eklenerek ses tanıma bittiğinde `MediaRecorder`'ın da otomatik durdurulması ve ses dosyasının kaydedilmesi sağlandı. `handleSave` içerisindeki ses dosyası yükleme hatası için de kullanıcıya geribildirim eklendi.
+
+### 2. Avatar Yükleme Hata Geribildirimi (settings/page.tsx)
+- **Sorun:** Profil fotoğrafı seçildiğinde yüklenmiyordu. Nedeni muhtemelen Supabase Storage RLS politikalarının veya bucket erişiminin eksik olmasıydı ancak konsolda sessizce kalıyordu.
+- **Çözüm:** Yükleme adımına görsel hata bildirimi (`alert`) eklendi. Ayrıca güncellenen avatarın tarayıcıda hemen yansıması için publicUrl sonuna cache-busting timestamp parametresi (`?t=timestamp`) eklendi.
+
+### 3. Filmler ve Diziler TMDB Arama Düzeltmesi (tracker/page.tsx & /api/tracker/search)
+- **Sorun:** Türkiye'de bazı servis sağlayıcılarda `api.themoviedb.org` doğrudan DNS veya ISP engeline/filtresine takıldığı için (`ECONNREFUSED`) istemci tarafındaki aramalar boş dönüyor ve manuel kayıt da dropdown seçilemediği için yapılamıyordu.
+- **Çözüm:** Sunucu tarafında (Vercel sunucularında) çalışan güvenli bir arama proxy'si oluşturuldu: `/api/tracker/search`. İstemci tarafı aramaları artık bu API rotası üzerinden yapıyor. Kitap aramalarındaki dropdown görsel URL çakışması (`https://image.tmdb.org/...` ile başlayan cover_i url hatası) da giderildi.
+
+### 4. Tekrarlı SQL Hatalarının Giderilmesi (storage-migration.sql & finance-tracker-migration.sql)
+- **Sorun:** Kullanıcı migration dosyalarını SQL Editor'de tekrar çalıştırmak istediğinde "policy already exists" hatası alıyordu.
+- **Çözüm:** Tüm politikalardan önce `DROP POLICY IF EXISTS "..." ON ...` satırları eklendi. Ayrıca storage bucket'larını ve politikalarını otomatik oluşturan yeni bir [storage-migration.sql](file:///c:/Users/I-MEE/Documents/notefinder/scripts/storage-migration.sql) dosyası hazırlandı.
+
+### Kullanıcı Aksiyonu Gerekli (Yeni)
+1. SQL Editor'de [storage-migration.sql](file:///c:/Users/I-MEE/Documents/notefinder/scripts/storage-migration.sql) dosyasını çalıştırarak `avatars` ve `audio_notes` bucket'larını otomatik oluştur ve RLS politikalarını yetkilendir.
+2. SQL Editor'de güncellenmiş [finance-tracker-migration.sql](file:///c:/Users/I-MEE/Documents/notefinder/scripts/finance-tracker-migration.sql) dosyasını tekrar çalıştır.
+
+
+
+
+## [2026-07-13T00:10] V2.5 — tracker/page.tsx Görsel Yükleme ve Hata Yakalama Güncellemesi (Antigravity/Gemini)
+
+### 1. Görsel Hata Yakalama Desteği (src/app/tracker/page.tsx)
+- **Sorun:** Türkiye'de TMDB (`image.tmdb.org`) DNS seviyesinde engellendiğinden (127.0.0.1'e yönlendiriliyor), istemcide VPN veya DoH (Secure DNS) açık değilse yeni eklenen medyalara ait afiş görselleri yüklenemiyor ve tarayıcıda kırık görsel ikonları ile ham `alt` metinleri görünüyor.
+- **Çözüm:** `TrackerPage` bileşenine `imageErrors` state'i eklendi. `<img>` bileşenine `onError` tetikleyicisi tanımlanarak yüklenemeyen (engelli veya hatalı) resimlerin yerine otomatik olarak sistemin kendi şık "No Poster" placeholder'ının gösterilmesi sağlandı.

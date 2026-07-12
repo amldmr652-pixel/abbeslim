@@ -15,6 +15,7 @@ export default function TrackerPage() {
 
   const [activeTab, setActiveTab] = useState<MediaType>('movie');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   // Form State
   const [title, setTitle] = useState('');
@@ -256,12 +257,13 @@ export default function TrackerPage() {
             <div key={item.id} className="group relative rounded-2xl overflow-hidden glass hover:-translate-y-2 transition-all duration-300">
               {/* Poster */}
               <div className="aspect-[2/3] w-full bg-black/50 relative">
-                {item.poster_url ? (
+                {item.poster_url && !imageErrors[item.id] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img 
                     src={item.poster_url} 
                     alt={item.title}
                     className="w-full h-full object-cover"
+                    onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 gap-2">
