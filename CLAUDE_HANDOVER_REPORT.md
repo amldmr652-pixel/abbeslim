@@ -599,3 +599,15 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** `التَّدَلُّلِ` kelimesinin sonundaki parça bağımsız bir kelime olmadığı için artık `هل` olarak algılanmaz ve sarıya boyanmaz. Sadece bağımsız `هَلْ` kelimeleri yakalanır.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T02:12] V2.21 — Kelime Sınırı İçin Boşluk Koruma Düzeltmesi (PDFViewerClient.tsx)
+
+### 1. Normalleştirilmiş Metinlerde Boşlukların Korunması
+- **Sorun:** Kelime sınırı (word boundary) kontrolü ekledikten sonra, bazı sayfalarda geçerli ve bağımsız olan `هل` edatları da sarıya boyanmıyordu (kullanıcı "bütün geçen yerleri göstermiyor" şikayetinde bulundu).
+- **Sebep Analizi:** `normalizeWithMap` fonksiyonu, normalleştirilmiş metni oluştururken boşlukları (`\s`) tamamen siliyordu. Bu durumda `هل اتبعك` metni `هلاتبعك` haline geliyor ve `هل` kelimesinin hemen arkasında `ا` (Elif) Arapça harfi yer alıyordu. Kelime sınırı kontrolümüz de arkasından Arapça harf geldiği için bunu "kelime içi parça" zannedip yanlışlıkla reddediyordu.
+- **Çözüm:** 
+  - `normalizeWithMap` fonksiyonunun boşlukları atlama mantığı (`if (/\s/.test(origChar)) continue;`) değiştirilerek boşluk karakterlerinin normalleştirilmiş metin ve indeks haritasında korunması sağlandı.
+  - Cümle modu (`mode === 'phrase'`) arama eşleştirmeleri de boşluklar korunduğu için boşlukları silmeden doğrudan eşleşme arayacak şekilde güncellendi.
+- **Sonuç:** Boşluklar korunduğu için bağımsız kelimeler sınır kontrolüne takılmadan mükemmel şekilde tespit edilmekte ve sarı vurguları başarıyla çizilmektedir.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
