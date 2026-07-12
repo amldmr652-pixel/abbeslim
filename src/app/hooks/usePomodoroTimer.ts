@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMusicContext } from '../context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 export type Mode = 'pomodoro' | 'shortBreak' | 'longBreak';
 
@@ -35,8 +36,11 @@ export function usePomodoroTimer() {
     setIsMusicPlaying,
   } = useMusicContext();
 
+  const { breakSounds, selectedBreakSoundId } = useSettingsStore();
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const endTimeRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleFinishRef = useRef<(() => void) | null>(null);
   const startTimerRef = useRef<((overrideTime?: number) => void) | null>(null);
@@ -81,7 +85,7 @@ export function usePomodoroTimer() {
       setTimeout(() => setIsShaking(false), 1000);
       
       if (typeof window !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('Süre Doldu! ⏱️', {
+        new Notification('Süre Doldu! 🍅', {
           body: currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!',
         });
       }
@@ -185,8 +189,32 @@ export function usePomodoroTimer() {
   // Pomodoro ile müzik senkronizasyonu
   useEffect(() => {
     if (!isMusicSynced || !selectedChannelId) return;
-    setIsMusicPlaying(isRunning);
-  }, [isRunning, isMusicSynced, selectedChannelId, setIsMusicPlaying]);
+    if (currentMode === 'pomodoro') {
+      setIsMusicPlaying(isRunning);
+    } else {
+      setIsMusicPlaying(false);
+    }
+  }, [isRunning, isMusicSynced, selectedChannelId, setIsMusicPlaying, currentMode]);
+
+  // Mola Sesleri
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.loop = true;
+    }
+
+    if (isRunning && (currentMode === 'shortBreak' || currentMode === 'longBreak')) {
+      const sound = breakSounds.find(s => s.id === selectedBreakSoundId);
+      if (sound && audioRef.current) {
+        if (audioRef.current.src !== sound.url || audioRef.current.paused) {
+          audioRef.current.src = sound.url;
+          audioRef.current.play().catch(e => console.error("Mola sesi çalınamadı:", e));
+        }
+      }
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+    }
+  }, [isRunning, currentMode, breakSounds, selectedBreakSoundId]);
 
   return {
     settings,

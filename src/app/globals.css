@@ -1,12 +1,35 @@
 @import "tailwindcss";
 
-/* Arka plan: koyu siyah-yeşil gradient */
+/* Arka plan: koyu siyah-yeşil gradient (Varsayılan Dark) */
 body {
   background: radial-gradient(ellipse at top, #001a0d 0%, #000000 60%);
   color: white;
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   margin: 0;
+  transition: background 0.5s ease, color 0.5s ease;
+}
+
+/* AMOLED Siyah Tema */
+body.theme-amoled {
+  background: #000000;
+}
+
+/* Açık (Light) Tema */
+body.theme-light {
+  background: radial-gradient(ellipse at top, #e6f7ed 0%, #ffffff 60%);
+  color: #0a0a0a;
+}
+body.theme-light .glass {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1a1a1a;
+}
+body.theme-light .text-white {
+  color: #0a0a0a;
+}
+body.theme-light .text-gray-400 {
+  color: #4b5563;
 }
 
 /* Glass efekt - daha ovalimsi ve pürüzsüz */
