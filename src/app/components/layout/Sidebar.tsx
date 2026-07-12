@@ -23,6 +23,7 @@ import {
   LogOut,
   Clapperboard,
   Music,
+  Map,
 } from 'lucide-react';
 
 import { useTranslation } from '@/app/hooks/useTranslation';
@@ -48,6 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'finance', icon: <Wallet size={20} />, href: '/finance' },
   { id: 'games', icon: <Gamepad2 size={20} />, href: '/games' },
   { id: 'tracker', icon: <Clapperboard size={20} />, href: '/tracker' },
+  { id: 'map', icon: <Map size={20} />, href: '/map' },
   { id: 'music', icon: <Music size={20} />, action: 'music' },
 ];
 

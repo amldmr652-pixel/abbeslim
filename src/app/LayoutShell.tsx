@@ -18,11 +18,16 @@ const AUTH_ROUTES = ['/login', '/register', '/pending-approval'];
  * Auth sayfalarında widget'lar gizlenir.
  * Widget'lar sağ üst köşede dropdown panel olarak açılır.
  */
+import FocusModeOverlay from './components/FocusModeOverlay';
+import { useFocusStore } from '@/stores/useFocusStore';
+import { Maximize } from 'lucide-react';
+
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { setIsMusicPanelOpen } = useMusicContext();
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'ai'>('none');
+  const { setFocusMode } = useFocusStore();
 
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
@@ -52,7 +57,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden relative">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         {children}
@@ -71,6 +76,15 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
           {/* Sağ üst buton grubu */}
           <div className="fixed top-4 right-4 z-[9999] flex items-center gap-2">
+            {/* Odak Modu Butonu */}
+            <button
+              onClick={() => setFocusMode(true)}
+              className="w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 glass text-gray-400 hover:text-green-400"
+              title="Gelişmiş Odak Modu"
+            >
+              <Maximize size={18} />
+            </button>
+
             {/* Pomodoro Toggle Butonu */}
             <button
               onClick={() => togglePanel('pomodoro')}
@@ -97,6 +111,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               <MessageCircle size={20} />
             </button>
           </div>
+
+          <FocusModeOverlay />
 
           {/* Pomodoro Dropdown Panel */}
           <div

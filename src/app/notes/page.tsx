@@ -2,25 +2,25 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { Card, Button, Input, Modal } from '@/app/components/ui';
+import { Card, Button, Input } from '@/app/components/ui';
 import { useNoteStore, Note } from '@/stores/useNoteStore';
 import { useTranslation } from '@/app/hooks/useTranslation';
-import { StickyNote, Plus, AlertCircle, Pin, Trash2, Mic, Square, CheckCircle2 } from 'lucide-react';
+import { StickyNote, Plus, AlertCircle, Pin, Trash2, Mic, Square, Save, Loader2, BookOpen, Clock, X } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function NotesPage() {
   const { t, language } = useTranslation();
-  const { notes, isLoading, fetchNotes, addNote, deleteNote, togglePin, uploadAudio } = useNoteStore();
+  const { notes, isLoading, fetchNotes, addNote, updateNote, deleteNote, togglePin, uploadAudio } = useNoteStore();
   const [user, setUser] = useState<User | null>(null);
   const supabase = createClient();
 
-  // Editor State
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -39,12 +39,20 @@ export default function NotesPage() {
     });
   }, [fetchNotes]);
 
-  const openNewNote = () => {
-    setEditingNote(null);
+  const handleSelectNote = (note: Note) => {
+    setActiveNote(note);
+    setTitle(note.title);
+    setContent(note.content);
+    setIsEditing(false);
+    setAudioBlob(null);
+  };
+
+  const handleNewNote = () => {
+    setActiveNote(null);
     setTitle('');
     setContent('');
+    setIsEditing(true);
     setAudioBlob(null);
-    setIsEditorOpen(true);
   };
 
   const startRecording = async () => {
@@ -67,7 +75,6 @@ export default function NotesPage() {
       mediaRecorder.start();
       setIsRecording(true);
 
-      // Paralel olarak Speech Recognition başlat (ses → metin)
       startSpeechRecognition();
     } catch (err) {
       console.error("Mikrofon izni alınamadı:", err);
@@ -77,10 +84,7 @@ export default function NotesPage() {
 
   const startSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn('SpeechRecognition API desteklenmiyor');
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
@@ -99,9 +103,7 @@ export default function NotesPage() {
           interimTranscript = transcript;
         }
       }
-      // Mevcut içeriğe ekle
       setContent(prev => {
-        // Sadece yeni final transcript'i ekle
         const base = prev.endsWith('\n') || prev === '' ? prev : prev + '\n';
         if (finalTranscript) {
           return base + '🎤 ' + finalTranscript.trim();
@@ -111,14 +113,8 @@ export default function NotesPage() {
       setIsTranscribing(!!interimTranscript);
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition hatası:', event.error);
-      setIsTranscribing(false);
-    };
-
-    recognition.onend = () => {
-      setIsTranscribing(false);
-    };
+    recognition.onerror = () => setIsTranscribing(false);
+    recognition.onend = () => setIsTranscribing(false);
 
     recognitionRef.current = recognition;
     recognition.start();
@@ -129,7 +125,6 @@ export default function NotesPage() {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-    // Speech Recognition'ı da durdur
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -138,28 +133,43 @@ export default function NotesPage() {
   };
 
   const handleSave = async () => {
-    if (!user) return;
-    if (!content.trim() && !audioBlob) return;
+    if (!user || (!content.trim() && !title.trim())) return;
+    setIsSaving(true);
     
-    let uploadedAudioUrl = null;
-    if (audioBlob) {
-      const file = new File([audioBlob], 'audio_note.webm', { type: 'audio/webm' });
-      uploadedAudioUrl = await uploadAudio(file);
-    }
+    try {
+      let uploadedAudioUrl = activeNote?.audio_url || null;
+      if (audioBlob) {
+        const file = new File([audioBlob], 'audio_note.webm', { type: 'audio/webm' });
+        uploadedAudioUrl = await uploadAudio(file);
+      }
 
-    if (editingNote) {
-      // Update logic will be here for Phase 6
-    } else {
-      await addNote({
-        user_id: user.id,
-        title: title.trim() || 'İsimsiz Not',
-        content,
-        audio_url: uploadedAudioUrl,
-        is_pinned: false
-      });
+      if (activeNote) {
+        await updateNote(activeNote.id, {
+          title: title.trim() || 'İsimsiz Not',
+          content,
+          audio_url: uploadedAudioUrl
+        });
+        setIsEditing(false);
+        // Refresh active note
+        const updated = notes.find(n => n.id === activeNote.id);
+        if (updated) setActiveNote({ ...updated, title, content, audio_url: uploadedAudioUrl });
+      } else {
+        const newNote = await addNote({
+          user_id: user.id,
+          title: title.trim() || 'İsimsiz Not',
+          content,
+          audio_url: uploadedAudioUrl,
+          is_pinned: false
+        });
+        setActiveNote(newNote);
+        setIsEditing(false);
+      }
+      setAudioBlob(null);
+    } catch (e) {
+      console.error("Not kaydedilemedi:", e);
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsEditorOpen(false);
   };
 
   if (!user) {
@@ -173,137 +183,192 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 animate-[fadeIn_0.5s_ease-out]">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-        <div className="flex items-center gap-4">
-          <StickyNote className="text-green-500" size={32} />
-          <div>
-            <h1 className="text-3xl font-bold text-white">{t('notes.title')}</h1>
-            <p className="text-gray-400">Düşüncelerinizi, günlüklerinizi ve sesli kayıtlarınızı saklayın.</p>
+    <div className="h-[calc(100vh-80px)] p-4 md:p-6 animate-[fadeIn_0.5s_ease-out]">
+      <div className="flex h-full gap-6">
+        
+        {/* Sol Panel: Not Listesi */}
+        <div className="w-full md:w-80 flex flex-col gap-4 border-r border-white/5 pr-4 hidden md:flex">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <BookOpen className="text-green-500" size={24} />
+              Notlar
+            </h1>
+            <button 
+              onClick={handleNewNote}
+              className="p-2 bg-green-600/20 text-green-400 hover:bg-green-600/40 rounded-xl transition-colors"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+            {isLoading && notes.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">{t('common.loading')}</div>
+            ) : notes.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm bg-black/20 rounded-2xl border border-white/5 border-dashed">
+                Henüz hiç notunuz yok.
+              </div>
+            ) : (
+              notes.map(note => (
+                <div 
+                  key={note.id} 
+                  onClick={() => handleSelectNote(note)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${activeNote?.id === note.id ? 'bg-green-900/20 border-green-500/30' : 'glass border-transparent hover:border-white/10'}`}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className="font-bold text-white truncate pr-2 text-sm">{note.title}</h3>
+                    {note.is_pinned && <Pin size={12} className="text-green-400 shrink-0" />}
+                  </div>
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-2 opacity-80">
+                    {note.content.substring(0, 80) || 'Boş not...'}
+                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <span className="flex items-center gap-1"><Clock size={10} /> {new Date(note.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-        <Button onClick={openNewNote} className="flex items-center gap-2">
-          <Plus size={20} /> {t('notes.newNote')}
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isLoading && notes.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-500">{t('common.loading')}</div>
-        ) : notes.length === 0 ? (
-          <div className="col-span-full text-center py-12 border border-dashed border-green-900/30 rounded-3xl bg-black/20">
-            <p className="text-gray-500">Henüz hiç not eklemediniz.</p>
-          </div>
-        ) : (
-          notes.map(note => (
-            <Card key={note.id} hover className="flex flex-col h-[280px]">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-bold text-white truncate pr-2">{note.title}</h3>
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => togglePin(note.id, note.is_pinned)}
-                    className={`p-1.5 rounded-full transition-colors ${note.is_pinned ? 'text-green-400 bg-green-900/20' : 'text-gray-500 hover:bg-white/5 hover:text-white'}`}
-                  >
-                    <Pin size={16} />
-                  </button>
-                  <button 
-                    onClick={() => deleteNote(note.id)}
-                    className="p-1.5 rounded-full text-gray-500 hover:text-red-400 hover:bg-red-900/20 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+        {/* Sağ Panel: Editör / Görüntüleyici */}
+        <div className="flex-1 flex flex-col h-full bg-black/40 rounded-3xl border border-white/5 overflow-hidden relative">
+          {!activeNote && !isEditing ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+              <StickyNote size={64} className="opacity-20 mb-4" />
+              <p>Görüntülemek için bir not seçin veya yeni oluşturun.</p>
+              <Button onClick={handleNewNote} className="mt-4 flex items-center gap-2">
+                <Plus size={16} /> Yeni Not Oluştur
+              </Button>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col h-full">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between p-4 border-b border-white/5 bg-black/20">
+                <div className="flex items-center gap-2">
+                  {!isEditing && activeNote ? (
+                    <>
+                      <Button onClick={() => setIsEditing(true)} variant="secondary" className="!py-1.5 !px-4 !text-sm">Düzenle</Button>
+                      <button 
+                        onClick={() => {
+                          deleteNote(activeNote.id);
+                          setActiveNote(null);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-xl transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Button onClick={handleSave} disabled={isSaving} className="!py-1.5 !px-4 !text-sm flex items-center gap-2">
+                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        Kaydet
+                      </Button>
+                      {activeNote && (
+                        <Button onClick={() => {
+                          setIsEditing(false);
+                          setTitle(activeNote.title);
+                          setContent(activeNote.content);
+                        }} variant="ghost" className="!py-1.5 !px-4 !text-sm text-gray-400 hover:text-white">
+                          İptal
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </div>
-              </div>
-              
-              <div className="text-sm text-gray-400 mb-2">
-                {new Date(note.created_at).toLocaleDateString()}
-              </div>
 
-              <div className="flex-1 overflow-hidden prose prose-invert prose-sm prose-green line-clamp-6 opacity-80 relative">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {note.content}
-                </ReactMarkdown>
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none"></div>
-              </div>
-
-              {note.audio_url && (
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <audio controls className="w-full h-8" src={note.audio_url}></audio>
-                </div>
-              )}
-            </Card>
-          ))
-        )}
-      </div>
-
-      <Modal
-        isOpen={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
-        title={t('notes.newNote')}
-        maxWidth="max-w-3xl"
-      >
-        <div className="space-y-4">
-          <Input 
-            placeholder={t('notes.titlePlaceholder')} 
-            value={title} 
-            onChange={setTitle} 
-            className="text-lg font-bold"
-          />
-          
-          <div className="border border-green-900/50 rounded-2xl bg-black/50 overflow-hidden focus-within:border-green-500 transition-colors">
-            <textarea
-              className="w-full h-64 p-4 bg-transparent text-white outline-none resize-none placeholder-gray-600"
-              placeholder={t('notes.contentPlaceholder')}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-            
-            <div className="bg-white/5 p-3 flex items-center justify-between border-t border-green-900/50">
-              <div className="flex items-center gap-4">
-                {isRecording ? (
-                  <button 
-                    onClick={stopRecording}
-                    className="flex items-center gap-2 text-red-400 hover:text-red-300 bg-red-900/20 px-3 py-1.5 rounded-full animate-pulse"
-                  >
-                    <Square size={16} fill="currentColor" /> {t('notes.stopRecording')}
-                  </button>
-                ) : (
-                  <button 
-                    onClick={startRecording}
-                    className="flex items-center gap-2 text-gray-400 hover:text-green-400 px-3 py-1.5 rounded-full transition-colors"
-                  >
-                    <Mic size={16} /> {t('notes.record')}
-                  </button>
-                )}
-                
-                {isTranscribing && (
-                  <span className="text-xs text-yellow-400 animate-pulse">
-                    ✍️ Metin yazılıyor...
-                  </span>
-                )}
-
-                {audioBlob && !isRecording && (
-                  <div className="flex items-center gap-2 text-sm text-green-400">
-                    <CheckCircle2 size={16} /> {t('notes.recorded')}
-                    <button onClick={() => setAudioBlob(null)} className="text-gray-500 hover:text-red-400 ml-2">
-                      {t('common.cancel')}
+                <div className="flex items-center gap-2">
+                  {isEditing && (
+                    <button
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        isRecording 
+                          ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' 
+                          : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                      }`}
+                    >
+                      {isRecording ? (
+                        <><Square size={14} className="fill-current" /> {isTranscribing ? 'Dinleniyor...' : 'Durdur'}</>
+                      ) : (
+                        <><Mic size={14} /> Sesle Yaz</>
+                      )}
                     </button>
+                  )}
+                  {activeNote && !isEditing && (
+                    <button 
+                      onClick={() => togglePin(activeNote.id, activeNote.is_pinned)}
+                      className={`p-2 rounded-xl transition-colors ${activeNote.is_pinned ? 'text-green-400 bg-green-900/20' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                      title={activeNote.is_pinned ? "Sabitlemeyi Kaldır" : "Sabitle"}
+                    >
+                      <Pin size={18} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Editor / Viewer Content */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar">
+                {isEditing ? (
+                  <div className="max-w-3xl mx-auto h-full flex flex-col gap-6">
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Not Başlığı..."
+                      className="text-4xl font-bold bg-transparent border-none outline-none text-white placeholder-gray-600 w-full"
+                    />
+                    
+                    {audioBlob && (
+                      <div className="flex items-center gap-3 p-3 bg-green-900/20 rounded-xl border border-green-500/30">
+                        <Mic size={16} className="text-green-400" />
+                        <span className="text-sm text-green-100 flex-1">Yeni ses kaydı eklendi</span>
+                        <button onClick={() => setAudioBlob(null)} className="p-1 hover:bg-black/20 rounded-lg text-gray-400 hover:text-white">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Markdown formatında notunu buraya yaz... 
+
+Örneğin:
+# Büyük Başlık
+## Küçük Başlık
+- Liste öğesi 1
+- Liste öğesi 2
+**Kalın Yazı**"
+                      className="flex-1 bg-transparent border-none outline-none text-gray-300 resize-none font-mono text-sm leading-relaxed"
+                    />
+                  </div>
+                ) : (
+                  <div className="max-w-3xl mx-auto">
+                    <h1 className="text-4xl font-bold text-white mb-8">{activeNote?.title}</h1>
+                    
+                    {activeNote?.audio_url && (
+                      <div className="mb-8 p-4 bg-white/5 rounded-2xl border border-white/10">
+                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+                          <Mic size={12} /> Ses Kaydı
+                        </h4>
+                        <audio controls className="w-full h-10" src={activeNote.audio_url}></audio>
+                      </div>
+                    )}
+
+                    <div className="prose prose-invert prose-green prose-lg max-w-none prose-headings:font-bold prose-a:text-green-400 hover:prose-a:text-green-300">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {activeNote?.content || '*Boş not...*'}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setIsEditorOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleSave} disabled={(!content.trim() && !audioBlob)}>
-              {t('common.save')}
-            </Button>
-          </div>
+          )}
         </div>
-      </Modal>
+
+      </div>
     </div>
   );
 }
