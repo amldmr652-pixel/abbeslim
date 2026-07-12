@@ -18,6 +18,33 @@ export interface BreakSound {
   isCustom?: boolean;
 }
 
+export interface ShortcutConfig {
+  key: string;
+  ctrlKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+  metaKey: boolean;
+}
+
+export const DEFAULT_SHORTCUTS: Record<string, ShortcutConfig> = {
+  goToDashboard: { key: '1', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToSearch: { key: '2', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToLibrary: { key: '3', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToCalendar: { key: '4', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToNotes: { key: '5', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToTasks: { key: '6', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToGoals: { key: '7', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToFinance: { key: '8', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToGames: { key: '9', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToTracker: { key: '0', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  goToMap: { key: 'M', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  toggleMusic: { key: 'K', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  togglePomodoro: { key: 'P', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  toggleAIChat: { key: 'C', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  toggleFocusMode: { key: 'F', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+  toggleSidebar: { key: 'B', ctrlKey: false, altKey: true, shiftKey: false, metaKey: false },
+};
+
 const DEFAULT_BREAK_SOUNDS: BreakSound[] = [
   { id: 'forest', name: 'Orman Kuşları', url: '/sounds/forest.mp3' },
   { id: 'rain', name: 'Hafif Yağmur', url: '/sounds/rain.mp3' },
@@ -38,12 +65,17 @@ interface SettingsState {
   dashboardOrder: string[];
   breakSounds: BreakSound[];
   selectedBreakSoundId: string;
+  sidebarCollapsed: boolean;
+  shortcuts: Record<string, ShortcutConfig | null>;
   
   setTheme: (theme: ThemeType) => void;
   setDashboardOrder: (order: string[]) => void;
   addCustomBreakSound: (sound: BreakSound) => void;
   removeCustomBreakSound: (id: string) => void;
   setSelectedBreakSoundId: (id: string) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  setShortcut: (action: string, shortcut: ShortcutConfig | null) => void;
+  resetShortcuts: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -53,6 +85,8 @@ export const useSettingsStore = create<SettingsState>()(
       dashboardOrder: ['tasks', 'quickNote', 'recentFiles', 'goals'],
       breakSounds: DEFAULT_BREAK_SOUNDS,
       selectedBreakSoundId: 'forest',
+      sidebarCollapsed: false,
+      shortcuts: DEFAULT_SHORTCUTS,
       
       setTheme: (theme) => set({ theme }),
       setDashboardOrder: (dashboardOrder) => set({ dashboardOrder }),
@@ -66,7 +100,18 @@ export const useSettingsStore = create<SettingsState>()(
         selectedBreakSoundId: state.selectedBreakSoundId === id ? 'forest' : state.selectedBreakSoundId
       })),
       
-      setSelectedBreakSoundId: (selectedBreakSoundId) => set({ selectedBreakSoundId })
+      setSelectedBreakSoundId: (selectedBreakSoundId) => set({ selectedBreakSoundId }),
+      
+      setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+      
+      setShortcut: (action, shortcut) => set((state) => ({
+        shortcuts: {
+          ...state.shortcuts,
+          [action]: shortcut
+        }
+      })),
+      
+      resetShortcuts: () => set({ shortcuts: DEFAULT_SHORTCUTS })
     }),
     {
       name: 'lifeos-settings-storage',

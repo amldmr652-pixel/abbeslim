@@ -29,6 +29,7 @@ import {
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
 import { useMusicContext } from '@/app/context/MusicContext';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 interface NavItem {
   id: string;
@@ -62,7 +63,7 @@ export default function Sidebar() {
   const router = useRouter();
   const { t, language, setLanguage } = useTranslation();
   const { setIsMusicPanelOpen } = useMusicContext();
-  const [collapsed, setCollapsed] = useState(false);
+  const { sidebarCollapsed: collapsed, setSidebarCollapsed: setCollapsed } = useSettingsStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
 

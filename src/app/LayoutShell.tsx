@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Timer, MessageCircle, Maximize, X } from 'lucide-react';
 import PomodoroWidget from './components/PomodoroWidget';
 import AIChatWidget from './components/AIChatWidget';
@@ -24,13 +24,14 @@ import { useFocusStore } from '@/stores/useFocusStore';
 // Maximize and X imported above from lucide-react
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
-  const { setIsMusicPanelOpen } = useMusicContext();
+  const { setIsMusicPanelOpen, isMusicPanelOpen } = useMusicContext();
   const pathname = usePathname();
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'ai'>('none');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { setFocusMode } = useFocusStore();
-  const { theme } = useSettingsStore();
+  const { setFocusMode, toggleFocusMode } = useFocusStore();
+  const { theme, shortcuts, sidebarCollapsed, setSidebarCollapsed } = useSettingsStore();
 
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
@@ -40,6 +41,104 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       setIsAuthenticated(!!data.user);
     });
   }, [pathname]);
+
+  // Keyboard Shortcuts Listener
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if inside input/textarea/contenteditable
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tagName = activeEl.tagName.toLowerCase();
+        const isInput = tagName === 'input' || 
+                        tagName === 'textarea' || 
+                        activeEl.hasAttribute('contenteditable') || 
+                        (activeEl as HTMLElement).isContentEditable;
+        if (isInput) return;
+      }
+
+      if (!shortcuts) return;
+
+      // Check all actions in shortcuts configuration
+      for (const [action, shortcut] of Object.entries(shortcuts)) {
+        if (!shortcut) continue;
+
+        // Compare key and modifiers
+        const eventKey = e.key.toUpperCase();
+        const targetKey = shortcut.key.toUpperCase();
+
+        const match = eventKey === targetKey &&
+                      shortcut.ctrlKey === e.ctrlKey &&
+                      shortcut.altKey === e.altKey &&
+                      shortcut.shiftKey === e.shiftKey &&
+                      shortcut.metaKey === e.metaKey;
+
+        if (match) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Execute action
+          switch (action) {
+            case 'goToDashboard':
+              router.push('/');
+              break;
+            case 'goToSearch':
+              router.push('/search');
+              break;
+            case 'goToLibrary':
+              router.push('/library');
+              break;
+            case 'goToCalendar':
+              router.push('/calendar');
+              break;
+            case 'goToNotes':
+              router.push('/notes');
+              break;
+            case 'goToTasks':
+              router.push('/tasks');
+              break;
+            case 'goToGoals':
+              router.push('/goals');
+              break;
+            case 'goToFinance':
+              router.push('/finance');
+              break;
+            case 'goToGames':
+              router.push('/games');
+              break;
+            case 'goToTracker':
+              router.push('/tracker');
+              break;
+            case 'goToMap':
+              router.push('/map');
+              break;
+            case 'toggleMusic':
+              setIsMusicPanelOpen(!isMusicPanelOpen);
+              break;
+            case 'togglePomodoro':
+              togglePanel('pomodoro');
+              break;
+            case 'toggleAIChat':
+              togglePanel('ai');
+              break;
+            case 'toggleFocusMode':
+              toggleFocusMode();
+              break;
+            case 'toggleSidebar':
+              setSidebarCollapsed(!sidebarCollapsed);
+              break;
+            default:
+              break;
+          }
+          break; // Action found and executed, stop scanning
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [shortcuts, isAuthenticated, isMusicPanelOpen, sidebarCollapsed, toggleFocusMode, setSidebarCollapsed, setIsMusicPanelOpen, router]);
 
   // Tema sınıfını body'ye uygula
   useEffect(() => {

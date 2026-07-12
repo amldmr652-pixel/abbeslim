@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Settings, Palette, Music, Upload, Check, Loader2, Save, Trash2, Camera } from 'lucide-react';
+import { User, Settings, Palette, Music, Upload, Check, Loader2, Save, Trash2, Camera, Keyboard, X } from 'lucide-react';
 import { Card, Input, Button } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore, BreakSound, ThemeType } from '@/stores/useSettingsStore';
@@ -9,9 +9,138 @@ import { createClient } from '@/utils/supabase/client';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { theme, setTheme, breakSounds, selectedBreakSoundId, setSelectedBreakSoundId, addCustomBreakSound, removeCustomBreakSound } = useSettingsStore();
+  const { 
+    theme, setTheme, breakSounds, selectedBreakSoundId, setSelectedBreakSoundId, 
+    addCustomBreakSound, removeCustomBreakSound, shortcuts, setShortcut, resetShortcuts 
+  } = useSettingsStore();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'theme' | 'pomodoro'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'theme' | 'pomodoro' | 'shortcuts'>('profile');
+  const [recordingAction, setRecordingAction] = useState<string | null>(null);
+  const [recordedKeys, setRecordedKeys] = useState<any>(null);
+  const [conflictError, setConflictError] = useState<{ action: string; shortcut: any } | null>(null);
+
+  useEffect(() => {
+    if (!recordingAction) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.key === 'Escape') {
+        setRecordingAction(null);
+        setRecordedKeys(null);
+        return;
+      }
+
+      const isModifier = ['Control', 'Alt', 'Shift', 'Meta'].includes(e.key);
+
+      const newShortcut = {
+        key: isModifier ? '' : e.key,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        shiftKey: e.shiftKey,
+        metaKey: e.metaKey
+      };
+
+      if (!isModifier) {
+        // Conflict checking
+        let conflictAction = null;
+        for (const [act, conf] of Object.entries(shortcuts || {})) {
+          if (act === recordingAction) continue;
+          if (conf &&
+              conf.key.toUpperCase() === newShortcut.key.toUpperCase() &&
+              conf.ctrlKey === newShortcut.ctrlKey &&
+              conf.altKey === newShortcut.altKey &&
+              conf.shiftKey === newShortcut.shiftKey &&
+              conf.metaKey === newShortcut.metaKey) {
+            conflictAction = act;
+            break;
+          }
+        }
+
+        if (conflictAction) {
+          setConflictError({
+            action: conflictAction,
+            shortcut: newShortcut
+          });
+          setTimeout(() => setConflictError(null), 4000);
+        } else {
+          setShortcut(recordingAction, newShortcut);
+        }
+        setRecordingAction(null);
+        setRecordedKeys(null);
+      } else {
+        setRecordedKeys(newShortcut);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [recordingAction, shortcuts, setShortcut]);
+
+  const renderShortcutKeys = (shortcut: any) => {
+    if (!shortcut || (!shortcut.key && !shortcut.ctrlKey && !shortcut.altKey && !shortcut.shiftKey && !shortcut.metaKey)) {
+      return <span className="text-gray-500 text-xs italic">{t('settings.noShortcut')}</span>;
+    }
+
+    const keys = [];
+    if (shortcut.ctrlKey) keys.push('Ctrl');
+    if (shortcut.altKey) keys.push('Alt');
+    if (shortcut.shiftKey) keys.push('Shift');
+    if (shortcut.metaKey) keys.push('Win/Cmd');
+    if (shortcut.key) {
+      let k = shortcut.key.toUpperCase();
+      if (k === ' ') k = 'Space';
+      keys.push(k);
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1.5 items-center">
+        {keys.map((key, idx) => (
+          <kbd
+            key={idx}
+            className="px-2.5 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-xs font-mono font-bold shadow-sm"
+          >
+            {key}
+          </kbd>
+        ))}
+      </div>
+    );
+  };
+
+  const renderRecordingShortcut = () => {
+    const keys = [];
+    if (recordedKeys) {
+      if (recordedKeys.ctrlKey) keys.push('Ctrl');
+      if (recordedKeys.altKey) keys.push('Alt');
+      if (recordedKeys.shiftKey) keys.push('Shift');
+      if (recordedKeys.metaKey) keys.push('Win/Cmd');
+      if (recordedKeys.key) {
+        let k = recordedKeys.key.toUpperCase();
+        if (k === ' ') k = 'Space';
+        keys.push(k);
+      }
+    }
+
+    return (
+      <div className="flex items-center gap-2 animate-pulse">
+        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping mr-1" />
+        <span className="text-xs text-red-400 font-medium mr-2">{t('settings.statusRecording')}</span>
+        {keys.length > 0 && (
+          <div className="flex gap-1.5 items-center">
+            {keys.map((key, idx) => (
+              <kbd
+                key={idx}
+                className="px-2.5 py-1 bg-red-500/15 text-red-300 border border-red-500/20 rounded-lg text-xs font-mono font-bold shadow-sm"
+              >
+                {key}
+              </kbd>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
   const [user, setUser] = useState<any>(null);
   const [fullName, setFullName] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -68,9 +197,10 @@ export default function SettingsPage() {
   };
 
   const tabs = [
-    { id: 'profile', label: 'Profil', icon: <User size={18} /> },
-    { id: 'theme', label: 'Görünüm', icon: <Palette size={18} /> },
-    { id: 'pomodoro', label: 'Sesler', icon: <Music size={18} /> }
+    { id: 'profile', label: t('settings.personalInfo') || 'Profil', icon: <User size={18} /> },
+    { id: 'theme', label: t('settings.themeTitle') || 'Görünüm', icon: <Palette size={18} /> },
+    { id: 'pomodoro', label: t('settings.breakSounds') || 'Sesler', icon: <Music size={18} /> },
+    { id: 'shortcuts', label: t('settings.shortcutsTitle') || 'Kısayollar', icon: <Keyboard size={18} /> }
   ] as const;
 
   return (
@@ -265,6 +395,104 @@ export default function SettingsPage() {
                   <Button onClick={handleAddSound} variant="secondary" className="w-full sm:w-auto" disabled={!soundName.trim() || !soundUrl.trim()}>
                     <Upload size={16} className="mr-2 inline" /> Ses Ekle
                   </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'shortcuts' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <Card padding="lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-2">{t('settings.shortcutsTitle')}</h2>
+                    <p className="text-gray-400 text-sm">{t('settings.shortcutsSubtitle')}</p>
+                  </div>
+                  <Button 
+                    onClick={resetShortcuts} 
+                    variant="secondary"
+                    className="self-start sm:self-auto border border-green-500/30 text-green-400 hover:bg-green-500/10"
+                  >
+                    {t('settings.resetAll')}
+                  </Button>
+                </div>
+
+                {conflictError && (
+                  <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-2xl text-red-200 text-sm flex items-center justify-between animate-in fade-in duration-200">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                      {t('settings.conflictWarning').replace('{action}', t(`settings.actions.${conflictError.action}`))}
+                    </span>
+                    <button onClick={() => setConflictError(null)} className="text-red-400 hover:text-red-200 p-1">
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto rounded-2xl border border-white/5 bg-black/20">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/5 text-gray-400 text-sm font-semibold">
+                        <th className="p-4 pl-6">{t('settings.actionLabel')}</th>
+                        <th className="p-4">{t('settings.shortcutLabel')}</th>
+                        <th className="p-4 pr-6 text-right"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-gray-300">
+                      {Object.keys(shortcuts || {}).map((action) => {
+                        const shortcut = shortcuts[action];
+                        const isRecording = recordingAction === action;
+                        
+                        return (
+                          <tr key={action} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="p-4 pl-6 font-medium text-white">
+                              {t(`settings.actions.${action}`) || action}
+                            </td>
+                            <td className="p-4">
+                              {isRecording ? (
+                                renderRecordingShortcut()
+                              ) : (
+                                renderShortcutKeys(shortcut)
+                              )}
+                            </td>
+                            <td className="p-4 pr-6 text-right space-x-2">
+                              {!isRecording ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setRecordingAction(action);
+                                      setRecordedKeys(null);
+                                    }}
+                                    className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-green-500/10 text-gray-300 hover:text-green-400 border border-white/10 hover:border-green-500/20 transition-all cursor-pointer"
+                                  >
+                                    {t('settings.editShortcut')}
+                                  </button>
+                                  {shortcut && (
+                                    <button
+                                      onClick={() => setShortcut(action, null)}
+                                      className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-950/20 hover:bg-red-950/40 text-red-400 hover:text-red-300 border border-red-500/10 hover:border-red-500/20 transition-all cursor-pointer"
+                                    >
+                                      {t('settings.clearShortcut')}
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setRecordingAction(null);
+                                    setRecordedKeys(null);
+                                  }}
+                                  className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                                >
+                                  {t('common.cancel')}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </Card>
             </div>
