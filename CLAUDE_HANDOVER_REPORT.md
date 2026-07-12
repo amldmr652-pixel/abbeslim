@@ -498,3 +498,15 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **PDF İstemci Normalizasyonu (`PDFViewerClient.tsx`):** `normalizeChar` fonksiyonuna aynı Arapça normalizasyon adımları tanımlandı. Böylece, kullanıcı Arapça bir arama yaptığında PDF sayfa katmanında da kelime konumları doğru bir şekilde tespit edilip işaretlenebiliyor.
   - **Doğrulama:** `npm run build` hatasız tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
 
+
+## [2026-07-13T01:28] V2.13 — Arapça Bozuk Font ve Ters Kelime Desteği (Antigravity/Gemini)
+
+### 1. Bozuk PDF Font Kodlaması ve Görsel Kelime Reversal Çözümü (route.ts & PDFViewerClient.tsx)
+- **Sorun:** "Muhtarul Enba" gibi bazı Arapça PDF'lerde, özel yazı fontu kodlamaları nedeniyle metinler `ÛْــÖَóَĄ` (darabta) veya `زĺَْــïًا` (zeydan) gibi bozuk Latin karakterleriyle veritabanına aktarılmış durumdaydı. Ayrıca, Arapça'nın sağdan sola (RTL) doğası gereği, PDF oluşturucularının görsel kelime sıralamaları nedeniyle bazı kelimelerin harfleri hafızada ters sırayla (`t-b-r-d` / `ت-ب-r-ض` gibi) saklanıyordu. Bu durum standart Arapça aramaların sonuç döndürmemesine neden oluyordu.
+- **Çözüm:**
+  - **Font Kod Çevirici (`mapCorruptedArabic`):** Hem `route.ts` hem de `PDFViewerClient.tsx` dosyalarına, bozuk Latin karakterlerini (`ĺ` -> `ي`, `ï` -> `د`, `Û` -> `ت`, `Ą` -> `ض` vb.) standart Arapça harflerine eşleyen `mapCorruptedArabic` fonksiyonu eklendi.
+  - **Ters Kelime ve Cümle Desteği (Visual Reversal):**
+    - **Arama API (`route.ts`):** Arama sorgusundaki kelimelerin ters sıralı halleri (`word.split('').reverse().join('')`) de hesaplanıp arama kontrollerine dahil edildi. Kelime bazlı ve tam cümle eşleşmelerinde hem normal hem de ters harf sıralamaları kontrol edilecek şekilde API esnetildi. `highlightWords` fonksiyonuna Arapça kelimelerin ters biçimlerini de vurgulama listesine ekleme yeteneği kazandırıldı.
+    - **PDF Vurgulayıcı (`PDFViewerClient.tsx`):** Client-side PDF vurgulama arama listesine (queryWords) Arapça kelimelerin ters karakterli formları da otomatik olarak eklendi. Bu sayede görsel sırayla tersten yazılmış PDF metinleri de başarıyla işaretlenebiliyor.
+  - **Doğrulama:** `npm run build` hatasız tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
+
