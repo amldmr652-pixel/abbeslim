@@ -18,15 +18,23 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 // -------------------------------------------------------
-// Türkçe karakter normalize (arama için)
+// Türkçe ve Arapça karakter normalize (arama için)
 // -------------------------------------------------------
 function normalize(text: string): string {
   if (!text) return '';
   return text
     .toLocaleLowerCase('tr-TR')
+    // Türkçe normalizasyonu
     .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
     .replace(/İ/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
     .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
+    // Arapça normalizasyonu
+    .replace(/[\u064b-\u0652\u0670]/g, '') // Diacritics (Tashkeel)
+    .replace(/\u0640/g, '') // Tatweel (Kashida)
+    .replace(/[أإآٱ]/g, 'ا') // Alifs
+    .replace(/[ىی]/g, 'ي') // Ya / Alif Maksura
+    .replace(/ة/g, 'ه') // Ta Marbuta
+    // Noktalama ve boşluklar
     .replace(/[.,!?;:()\[\]{}\*_~="'\/\\]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -37,9 +45,16 @@ function normalizeLight(text: string): string {
   if (!text) return '';
   return text
     .toLocaleLowerCase('tr-TR')
+    // Türkçe normalizasyonu
     .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
     .replace(/İ/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
-    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u');
+    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
+    // Arapça normalizasyonu
+    .replace(/[\u064b-\u0652\u0670]/g, '') // Diacritics
+    .replace(/\u0640/g, '') // Tatweel
+    .replace(/[أإآٱ]/g, 'ا') // Alifs
+    .replace(/[ىی]/g, 'ي') // Ya / Alif Maksura
+    .replace(/ة/g, 'ه'); // Ta Marbuta
 }
 
 // -------------------------------------------------------
@@ -49,20 +64,42 @@ function highlightWords(text: string, words: string[]): string {
   let result = text;
   for (const word of words) {
     if (!word || word.length < 2) continue;
-    // Türkçe karakterleri içeren fuzzy pattern
+    
+    // Hem Türkçe hem Arapça için fuzzy regex deseni oluştur
     const pattern = word.split('').map(ch => {
       const escMap: Record<string, string> = {
         'c': '[cçCÇ]', 'g': '[gğGĞ]', 'i': '[iıİI]', 'o': '[oöOÖ]',
         's': '[sşSŞ]', 'u': '[uüUÜ]', 'a': '[aâAÂ]',
+        // Arapça fuzzy eşleşmeler
+        'ا': '[اأإآٱ]',
+        'أ': '[اأإآٱ]',
+        'إ': '[اأإآٱ]',
+        'آ': '[اأإآٱ]',
+        'ى': '[يىی]',
+        'ي': '[يىی]',
+        'ی': '[يىی]',
+        'ة': '[هة]',
+        'ه': '[هة]',
       };
-      return escMap[ch] || ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      const mapped = escMap[ch] || ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Arapça karakterlerden sonra opsiyonel diacritics/tatweel'e izin ver
+      const isArabicChar = /[\u0600-\u06FF]/.test(ch);
+      if (isArabicChar) {
+        return mapped + '[\u064b-\u0652\u0670\u0640]*';
+      }
+      return mapped;
     }).join('');
+
     try {
       result = result.replace(
         new RegExp(`(${pattern})`, 'gi'),
         '<mark class="bg-yellow-400/60 text-white px-0.5 rounded font-semibold">$1</mark>'
       );
-    } catch {}
+    } catch (e) {
+      console.warn("Highlight regex error:", e);
+    }
   }
   return result;
 }

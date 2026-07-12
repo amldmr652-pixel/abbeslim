@@ -166,13 +166,20 @@ function PDFViewerContent() {
   const goNextMatch = () => goToMatch(currentMatchIndex + 1);
   const goPrevMatch = () => goToMatch(currentMatchIndex - 1);
 
-  // --- Türkçe normalize (client-side highlight için) ---
+  // --- Türkçe ve Arapça normalize (client-side highlight için) ---
   const normalizeChar = (text: string) => {
     return text
       .toLocaleLowerCase('tr-TR')
+      // Türkçe normalizasyonu
       .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
       .replace(/i̇/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
-      .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u');
+      .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
+      // Arapça normalizasyonu
+      .replace(/[\u064b-\u0652\u0670]/g, '') // Diacritics (Tashkeel)
+      .replace(/\u0640/g, '') // Tatweel (Kashida)
+      .replace(/[أإآٱ]/g, 'ا') // Alifs
+      .replace(/[ىی]/g, 'ي') // Ya / Alif Maksura
+      .replace(/ة/g, 'ه'); // Ta Marbuta
   };
 
   // Metin vurgulama (highlight) - Range API
