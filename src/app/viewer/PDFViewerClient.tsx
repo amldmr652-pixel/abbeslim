@@ -21,6 +21,7 @@ function PDFViewerContent() {
   const pageToJump = searchParams.get('page');
   const fileId = searchParams.get('fileId') ?? undefined;
   const mode = searchParams.get('mode') || 'word';
+  const directionParam = searchParams.get('dir') || 'RTL_NORMAL';
 
   // --- URL'den gelen pageMatches (ana sayfa'dan geçilirse) ---
   const pageMatchesParam = searchParams.get('pm'); // JSON string
@@ -404,7 +405,7 @@ function PDFViewerContent() {
         queryWords = [normQ];
         
         const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
-        if (isArabicPhrase) {
+        if (isArabicPhrase && directionParam === 'RTL_REVERSED') {
           const revQ = normQ.split(/\s+/).reverse().join(' ');
           if (revQ !== queryWords[0]) {
             queryWords.push(revQ);
@@ -420,13 +421,12 @@ function PDFViewerContent() {
 
       const expandedQueryWords: string[] = [];
       queryWords.forEach(qw => {
-        expandedQueryWords.push(qw);
         const isArabic = /[\u0600-\u06FF]/.test(qw);
-        if (isArabic) {
+        if (isArabic && directionParam === 'RTL_REVERSED') {
           const rev = qw.split('').reverse().join('');
-          if (rev !== qw) {
-            expandedQueryWords.push(rev);
-          }
+          expandedQueryWords.push(rev);
+        } else {
+          expandedQueryWords.push(qw);
         }
       });
       queryWords = expandedQueryWords;
@@ -546,7 +546,7 @@ function PDFViewerContent() {
       queryWords = [normQ];
       
       const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
-      if (isArabicPhrase) {
+      if (isArabicPhrase && directionParam === 'RTL_REVERSED') {
         const revQ = normQ.split(/\s+/).reverse().join(' ');
         if (revQ !== queryWords[0]) {
           queryWords.push(revQ);
@@ -562,13 +562,12 @@ function PDFViewerContent() {
 
     const expandedQueryWords: string[] = [];
     queryWords.forEach(qw => {
-      expandedQueryWords.push(qw);
       const isArabic = /[\u0600-\u06FF]/.test(qw);
-      if (isArabic) {
+      if (isArabic && directionParam === 'RTL_REVERSED') {
         const rev = qw.split('').reverse().join('');
-        if (rev !== qw) {
-          expandedQueryWords.push(rev);
-        }
+        expandedQueryWords.push(rev);
+      } else {
+        expandedQueryWords.push(qw);
       }
     });
     queryWords = expandedQueryWords;

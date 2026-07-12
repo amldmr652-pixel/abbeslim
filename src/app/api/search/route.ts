@@ -97,20 +97,53 @@ function normalizeLight(text: string): string {
     .replace(/ة/g, 'ه'); // Ta Marbuta
 }
 
-// -------------------------------------------------------
+// RTL yönünü otomatik algıla (RTL_NORMAL = düz Arapça karakter sırası, RTL_REVERSED = görsel ters karakter sırası)
+function detectRtlDirection(text: string): 'RTL_NORMAL' | 'RTL_REVERSED' {
+  if (!text) return 'RTL_NORMAL';
+  let normalCount = 0;
+  let reversedCount = 0;
+  
+  const cleanLower = text.toLowerCase();
+  
+  // Normal/Düz yaygın edatlar ve bozuk font karşılıkları
+  const normalPatterns = [
+    /\s+في\s+/g, /\s+ان\s+/g, /\s+من\s+/g,
+    /\s+ėĺ\s+/g, /\s+ėĻ\s+/g, /\s+אĬ\s+/g, /\s+ĐĬ\s+/g, /\s+ħĬ\s+/g
+  ];
+  
+  // Ters/Reversed edatlar
+  const reversedPatterns = [
+    /\s+يف\s+/g, /\s+نم\s+/g,
+    /\s+ĺė\s+/g, /\s+Ļė\s+/g, /\s+Ĭא\s+/g, /\s+ĬĐ\s+/g, /\s+Ĭħ\s+/g,
+    /\s+نا\s+/g, /\s+ىلا\s+/g, /\s+يلc\s+/g
+  ];
+  
+  normalPatterns.forEach(pat => {
+    const matches = cleanLower.match(pat);
+    if (matches) normalCount += matches.length;
+  });
+  
+  reversedPatterns.forEach(pat => {
+    const matches = cleanLower.match(pat);
+    if (matches) reversedCount += matches.length;
+  });
+  
+  return normalCount >= reversedCount ? 'RTL_NORMAL' : 'RTL_REVERSED';
+}
+
 // Kelimeyi HTML'de vurgula (Ctrl+F işareti)
 // -------------------------------------------------------
-function highlightWords(text: string, words: string[]): string {
+function highlightWords(text: string, words: string[], direction: 'RTL_NORMAL' | 'RTL_REVERSED'): string {
   let result = text;
   
-  // Arapça kelimelerin ters hallerini (visual order) de vurgulama listesine ekle
+  // Arapça kelimelerin ters hallerini (visual order) de vurgulama listesine ekle (sadece yön tersteyse)
   const expandedWords: string[] = [];
   for (const word of words) {
     if (!word) continue;
     expandedWords.push(word);
     
     const isArabic = /[\u0600-\u06FF]/.test(word);
-    if (isArabic) {
+    if (isArabic && direction === 'RTL_REVERSED') {
       const reversed = word.split('').reverse().join('');
       if (reversed !== word) {
         expandedWords.push(reversed);
@@ -182,7 +215,7 @@ interface PageMatchInfo {
   firstSnippet: string;
 }
 
-function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: string, mode: string): PageMatchInfo[] {
+function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: string, mode: string, direction: 'RTL_NORMAL' | 'RTL_REVERSED'): PageMatchInfo[] {
   if (!cleanText || queryWords.length === 0) return [];
 
   const pageSegments: { page: string; text: string; normText: string }[] = [];
@@ -224,7 +257,7 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
     // Tam sorgu eşleşmesi dene (ve ters halini dene eğer Arapça ise)
     const normQ = normalizeLight(normQuery.trim());
     const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
-    const reversedNormQ = isArabicPhrase ? normQ.split(/\s+/).reverse().join(' ') : '';
+    const reversedNormQ = (isArabicPhrase && direction === 'RTL_REVERSED') ? normQ.split(/\s+/).reverse().join(' ') : '';
 
     if (normQ.length >= 2) {
       let idx = 0;
@@ -263,7 +296,7 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
       for (const word of queryWords) {
         if (word.length < 2) continue;
         const isArabicW = /[\u0600-\u06FF]/.test(word);
-        const reversedWord = isArabicW ? word.split('').reverse().join('') : '';
+        const reversedWord = (isArabicW && direction === 'RTL_REVERSED') ? word.split('').reverse().join('') : '';
 
         let idx = 0;
         while (true) {
@@ -312,7 +345,7 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
     // Tam sorgu eşleşmesi önce dene
     const normQ = normalizeLight(normQuery.trim());
     const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
-    const reversedNormQ = isArabicPhrase ? normQ.split(/\s+/).reverse().join(' ') : '';
+    const reversedNormQ = (isArabicPhrase && direction === 'RTL_REVERSED') ? normQ.split(/\s+/).reverse().join(' ') : '';
 
     if (normQ.length >= 2) {
       let idx = 0;
@@ -352,7 +385,7 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
       for (const word of queryWords) {
         if (word.length < 2) continue;
         const isArabicW = /[\u0600-\u06FF]/.test(word);
-        const reversedWord = isArabicW ? word.split('').reverse().join('') : '';
+        const reversedWord = (isArabicW && direction === 'RTL_REVERSED') ? word.split('').reverse().join('') : '';
 
         let idx = 0;
         while (true) {
@@ -601,12 +634,14 @@ export async function GET(request: Request) {
         let snippet = '';
         let pageMatch: string | null = null;
 
+        const docDirection = cleanText ? detectRtlDirection(cleanText) : 'RTL_NORMAL';
+
         // --- Çoklu konum tespiti ---
         let pageMatches: PageMatchInfo[] = [];
         let matchCount = 0;
 
         if (cleanText) {
-          pageMatches = findAllPageMatches(cleanText, queryWords, normQuery, mode);
+          pageMatches = findAllPageMatches(cleanText, queryWords, normQuery, mode, docDirection);
           matchCount = pageMatches.reduce((sum, pm) => sum + pm.count, 0);
         }
 
@@ -617,7 +652,7 @@ export async function GET(request: Request) {
 
           // ---- Tam sorgu eşleşmesi (önce dene) ----
           const isArabicQ = /[\u0600-\u06FF]/.test(normQ);
-          const reversedQ = isArabicQ ? normQ.split(/\s+/).reverse().join(' ') : '';
+          const reversedQ = (isArabicQ && docDirection === 'RTL_REVERSED') ? normQ.split(/\s+/).reverse().join(' ') : '';
           
           let matchIdx = normFull.indexOf(normQ);
           if (matchIdx === -1 && reversedQ) {
@@ -628,7 +663,7 @@ export async function GET(request: Request) {
           if (mode !== 'phrase' && matchIdx === -1) {
             for (const w of words) {
               const isArabicW = /[\u0600-\u06FF]/.test(w);
-              const revW = isArabicW ? w.split('').reverse().join('') : '';
+              const revW = (isArabicW && docDirection === 'RTL_REVERSED') ? w.split('').reverse().join('') : '';
               let idx = normFull.indexOf(w);
               if (idx === -1 && revW) {
                 idx = normFull.indexOf(revW);
@@ -654,7 +689,7 @@ export async function GET(request: Request) {
 
             // Kelimeleri vurgula (cümle modunda sadece bütün sorguyu vurgula)
             const highlightList = mode === 'phrase' ? [normQ] : words.filter((w: string) => w.length > 1);
-            raw = highlightWords(raw, highlightList);
+            raw = highlightWords(raw, highlightList, docDirection);
 
             // Elipsis ekle
             if (start > 0) raw = '…' + raw;
@@ -671,7 +706,7 @@ export async function GET(request: Request) {
             // AI chunk eşleşmesi
             let raw = matchedChunkText.substring(0, 300).replace(/\[PAGE: \d+\]/g, ' ').trim();
             const highlightList = mode === 'phrase' ? [normQ] : words.filter((w: string) => w.length > 1);
-            raw = highlightWords(raw, highlightList);
+            raw = highlightWords(raw, highlightList, docDirection);
             const aiBadge = `<span class="bg-purple-900/50 text-purple-300 text-xs px-2 py-0.5 rounded-full border border-purple-500/30 mr-2">✨ Yapay Zeka Eşleşmesi</span>`;
             snippet = `${aiBadge}<span class="text-gray-200 text-sm leading-relaxed">${raw}…</span>`;
           }
@@ -679,7 +714,7 @@ export async function GET(request: Request) {
 
         // İçerik yoksa dosya adından göster
         if (!snippet && file.name) {
-          const highlighted = highlightWords(file.name, queryWords.filter((w: string) => w.length > 1));
+          const highlighted = highlightWords(file.name, queryWords.filter((w: string) => w.length > 1), docDirection);
           snippet = `<span class="bg-yellow-900/40 text-yellow-200 text-xs px-2 py-0.5 rounded-full border border-yellow-500/30 mr-2">📁 Dosya Adı Eşleşmesi</span><span class="text-gray-200 text-sm">${highlighted}</span>`;
         }
 
@@ -687,8 +722,9 @@ export async function GET(request: Request) {
           ...file,
           snippet,
           pageMatch,
+          direction: docDirection,
           // YENİ: Çoklu konum bilgisi
-          pageMatches: pageMatches.slice(0, 50).map(pm => ({
+          pageMatches: pageMatches.slice(0, 100).map(pm => ({
             page: pm.page,
             count: pm.count,
             snippet: pm.firstSnippet,

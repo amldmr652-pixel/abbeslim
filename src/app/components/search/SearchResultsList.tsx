@@ -37,6 +37,10 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
         params.set('fm', encodeURIComponent(jsonStr));
       }
     }
+    // Kitap yönünü (RTL yönü) URL parametresi olarak ekle
+    if (file.direction) {
+      params.set('dir', file.direction);
+    }
     return `/viewer?${params.toString()}`;
   };
 
