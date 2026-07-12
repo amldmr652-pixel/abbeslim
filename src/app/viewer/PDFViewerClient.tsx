@@ -227,6 +227,11 @@ function PDFViewerContent() {
       .replace(/ħ/g, 'م')
       .replace(/Ĭ/g, 'ن')
       .replace(/ģ/g, 'ه')
+      .replace(/ġ/g, 'ه')
+      .replace(/Ġ/g, 'ه')
+      .replace(/ĵ/g, 'م')
+      .replace(/Ĵ/g, 'م')
+      .replace(/Ĩ/g, 'ي')
       .replace(/Ļ/g, 'ي')
       .replace(/ė/g, 'ف')
       .replace(/ĉ/g, 'ح')
@@ -239,8 +244,8 @@ function PDFViewerContent() {
       .replace(/כ/g, 'ك');
 
     // Türkçe büyük İ harfini sadece Arapça/Bozuk font harf/hareke bağlamında Arapça Lam (ل) harfine dönüştür
-    result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])/g, 'ل');
-    result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
+    result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨכĻėĉĝĤÝĘāđ])/g, 'ل');
+    result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
 
     return result;
   };
@@ -295,6 +300,11 @@ function PDFViewerContent() {
         else if (char === 'ħ') char = 'م';
         else if (char === 'Ĭ') char = 'ن';
         else if (char === 'ģ') char = 'ه';
+        else if (char === 'ġ') char = 'ه';
+        else if (char === 'Ġ') char = 'ه';
+        else if (char === 'ĵ') char = 'م';
+        else if (char === 'Ĵ') char = 'م';
+        else if (char === 'Ĩ') char = 'ي';
         else if (char === 'Ļ') char = 'ي';
         else if (char === 'ė') char = 'ف';
         else if (char === 'ĉ') char = 'ح';
@@ -308,8 +318,8 @@ function PDFViewerContent() {
         else if (char === 'İ') {
           const prev = i > 0 ? fullText[i - 1] : '';
           const next = i < fullText.length - 1 ? fullText[i + 1] : '';
-          const isPrevArabic = /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(prev);
-          const isNextArabic = /[\u0600-\u06FF]/.test(next) || /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(next);
+          const isPrevArabic = /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨכĻėĉĝĤÝĘāđ]/.test(prev);
+          const isNextArabic = /[\u0600-\u06FF]/.test(next) || /[\u0600-\u06FF]/.test(next) || /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨכĻėĉĝĤÝĘāđ]/.test(next);
           if (isPrevArabic || isNextArabic) {
             char = 'ل';
           }

@@ -37,6 +37,11 @@ function mapCorruptedArabic(text: string): string {
     .replace(/ħ/g, 'م')
     .replace(/Ĭ/g, 'ن')
     .replace(/ģ/g, 'ه')
+    .replace(/ġ/g, 'ه')
+    .replace(/Ġ/g, 'ه')
+    .replace(/ĵ/g, 'م')
+    .replace(/Ĵ/g, 'م')
+    .replace(/Ĩ/g, 'ي')
     .replace(/Ļ/g, 'ي')
     .replace(/ė/g, 'ف')
     .replace(/ĉ/g, 'ح')
@@ -49,8 +54,8 @@ function mapCorruptedArabic(text: string): string {
     .replace(/כ/g, 'ك');
 
   // Türkçe büyük İ harfini sadece Arapça/Bozuk font harf/hareke bağlamında Arapça Lam (ل) harfine dönüştür
-  result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])/g, 'ل');
-  result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
+  result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨכĻėĉĝĤÝĘāđ])/g, 'ل');
+  result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
 
   return result;
 }
@@ -100,33 +105,37 @@ function normalizeLight(text: string): string {
 // RTL yönünü otomatik algıla (RTL_NORMAL = düz Arapça karakter sırası, RTL_REVERSED = görsel ters karakter sırası)
 function detectRtlDirection(text: string): 'RTL_NORMAL' | 'RTL_REVERSED' {
   if (!text) return 'RTL_NORMAL';
+  
+  // Yön kontrolü yapmadan önce harekeleri ve bozuk karakterleri temizleyelim (normalizeLight mantığı)
+  const normText = normalizeLight(text);
+  
   let normalCount = 0;
   let reversedCount = 0;
   
-  const cleanLower = text.toLowerCase();
-  
-  // Normal/Düz yaygın edatlar ve bozuk font karşılıkları
+  // Normal/Düz Arapça yaygın edatlar
   const normalPatterns = [
-    /\s+في\s+/g, /\s+ان\s+/g, /\s+من\s+/g,
-    /\s+ėĺ\s+/g, /\s+ėĻ\s+/g, /\s+אĬ\s+/g, /\s+ĐĬ\s+/g, /\s+ħĬ\s+/g
+    /\s+في\s+/g, /\s+ان\s+/g, /\s+من\s+/g, /\s+الى\s+/g, /\s+على\s+/g
   ];
   
-  // Ters/Reversed edatlar
+  // Ters/Reversed Arapça edatlar
   const reversedPatterns = [
-    /\s+يف\s+/g, /\s+نم\s+/g,
-    /\s+ĺė\s+/g, /\s+Ļė\s+/g, /\s+Ĭא\s+/g, /\s+ĬĐ\s+/g, /\s+Ĭħ\s+/g,
-    /\s+نا\s+/g, /\s+ىلا\s+/g, /\s+يلc\s+/g
+    /\s+يف\s+/g, /\s+نا\s+/g, /\s+نم\s+/g, /\s+ىلا\s+/g, /\s+يلع\s+/g
   ];
   
   normalPatterns.forEach(pat => {
-    const matches = cleanLower.match(pat);
+    const matches = normText.match(pat);
     if (matches) normalCount += matches.length;
   });
   
   reversedPatterns.forEach(pat => {
-    const matches = cleanLower.match(pat);
+    const matches = normText.match(pat);
     if (matches) reversedCount += matches.length;
   });
+  
+  // Eğer hiç tespit edilemezse varsayılan düzgün (normal) sırayı kabul et
+  if (normalCount === 0 && reversedCount === 0) {
+    return 'RTL_NORMAL';
+  }
   
   return normalCount >= reversedCount ? 'RTL_NORMAL' : 'RTL_REVERSED';
 }
