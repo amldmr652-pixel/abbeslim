@@ -536,3 +536,14 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **Yerel Analize Ters Arama Entegrasyonu:** URL parametresi olmadan doğrudan PDF dosyası açıldığında çalışan local `analyzePageMatches` tarama döngüsüne Arapça kelimelerin ters visual sıralı (reversed) biçimlerini de tarama yeteneği eklendi.
   - **Doğrulama:** `npm run build` hatasız tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
 
+
+## [2026-07-13T01:45] V2.16 — DOM/Mark Tabanlı Sarı Vurgulama ve Konum Kayması Çözümü (PDFViewerClient.tsx)
+
+### 1. Range API Yerine Yerel Mark Yapısı (PDFViewerClient.tsx)
+- **Sorun:** PDF.js sayfa katmanı üzerinde CSS `transform` (scale) uygulandığı için, tarayıcıda Range API'nin `getClientRects()` koordinatları ile mutlak konumlandırılmış bağımsız `div` kutuları çizmek, ölçeklendirmenin iki kez uygulanmasına (double transform scale) yol açıyordu. Bu durum vurgu kutularının tamamen yanlış yerlerde çizilmesine veya sıfır boyutlu (görünmez) olmasına sebep oluyordu.
+- **Çözüm:**
+  - **DOM Tabanlı `<mark>` Sarma Yapısı:** `doHighlight` fonksiyonu, Range API yerine her bir metin span elemanını doğrudan parse edip eşleşen bölgeleri `<mark class="custom-word-highlight">` etiketiyle sarmalayacak şekilde yeniden yazıldı.
+  - **Aralık Birleştirme (Interval Merging):** Bir span içinde birden fazla eşleşen terim (örneğin aynı satırda birden fazla `هل` edatı) olması durumunda, çakışan veya ardışık vurgu aralıkları otomatik olarak birleştirilerek temiz bir HTML yapısı kuruluyor.
+  - **Orijinal Metni Koruma (`data-original-text`):** Span'ler modifiye edilmeden önce orijinal halleri `data-original-text` attribute'u altında yedekleniyor. Arama sorgusu temizlendiğinde veya değiştiğinde, tüm metinler hiçbir bozulma olmadan orijinal haline geri döndürülüyor.
+  - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
