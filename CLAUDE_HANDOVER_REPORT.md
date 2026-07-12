@@ -482,3 +482,19 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **i18n Desteği (`tr.json`, `en.json`, `ar.json`):** Kısayol başlıkları, hata mesajları ve 16 eylem tanımının tamamı Türkçe, İngilizce ve Arapça olarak yerelleştirildi.
   - **Doğrulama:** `npm run build` ile projede derleme hatası olmadığı doğrulandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
 
+
+## [2026-07-13T01:21] V2.12 — Arapça Arama ve Vurgulama Sistemi İyileştirmeleri (Antigravity/Gemini)
+
+### 1. Arapça Karakter Normalizasyonu ve Esnek Arama Eşleştirmesi (route.ts & PDFViewerClient.tsx)
+- **Sorun:** Arapça metinlerde sıkça yer alan hareke (diacritics / Tashkeel) ve Elif/Ya/Ta Marbuta yazım farklılıkları nedeniyle, kullanıcıların düz kelime aramaları (örn. `احمد`) veritabanındaki harekeleli veya hemzeli metinlerle (`أَحْمَدُ`) eşleşmiyordu. Ayrıca, arama sayfasında ve PDF Görüntüleyicide kelime vurgulama (highlight) sistemi harekeleleri yok sayamadığı için işaretleme yapamıyordu.
+- **Çözüm:**
+  - **Arama API Normalizasyonu (`route.ts`):** `normalize()` ve `normalizeLight()` fonksiyonlarına Arapça karakter normalizasyonu eklendi:
+    - Arapça harekeler (`[\u064b-\u0652\u0670]`) temizleniyor.
+    - Uzatma çizgisi Tatweel / Kashida (`\u0640`) kaldırılıyor.
+    - Elif çeşitleri (`[أإآٱ]`) düz Elif (`ا`) karakterine dönüştürülüyor.
+    - Ya ve Elif Maksura (`[ىی]`) harfleri standart Ya (`ي`) harfiyle birleştiriliyor.
+    - Ta Marbuta (`ة`) ise He (`ه`) harfine dönüştürülerek kelime sonlarındaki yazım farklılıkları eşitleniyor.
+  - **Dinamik Regex Vurgulama (`route.ts`):** `highlightWords` fonksiyonunda Arapça harflerden sonra opsiyonel hareke/tatweel (`[\u064b-\u0652\u0670\u0640]*`) karakterlerinin gelmesine izin veren esnek bir regex deseni oluşturuldu. Bu sayede harekeli metinler de başarıyla yakalanıp vurgulanıyor.
+  - **PDF İstemci Normalizasyonu (`PDFViewerClient.tsx`):** `normalizeChar` fonksiyonuna aynı Arapça normalizasyon adımları tanımlandı. Böylece, kullanıcı Arapça bir arama yaptığında PDF sayfa katmanında da kelime konumları doğru bir şekilde tespit edilip işaretlenebiliyor.
+  - **Doğrulama:** `npm run build` hatasız tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresine deploy edildi.
+
