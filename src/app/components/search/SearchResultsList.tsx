@@ -29,6 +29,14 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
       params.set('pm', encodeURIComponent(JSON.stringify(pmSlice)));
       params.set('mc', String(file.matchCount || 0));
     }
+    // Eşleme bilgisini en başta [FONTMAP:...] varsa URL parametresi olarak ekle
+    if (file.extractedText && file.extractedText.startsWith('[FONTMAP:')) {
+      const endIdx = file.extractedText.indexOf(']');
+      if (endIdx !== -1) {
+        const jsonStr = file.extractedText.substring(9, endIdx);
+        params.set('fm', encodeURIComponent(jsonStr));
+      }
+    }
     return `/viewer?${params.toString()}`;
   };
 

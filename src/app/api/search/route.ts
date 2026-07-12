@@ -436,6 +436,13 @@ export async function GET(request: Request) {
 
       // --- 2. PDF içerik temizle ---
       let cleanText = file.extractedText || '';
+      // Eğer metnin en başında FONTMAP header'ı varsa onu kes
+      if (cleanText.startsWith('[FONTMAP:')) {
+        const lineEnd = cleanText.indexOf('\n');
+        if (lineEnd !== -1) {
+          cleanText = cleanText.substring(lineEnd + 1);
+        }
+      }
       // PDF binary/operatör çöplerini kes
       const garbageIdx = cleanText.indexOf('Artifact    Attached');
       if (garbageIdx !== -1) cleanText = cleanText.substring(0, garbageIdx);

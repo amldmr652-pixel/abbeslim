@@ -25,6 +25,25 @@ function PDFViewerContent() {
   // --- URL'den gelen pageMatches (ana sayfa'dan geçilirse) ---
   const pageMatchesParam = searchParams.get('pm'); // JSON string
   const matchCountParam = searchParams.get('mc');
+  const fontMapParam = searchParams.get('fm'); // Dinamik font eşleme JSON string'i
+
+  const [dynamicFontMap, setDynamicFontMap] = useState<Record<string, string>>({});
+
+  // Dinamik font haritasını URL'den yükle
+  useEffect(() => {
+    if (fontMapParam) {
+      try {
+        const decoded = decodeURIComponent(fontMapParam);
+        const parsed = JSON.parse(decoded);
+        if (parsed && typeof parsed === 'object') {
+          setDynamicFontMap(parsed);
+          console.log('Dinamik font haritası yüklendi:', parsed);
+        }
+      } catch (err) {
+        console.error('Dinamik font haritası parse hatası:', err);
+      }
+    }
+  }, [fontMapParam]);
 
   const [numPages, setNumPages] = useState<number | null>(null);
   const [scale, setScale] = useState(1.2);
@@ -177,7 +196,22 @@ function PDFViewerContent() {
   // --- Bozuk Arapça font eşleşmelerini düzelt ---
   const mapCorruptedArabic = (text: string) => {
     if (!text) return '';
-    let result = text
+    let result = text;
+
+    // Eğer dinamik font haritası varsa öncelikli olarak onu uygula
+    const keys = Object.keys(dynamicFontMap);
+    if (keys.length > 0) {
+      keys.forEach(k => {
+        if (k) {
+          const reg = new RegExp(k.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
+          result = result.replace(reg, dynamicFontMap[k]);
+        }
+      });
+      return result;
+    }
+
+    // Yoksa varsayılan statik haritayı uygula
+    result = result
       .replace(/ĺ/g, 'ي')
       .replace(/Ĺ/g, 'ي')
       .replace(/ï/g, 'د')
@@ -237,37 +271,43 @@ function PDFViewerContent() {
       if (/\s/.test(origChar)) continue;
 
       let char = origChar;
-      // Map corrupted Arabic character
-      if (char === 'ĺ' || char === 'Ĺ') char = 'ي';
-      else if (char === 'ï') char = 'د';
-      else if (char === 'Û') char = 'ت';
-      else if (char === 'Ą') char = 'ض';
-      else if (char === 'Ö') char = 'ب';
-      else if (char === 'ó') char = 'ر';
-      else if (char === 'ĩ') char = 'ع';
-      else if (char === 'Đ') char = 'م';
-      else if (char === 'Ĝ') char = 'ق';
-      else if (char === 'א') char = 'ا';
-      else if (char === 'ħ') char = 'م';
-      else if (char === 'Ĭ') char = 'ن';
-      else if (char === 'ģ') char = 'ه';
-      else if (char === 'Ļ') char = 'ي';
-      else if (char === 'ė') char = 'ف';
-      else if (char === 'ĉ') char = 'ح';
-      else if (char === 'ĝ') char = 'ي';
-      else if (char === 'Ĥ') char = 'ل';
-      else if (char === 'Ý') char = 'ت';
-      else if (char === 'Ę') char = 'ف';
-      else if (char === 'ā') char = 'ا';
-      else if (char === 'đ') char = 'ر';
-      else if (char === 'כ') char = 'ك';
-      else if (char === 'İ') {
-        const prev = i > 0 ? fullText[i - 1] : '';
-        const next = i < fullText.length - 1 ? fullText[i + 1] : '';
-        const isPrevArabic = /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(prev);
-        const isNextArabic = /[\u0600-\u06FF]/.test(next) || /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(next);
-        if (isPrevArabic || isNextArabic) {
-          char = 'ل';
+
+      // Dinamik eşleme varsa öncelikli uygula
+      if (dynamicFontMap[char]) {
+        char = dynamicFontMap[char];
+      } else {
+        // Yoksa varsayılan statik eşlemeleri yap
+        if (char === 'ĺ' || char === 'Ĺ') char = 'ي';
+        else if (char === 'ï') char = 'د';
+        else if (char === 'Û') char = 'ت';
+        else if (char === 'Ą') char = 'ض';
+        else if (char === 'Ö') char = 'ب';
+        else if (char === 'ó') char = 'ر';
+        else if (char === 'ĩ') char = 'ع';
+        else if (char === 'Đ') char = 'م';
+        else if (char === 'Ĝ') char = 'ق';
+        else if (char === 'א') char = 'ا';
+        else if (char === 'ħ') char = 'م';
+        else if (char === 'Ĭ') char = 'ن';
+        else if (char === 'ģ') char = 'ه';
+        else if (char === 'Ļ') char = 'ي';
+        else if (char === 'ė') char = 'ف';
+        else if (char === 'ĉ') char = 'ح';
+        else if (char === 'ĝ') char = 'ي';
+        else if (char === 'Ĥ') char = 'ل';
+        else if (char === 'Ý') char = 'ت';
+        else if (char === 'Ę') char = 'ف';
+        else if (char === 'ā') char = 'ا';
+        else if (char === 'đ') char = 'ر';
+        else if (char === 'כ') char = 'ك';
+        else if (char === 'İ') {
+          const prev = i > 0 ? fullText[i - 1] : '';
+          const next = i < fullText.length - 1 ? fullText[i + 1] : '';
+          const isPrevArabic = /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(prev);
+          const isNextArabic = /[\u0600-\u06FF]/.test(next) || /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(next);
+          if (isPrevArabic || isNextArabic) {
+            char = 'ل';
+          }
         }
       }
 

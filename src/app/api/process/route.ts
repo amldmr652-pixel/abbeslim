@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { addFile, FileRecord } from '@/lib/db';
-import { getEmbedding } from '@/lib/ml';
+import { getEmbedding, detectAndExtractArabicFontMap } from '@/lib/ml';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
 
@@ -40,17 +40,43 @@ export async function POST(request: Request) {
     let embedding: number[] = [];
     const chunks: { text: string; embedding: number[] }[] = [];
 
+    let processedText = extractedText;
     if (extractedText.trim()) {
       try {
+        const fontMap = await detectAndExtractArabicFontMap(extractedText.substring(0, 5000));
+        const keys = Object.keys(fontMap);
+        if (keys.length > 0) {
+          console.log(`Bozuk Arapça font haritası uygulandı: ${keys.length} harf değiştiriliyor...`);
+          // Bütün harfleri değiştir
+          let cleanText = processedText;
+          keys.forEach(k => {
+            if (k) {
+              const reg = new RegExp(k.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
+              cleanText = cleanText.replace(reg, fontMap[k]);
+            }
+          });
+          
+          // Eşleme bilgisini metnin en başına header satırı olarak ekle
+          const header = `[FONTMAP:${JSON.stringify(fontMap)}]\n`;
+          processedText = header + cleanText;
+          console.log(`Bozuk metin temizlendi. İlk 200 karakter:`, cleanText.substring(0, 200));
+        }
+      } catch (err) {
+        console.error('Yapay zeka font temizleme hatası:', err);
+      }
+    }
+
+    if (processedText.trim()) {
+      try {
         // Ana embedding — tek API çağrısı
-        embedding = await getEmbedding(extractedText.substring(0, 2048));
+        embedding = await getEmbedding(processedText.substring(0, 2048));
 
         // Daha geniş kapsam ve daha iyi anlamsal bağlam için chunk boyutunu ve sayısını artırıyoruz
         const chunkSize = 2000;
         const maxChunks = 20;
         let chunkCount = 0;
-        for (let i = 0; i < extractedText.length && chunkCount < maxChunks; i += chunkSize) {
-          const chunkText = extractedText.substring(i, i + chunkSize);
+        for (let i = 0; i < processedText.length && chunkCount < maxChunks; i += chunkSize) {
+          const chunkText = processedText.substring(i, i + chunkSize);
           if (chunkText.trim().length > 20) {
             const chunkEmbedding = await getEmbedding(chunkText);
             chunks.push({ text: chunkText, embedding: chunkEmbedding });
@@ -71,7 +97,7 @@ export async function POST(request: Request) {
       date,
       type: fileType || 'application/octet-stream',
       url,
-      extractedText,
+      extractedText: processedText,
       createdAt: new Date().toISOString(),
       embedding,
       chunks,

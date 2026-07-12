@@ -1,6 +1,6 @@
 import '@/lib/polyfill';
 import { NextResponse } from 'next/server';
-import { getEmbedding } from '@/lib/ml';
+import { getEmbedding, detectAndExtractArabicFontMap } from '@/lib/ml';
 import { createAdminClient } from '@/utils/supabase/admin';
 
 const supabaseAdmin = createAdminClient();
@@ -108,12 +108,38 @@ export async function POST(request: Request) {
       }
     }
 
+    let processedText = extractedText;
     if (extractedText.trim()) {
       try {
-        embedding = await getEmbedding(extractedText.substring(0, 2048));
+        const fontMap = await detectAndExtractArabicFontMap(extractedText.substring(0, 5000));
+        const keys = Object.keys(fontMap);
+        if (keys.length > 0) {
+          console.log(`Bozuk Arapça font haritası uygulandı: ${keys.length} harf değiştiriliyor...`);
+          // Bütün harfleri değiştir
+          let cleanText = processedText;
+          keys.forEach(k => {
+            if (k) {
+              const reg = new RegExp(k.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
+              cleanText = cleanText.replace(reg, fontMap[k]);
+            }
+          });
+          
+          // Eşleme bilgisini metnin en başına header satırı olarak ekle
+          const header = `[FONTMAP:${JSON.stringify(fontMap)}]\n`;
+          processedText = header + cleanText;
+          console.log(`Bozuk metin temizlendi. İlk 200 karakter:`, cleanText.substring(0, 200));
+        }
+      } catch (err) {
+        console.error('Yapay zeka font temizleme hatası:', err);
+      }
+    }
+
+    if (processedText.trim()) {
+      try {
+        embedding = await getEmbedding(processedText.substring(0, 2048));
         const chunkSize = 500;
-        for (let i = 0; i < extractedText.length; i += chunkSize) {
-          const chunkText = extractedText.substring(i, i + chunkSize);
+        for (let i = 0; i < processedText.length; i += chunkSize) {
+          const chunkText = processedText.substring(i, i + chunkSize);
           if (chunkText.trim().length > 20) {
             chunks.push({ text: chunkText, embedding: await getEmbedding(chunkText) });
           }
@@ -123,7 +149,7 @@ export async function POST(request: Request) {
 
     // DB'yi güncelle
     await supabaseAdmin.from('files').update({
-      extractedText,
+      extractedText: processedText,
       embedding,
       chunks,
     }).eq('id', fileId);
