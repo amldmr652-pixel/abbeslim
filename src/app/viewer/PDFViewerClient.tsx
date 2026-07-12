@@ -166,9 +166,28 @@ function PDFViewerContent() {
   const goNextMatch = () => goToMatch(currentMatchIndex + 1);
   const goPrevMatch = () => goToMatch(currentMatchIndex - 1);
 
+  // --- Bozuk Arapça font eşleşmelerini düzelt ---
+  const mapCorruptedArabic = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/ĺ/g, 'ي')
+      .replace(/ï/g, 'د')
+      .replace(/Û/g, 'ت')
+      .replace(/Ą/g, 'ض')
+      .replace(/Ö/g, 'ب')
+      .replace(/ó/g, 'ر')
+      .replace(/ĩ/g, 'ع')
+      .replace(/Đ/g, 'م')
+      .replace(/Ĝ/g, 'ق')
+      .replace(/א/g, 'ا')
+      .replace(/ħ/g, 'م')
+      .replace(/Ĭ/g, 'ن');
+  };
+
   // --- Türkçe ve Arapça normalize (client-side highlight için) ---
   const normalizeChar = (text: string) => {
-    return text
+    const clean = mapCorruptedArabic(text);
+    return clean
       .toLocaleLowerCase('tr-TR')
       // Türkçe normalizasyonu
       .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
@@ -229,7 +248,17 @@ function PDFViewerContent() {
       let queryWords: string[] = [];
       if (mode === 'phrase') {
         // Cümle modunda tüm boşlukları kaldırıp arıyoruz çünkü cleanTextNorm da boşluksuz.
-        queryWords = [normalizeChar(query).replace(/\s+/g, '')];
+        const normQ = normalizeChar(query);
+        queryWords = [normQ.replace(/\s+/g, '')];
+        
+        // Arapça cümle ise kelimeleri ters sırayla birleştirip ekle
+        const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
+        if (isArabicPhrase) {
+          const revQ = normQ.split(/\s+/).reverse().join('').replace(/\s+/g, '');
+          if (revQ !== queryWords[0]) {
+            queryWords.push(revQ);
+          }
+        }
       } else {
         let cleanQueryStr = query.toLocaleLowerCase('tr-TR').replace(/[.,!?;:]/g, ' ');
         TR_STOPWORDS.forEach(sw => {
@@ -237,6 +266,20 @@ function PDFViewerContent() {
         });
         queryWords = cleanQueryStr.split(/\s+/).filter(w => w.length > 2).map(w => normalizeChar(w));
       }
+
+      // Her Arapça kelime için ters halini (visual order) de vurgulama listesine ekle
+      const expandedQueryWords: string[] = [];
+      queryWords.forEach(qw => {
+        expandedQueryWords.push(qw);
+        const isArabic = /[\u0600-\u06FF]/.test(qw);
+        if (isArabic) {
+          const rev = qw.split('').reverse().join('');
+          if (rev !== qw) {
+            expandedQueryWords.push(rev);
+          }
+        }
+      });
+      queryWords = expandedQueryWords;
       
       if (queryWords.length === 0 || !queryWords[0]) return;
 

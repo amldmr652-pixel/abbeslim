@@ -18,11 +18,32 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 // -------------------------------------------------------
+// Bozuk Arapça font eşleşmelerini düzelt
+// -------------------------------------------------------
+function mapCorruptedArabic(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/ĺ/g, 'ي')
+    .replace(/ï/g, 'د')
+    .replace(/Û/g, 'ت')
+    .replace(/Ą/g, 'ض')
+    .replace(/Ö/g, 'ب')
+    .replace(/ó/g, 'ر')
+    .replace(/ĩ/g, 'ع')
+    .replace(/Đ/g, 'م')
+    .replace(/Ĝ/g, 'ق')
+    .replace(/א/g, 'ا')
+    .replace(/ħ/g, 'م')
+    .replace(/Ĭ/g, 'ن');
+}
+
+// -------------------------------------------------------
 // Türkçe ve Arapça karakter normalize (arama için)
 // -------------------------------------------------------
 function normalize(text: string): string {
   if (!text) return '';
-  return text
+  let clean = mapCorruptedArabic(text);
+  return clean
     .toLocaleLowerCase('tr-TR')
     // Türkçe normalizasyonu
     .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
@@ -43,7 +64,8 @@ function normalize(text: string): string {
 // İndeks için (noktalama temizlemeden)
 function normalizeLight(text: string): string {
   if (!text) return '';
-  return text
+  let clean = mapCorruptedArabic(text);
+  return clean
     .toLocaleLowerCase('tr-TR')
     // Türkçe normalizasyonu
     .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
@@ -62,7 +84,23 @@ function normalizeLight(text: string): string {
 // -------------------------------------------------------
 function highlightWords(text: string, words: string[]): string {
   let result = text;
+  
+  // Arapça kelimelerin ters hallerini (visual order) de vurgulama listesine ekle
+  const expandedWords: string[] = [];
   for (const word of words) {
+    if (!word) continue;
+    expandedWords.push(word);
+    
+    const isArabic = /[\u0600-\u06FF]/.test(word);
+    if (isArabic) {
+      const reversed = word.split('').reverse().join('');
+      if (reversed !== word) {
+        expandedWords.push(reversed);
+      }
+    }
+  }
+
+  for (const word of expandedWords) {
     if (!word || word.length < 2) continue;
     
     // Hem Türkçe hem Arapça için fuzzy regex deseni oluştur
@@ -162,12 +200,20 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
     let count = 0;
     let firstSnippet = '';
 
-    // Tam sorgu eşleşmesi dene
+    // Tam sorgu eşleşmesi dene (ve ters halini dene eğer Arapça ise)
     const normQ = normalizeLight(normQuery.trim());
+    const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
+    const reversedNormQ = isArabicPhrase ? normQ.split(/\s+/).reverse().join(' ') : '';
+
     if (normQ.length >= 2) {
       let idx = 0;
       while (true) {
-        const found = normFull.indexOf(normQ, idx);
+        const foundNormal = normFull.indexOf(normQ, idx);
+        const foundReversed = reversedNormQ ? normFull.indexOf(reversedNormQ, idx) : -1;
+        const found = foundNormal !== -1 && foundReversed !== -1 
+          ? Math.min(foundNormal, foundReversed) 
+          : foundNormal !== -1 ? foundNormal : foundReversed;
+
         if (found === -1) break;
         count++;
         if (!firstSnippet) {
@@ -182,9 +228,17 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
     if (mode !== 'phrase' && count === 0) {
       for (const word of queryWords) {
         if (word.length < 2) continue;
+        const isArabicW = /[\u0600-\u06FF]/.test(word);
+        const reversedWord = isArabicW ? word.split('').reverse().join('') : '';
+
         let idx = 0;
         while (true) {
-          const found = normFull.indexOf(word, idx);
+          const foundNormal = normFull.indexOf(word, idx);
+          const foundReversed = reversedWord ? normFull.indexOf(reversedWord, idx) : -1;
+          const found = foundNormal !== -1 && foundReversed !== -1 
+            ? Math.min(foundNormal, foundReversed) 
+            : foundNormal !== -1 ? foundNormal : foundReversed;
+
           if (found === -1) break;
           count++;
           if (!firstSnippet) {
@@ -210,10 +264,18 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
 
     // Tam sorgu eşleşmesi önce dene
     const normQ = normalizeLight(normQuery.trim());
+    const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
+    const reversedNormQ = isArabicPhrase ? normQ.split(/\s+/).reverse().join(' ') : '';
+
     if (normQ.length >= 2) {
       let idx = 0;
       while (true) {
-        const found = seg.normText.indexOf(normQ, idx);
+        const foundNormal = seg.normText.indexOf(normQ, idx);
+        const foundReversed = reversedNormQ ? seg.normText.indexOf(reversedNormQ, idx) : -1;
+        const found = foundNormal !== -1 && foundReversed !== -1 
+          ? Math.min(foundNormal, foundReversed) 
+          : foundNormal !== -1 ? foundNormal : foundReversed;
+
         if (found === -1) break;
         count++;
         if (!firstSnippet) {
@@ -229,9 +291,17 @@ function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: 
     if (mode !== 'phrase' && count === 0) {
       for (const word of queryWords) {
         if (word.length < 2) continue;
+        const isArabicW = /[\u0600-\u06FF]/.test(word);
+        const reversedWord = isArabicW ? word.split('').reverse().join('') : '';
+
         let idx = 0;
         while (true) {
-          const found = seg.normText.indexOf(word, idx);
+          const foundNormal = seg.normText.indexOf(word, idx);
+          const foundReversed = reversedWord ? seg.normText.indexOf(reversedWord, idx) : -1;
+          const found = foundNormal !== -1 && foundReversed !== -1 
+            ? Math.min(foundNormal, foundReversed) 
+            : foundNormal !== -1 ? foundNormal : foundReversed;
+
           if (found === -1) break;
           count++;
           if (!firstSnippet) {
@@ -360,15 +430,26 @@ export async function GET(request: Request) {
 
       // --- 3. Dosya adı / kategori tam eşleşme skoru ---
       let exactNameMatchScore = 0;
-      if (normFileName.includes(normQuery) || normQuery.includes(normFileName) || normCatId.includes(normQuery)) {
+      const isArabicQuery = /[\u0600-\u06FF]/.test(normQuery);
+      const reversedNormQuery = isArabicQuery ? normQuery.split(/\s+/).reverse().join(' ') : '';
+      const nameMatch = normFileName.includes(normQuery) || normQuery.includes(normFileName) || normCatId.includes(normQuery);
+      const reversedNameMatch = reversedNormQuery && (normFileName.includes(reversedNormQuery) || reversedNormQuery.includes(normFileName) || normCatId.includes(reversedNormQuery));
+
+      if (nameMatch || reversedNameMatch) {
         exactNameMatchScore = 0.90;
       }
 
       // --- 4. İçerik tam eşleşme skoru (Ctrl+F) ---
       let exactMatchScore = 0;
       const normQueryLight = normalizeLight(query);
-      if (normQueryLight.length >= 2 && normFull.includes(normQueryLight)) {
-        exactMatchScore = 0.85;
+      if (normQueryLight.length >= 2) {
+        const isArabicLight = /[\u0600-\u06FF]/.test(normQueryLight);
+        const reversedQueryLight = isArabicLight ? normQueryLight.split(/\s+/).reverse().join(' ') : '';
+        const matchNormal = normFull.includes(normQueryLight);
+        const matchReversed = reversedQueryLight && normFull.includes(reversedQueryLight);
+        if (matchNormal || matchReversed) {
+          exactMatchScore = 0.85;
+        }
       }
 
       // --- 5. Kelime bazlı eşleşme skoru ---
@@ -377,9 +458,13 @@ export async function GET(request: Request) {
       let contentMatchCount = 0;
       for (const word of queryWords) {
         if (word.length < 2) continue;
-        const inName = normFileName.includes(word);
-        const inCat  = normCatId.includes(word);
-        const inText = normFull.includes(word);
+        const isArabicWord = /[\u0600-\u06FF]/.test(word);
+        const reversedWord = isArabicWord ? word.split('').reverse().join('') : '';
+
+        const inName = normFileName.includes(word) || (reversedWord && normFileName.includes(reversedWord));
+        const inCat  = normCatId.includes(word) || (reversedWord && normCatId.includes(reversedWord));
+        const inText = normFull.includes(word) || (reversedWord && normFull.includes(reversedWord));
+
         if (inName || inCat || inText) matchedCount++;
         if (inText) contentMatchCount++;
       }
@@ -451,12 +536,23 @@ export async function GET(request: Request) {
           const words    = normQ.split(/\s+/).filter((w: string) => w.length > 1);
 
           // ---- Tam sorgu eşleşmesi (önce dene) ----
+          const isArabicQ = /[\u0600-\u06FF]/.test(normQ);
+          const reversedQ = isArabicQ ? normQ.split(/\s+/).reverse().join(' ') : '';
+          
           let matchIdx = normFull.indexOf(normQ);
+          if (matchIdx === -1 && reversedQ) {
+            matchIdx = normFull.indexOf(reversedQ);
+          }
 
           // ---- Tek tek kelime ara (Sadece 'phrase' değilse) ----
           if (mode !== 'phrase' && matchIdx === -1) {
             for (const w of words) {
-              const idx = normFull.indexOf(w);
+              const isArabicW = /[\u0600-\u06FF]/.test(w);
+              const revW = isArabicW ? w.split('').reverse().join('') : '';
+              let idx = normFull.indexOf(w);
+              if (idx === -1 && revW) {
+                idx = normFull.indexOf(revW);
+              }
               if (idx !== -1) { matchIdx = idx; break; }
             }
           }
