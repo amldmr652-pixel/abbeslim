@@ -627,3 +627,21 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** Kitaplardaki tüm sayfalar eksiksiz taranmakta ve sayfa 220, 221 gibi arka sayfalardaki eşleşmeler de arama panelinde başarıyla listelenmektedir.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T02:29] V2.23 — Dinamik RTL Yön Algılama ve Tek Yönlü Arama/Vurgu Entegrasyonu (route.ts, SearchResultsList.tsx & PDFViewerClient.tsx)
+
+### 1. Kitap Yönünün Otomatik Algılanması (`detectRtlDirection` - route.ts)
+- **Sorun:** Kullanıcı `هل` (He-Lam) arattığında, arama motorunun visual reversed (ters karakter sırası) araması yapmasından ötürü, düz yazılmış kitaplarda (RTL_NORMAL) dahi `له` (Le-He / Lehu) kelimelerini bularak sarıya boyuyor ve "saçma sapan yerleri boyuyor" şikayetine sebep oluyordu.
+- **Çözüm:**
+  - `search/route.ts` içerisine `detectRtlDirection` fonksiyonu eklendi. Bu fonksiyon, metin katmanındaki en yaygın Arapça edatların (`في`, `ان`, `من`) düz yazılış sıklığı ile ters yazılış sıklığını karşılaştırır.
+  - Eğer düz yazılışlar fazlaysa kitabın yönü `RTL_NORMAL`, ters yazılışlar fazlaysa `RTL_REVERSED` olarak dinamik olarak belirlenir.
+  - Arama API'sindeki `findAllPageMatches`, `highlightWords` ve tekil kelime/cümle tarama mantığı bu yöne göre koşullandırıldı. Kitap düzse (`RTL_NORMAL`) ters arama tamamen devre dışı bırakılır. Sadece yön tersteyse (`RTL_REVERSED`) ters arama çalışır.
+
+### 2. Yön Bilgisinin PDF Görüntüleyiciye Aktarılması
+- **İstemci Geçişi (`SearchResultsList.tsx` & `PDFViewerClient.tsx`):**
+  - Arama endpoint'i artık her dosya için tespit ettiği `direction` değerini client'a döndürür.
+  - `SearchResultsList.tsx`, arama sonuçlarını PDF Viewer'a yönlendirirken URL'e `&dir=RTL_NORMAL` veya `&dir=RTL_REVERSED` parametresini otomatik ekler.
+  - PDF Görüntüleyici (`PDFViewerClient.tsx`), sayfa içi vurgulama (`textRenderer` ve `doHighlight`) algoritmalarında sadece bu parametreden gelen yöne göre arama yapar. Düz kitapta `له` kelimeleri tamamen yoksayılır ve sarıya boyanmaz.
+- **Sonuç:** Kullanıcı düz kitaplarda `هل` aradığında sadece `هل` kelimeleri anında sarıya boyanır, visual order çakışmasından kaynaklanan yanlış boyamalar tamamen giderilmiştir.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
