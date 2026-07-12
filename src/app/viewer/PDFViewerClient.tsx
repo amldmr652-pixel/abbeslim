@@ -72,7 +72,7 @@ function PDFViewerContent() {
         wordsToSearch = [normalizeChar(query).trim()];
       } else {
         const normQuery = normalizeChar(query).replace(/[.,!?;:]/g, ' ').trim();
-        const queryWords = normQuery.split(/\s+/).filter(w => w.length > 2);
+        const queryWords = normQuery.split(/\s+/).filter(w => w.length > 1);
 
         const TR_STOPWORDS_NORM = [
           'nedir', 'nasil', 'nerede', 'ne', 'zaman', 'neden', 'nicin',
@@ -99,9 +99,17 @@ function PDFViewerContent() {
         let snippet = '';
 
         for (const word of wordsToSearch) {
+          const isArabic = /[\u0600-\u06FF]/.test(word);
+          const reversedWord = isArabic ? word.split('').reverse().join('') : '';
+
           let idx = 0;
           while (true) {
-            const pos = normPageText.indexOf(word, idx);
+            const posNormal = normPageText.indexOf(word, idx);
+            const posReversed = reversedWord ? normPageText.indexOf(reversedWord, idx) : -1;
+            const pos = posNormal !== -1 && posReversed !== -1
+              ? Math.min(posNormal, posReversed)
+              : posNormal !== -1 ? posNormal : posReversed;
+
             if (pos === -1) break;
             count++;
             if (!snippet) {
@@ -351,7 +359,7 @@ function PDFViewerContent() {
         TR_STOPWORDS.forEach(sw => {
           cleanQueryStr = cleanQueryStr.replace(new RegExp(`\\b${sw}\\b`, 'g'), ' ');
         });
-        queryWords = cleanQueryStr.split(/\s+/).filter(w => w.length > 2).map(w => normalizeChar(w));
+        queryWords = cleanQueryStr.split(/\s+/).filter(w => w.length > 1).map(w => normalizeChar(w));
       }
 
       // Her Arapça kelime için ters halini (visual order) de vurgulama listesine ekle
