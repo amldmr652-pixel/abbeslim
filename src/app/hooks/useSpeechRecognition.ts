@@ -18,9 +18,10 @@ function createSpeechRecognition(): SpeechRecognition | null {
 interface UseSpeechRecognitionOptions {
   onTranscriptChange: (text: string) => void;
   onSearch: (text: string) => void;
+  speechLang?: string;
 }
 
-export function useSpeechRecognition({ onTranscriptChange, onSearch }: UseSpeechRecognitionOptions) {
+export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang }: UseSpeechRecognitionOptions) {
   const { language } = useI18nStore();
   const [listening, setListening] = useState(false);
   const [micSupported, setMicSupported] = useState(true);
@@ -75,12 +76,13 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch }: UseSpeech
     }
 
     // Dil seçimi eşleştirmesi
-    const langMap = {
+    const langMap: Record<string, string> = {
       'tr': 'tr-TR',
       'en': 'en-US',
       'ar': 'ar-SA'
     };
-    recognition.lang = langMap[language] || 'tr-TR';
+    const activeLang = speechLang || language;
+    recognition.lang = langMap[activeLang] || 'tr-TR';
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;

@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useSearch } from '@/app/hooks/useSearch';
 import { useSpeechRecognition } from '@/app/hooks/useSpeechRecognition';
 import { useFileUpload } from '@/app/hooks/useFileUpload';
+import { useI18nStore } from '@/stores/useI18nStore';
 import SearchHero from '@/app/components/search/SearchHero';
 import MicrophoneButton from '@/app/components/search/MicrophoneButton';
 import SearchBar from '@/app/components/search/SearchBar';
@@ -18,6 +19,13 @@ import UploadModal from '@/app/components/search/UploadModal';
 function SearchContent() {
   const search = useSearch();
   const upload = useFileUpload();
+  const { language } = useI18nStore();
+  const [speechLanguage, setSpeechLanguage] = useState<string>(language);
+
+  // Sync state if UI language changes
+  useEffect(() => {
+    setSpeechLanguage(language);
+  }, [language]);
 
   const onTranscriptChange = useCallback((text: string) => {
     search.setSearchQuery(text);
@@ -31,6 +39,7 @@ function SearchContent() {
   const speech = useSpeechRecognition({
     onTranscriptChange,
     onSearch,
+    speechLang: speechLanguage,
   });
 
   const handleSimulatedSearch = (query: string) => {
@@ -66,6 +75,8 @@ function SearchContent() {
           toggleListen={speech.toggleListen}
           searchQuery={search.searchQuery}
           isSearching={search.isSearching}
+          speechLanguage={speechLanguage}
+          setSpeechLanguage={setSpeechLanguage}
         />
 
         <SearchBar

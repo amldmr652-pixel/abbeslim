@@ -22,7 +22,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
 // -------------------------------------------------------
 function mapCorruptedArabic(text: string): string {
   if (!text) return '';
-  return text
+  let result = text
     .replace(/ĺ/g, 'ي')
     .replace(/ï/g, 'د')
     .replace(/Û/g, 'ت')
@@ -34,7 +34,24 @@ function mapCorruptedArabic(text: string): string {
     .replace(/Ĝ/g, 'ق')
     .replace(/א/g, 'ا')
     .replace(/ħ/g, 'م')
-    .replace(/Ĭ/g, 'ن');
+    .replace(/Ĭ/g, 'ن')
+    .replace(/ģ/g, 'ه')
+    .replace(/Ļ/g, 'ي')
+    .replace(/ė/g, 'ف')
+    .replace(/ĉ/g, 'ح')
+    .replace(/ĝ/g, 'ي')
+    .replace(/Ĥ/g, 'ل')
+    .replace(/Ý/g, 'ه')
+    .replace(/Ę/g, 'ف')
+    .replace(/ā/g, 'ا')
+    .replace(/đ/g, 'ر')
+    .replace(/כ/g, 'ك');
+
+  // Türkçe büyük İ harfini sadece Arapça/Bozuk font harf/hareke bağlamında Arapça Lam (ل) harfine dönüştür
+  result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])/g, 'ل');
+  result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
+
+  return result;
 }
 
 // -------------------------------------------------------

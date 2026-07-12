@@ -169,7 +169,7 @@ function PDFViewerContent() {
   // --- Bozuk Arapça font eşleşmelerini düzelt ---
   const mapCorruptedArabic = (text: string) => {
     if (!text) return '';
-    return text
+    let result = text
       .replace(/ĺ/g, 'ي')
       .replace(/ï/g, 'د')
       .replace(/Û/g, 'ت')
@@ -181,7 +181,24 @@ function PDFViewerContent() {
       .replace(/Ĝ/g, 'ق')
       .replace(/א/g, 'ا')
       .replace(/ħ/g, 'م')
-      .replace(/Ĭ/g, 'ن');
+      .replace(/Ĭ/g, 'ن')
+      .replace(/ģ/g, 'ه')
+      .replace(/Ļ/g, 'ي')
+      .replace(/ė/g, 'ف')
+      .replace(/ĉ/g, 'ح')
+      .replace(/ĝ/g, 'ي')
+      .replace(/Ĥ/g, 'ل')
+      .replace(/Ý/g, 'ه')
+      .replace(/Ę/g, 'ف')
+      .replace(/ā/g, 'ا')
+      .replace(/đ/g, 'ر')
+      .replace(/כ/g, 'ك');
+
+    // Türkçe büyük İ harfini sadece Arapça/Bozuk font harf/hareke bağlamında Arapça Lam (ل) harfine dönüştür
+    result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])/g, 'ل');
+    result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
+
+    return result;
   };
 
   // --- Türkçe ve Arapça normalize (client-side highlight için) ---
@@ -199,6 +216,85 @@ function PDFViewerContent() {
       .replace(/[أإآٱ]/g, 'ا') // Alifs
       .replace(/[ىی]/g, 'ي') // Ya / Alif Maksura
       .replace(/ة/g, 'ه'); // Ta Marbuta
+  };
+
+  // Metin normalleştirme + Orijinal metin indeks haritası çıkarma (Harekeler silindiğinde kaymayı önler)
+  const normalizeWithMap = (fullText: string) => {
+    let normalizedText = '';
+    const indexMap: number[] = [];
+
+    for (let i = 0; i < fullText.length; i++) {
+      const origChar = fullText[i];
+      if (/\s/.test(origChar)) continue;
+
+      let char = origChar;
+      // Map corrupted Arabic character
+      if (char === 'ĺ') char = 'ي';
+      else if (char === 'ï') char = 'د';
+      else if (char === 'Û') char = 'ت';
+      else if (char === 'Ą') char = 'ض';
+      else if (char === 'Ö') char = 'ب';
+      else if (char === 'ó') char = 'ر';
+      else if (char === 'ĩ') char = 'ع';
+      else if (char === 'Đ') char = 'م';
+      else if (char === 'Ĝ') char = 'ق';
+      else if (char === 'א') char = 'ا';
+      else if (char === 'ħ') char = 'م';
+      else if (char === 'Ĭ') char = 'ن';
+      else if (char === 'ģ') char = 'ه';
+      else if (char === 'Ļ') char = 'ي';
+      else if (char === 'ė') char = 'ف';
+      else if (char === 'ĉ') char = 'ح';
+      else if (char === 'ĝ') char = 'ي';
+      else if (char === 'Ĥ') char = 'ل';
+      else if (char === 'Ý') char = 'ه';
+      else if (char === 'Ę') char = 'ف';
+      else if (char === 'ā') char = 'ا';
+      else if (char === 'đ') char = 'ر';
+      else if (char === 'כ') char = 'ك';
+      else if (char === 'İ') {
+        const prev = i > 0 ? fullText[i - 1] : '';
+        const next = i < fullText.length - 1 ? fullText[i + 1] : '';
+        const isPrevArabic = /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(prev);
+        const isNextArabic = /[\u0600-\u06FF]/.test(next) || /[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģכĻėĉĝĤÝĘāđ]/.test(next);
+        if (isPrevArabic || isNextArabic) {
+          char = 'ل';
+        }
+      }
+
+      char = char.toLocaleLowerCase('tr-TR');
+
+      // Turkish normalization
+      if (char === 'ç') char = 'c';
+      else if (char === 'ğ') char = 'g';
+      else if (char === 'ı') char = 'i';
+      else if (char === 'i̇') char = 'i';
+      else if (char === 'ö') char = 'o';
+      else if (char === 'ş') char = 's';
+      else if (char === 'ü') char = 'u';
+      else if (char === 'â') char = 'a';
+      else if (char === 'î') char = 'i';
+      else if (char === 'û') char = 'u';
+
+      // Arabic diacritics and tatweel removal
+      const isDiacritic = /[\u064b-\u0652\u0670]/.test(char);
+      const isTatweel = char === '\u0640';
+      if (isDiacritic || isTatweel) {
+        continue;
+      }
+
+      // Unify Arabic chars
+      if (/[أإآٱ]/.test(char)) char = 'ا';
+      else if (/[ىی]/.test(char)) char = 'ي';
+      else if (char === 'ة') char = 'ه';
+
+      for (let j = 0; j < char.length; j++) {
+        normalizedText += char[j];
+        indexMap.push(i);
+      }
+    }
+
+    return { normalizedText, indexMap };
   };
 
   // Metin vurgulama (highlight) - Range API
@@ -226,16 +322,7 @@ function PDFViewerContent() {
         fullText += textContent;
       });
       
-      const cleanToFullMap: number[] = [];
-      let cleanText = '';
-      for (let i = 0; i < fullText.length; i++) {
-        if (!/\s/.test(fullText[i])) {
-          cleanToFullMap.push(i);
-          cleanText += fullText[i];
-        }
-      }
-      
-      const cleanTextNorm = normalizeChar(cleanText);
+      const { normalizedText: cleanTextNorm, indexMap: cleanToFullMap } = normalizeWithMap(fullText);
 
       const TR_STOPWORDS = [
         'nedir', 'nasıl', 'nerede', 'ne zaman', 'neden', 'niçin', 'kaç',
