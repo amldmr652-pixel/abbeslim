@@ -185,31 +185,34 @@ interface PageMatchInfo {
 function findAllPageMatches(cleanText: string, queryWords: string[], normQuery: string, mode: string): PageMatchInfo[] {
   if (!cleanText || queryWords.length === 0) return [];
 
-  // PAGE marker'larına göre metni parçalara ayır
   const pageSegments: { page: string; text: string; normText: string }[] = [];
   const pageRegex = /\[PAGE: (\d+)\]/g;
-  let lastIdx = 0;
-  let lastPage = '1';
   let match;
 
-  // İlk PAGE marker'ından önce gelen metni de dahil et
-  const firstMarker = cleanText.indexOf('[PAGE: ');
-  if (firstMarker > 0) {
-    const preText = cleanText.substring(0, firstMarker);
-    if (preText.trim()) {
-      pageSegments.push({ page: '1', text: preText, normText: normalizeLight(preText) });
-    }
+  const matches: { page: string; index: number; length: number }[] = [];
+  while ((match = pageRegex.exec(cleanText)) !== null) {
+    matches.push({
+      page: match[1],
+      index: match.index,
+      length: match[0].length
+    });
   }
 
-  while ((match = pageRegex.exec(cleanText)) !== null) {
-    lastPage = match[1];
-    const nextMarker = cleanText.indexOf('[PAGE: ', match.index + match[0].length);
-    const segEnd = nextMarker !== -1 ? nextMarker : cleanText.length;
-    const segText = cleanText.substring(match.index + match[0].length, segEnd).trim();
-    if (segText) {
-      pageSegments.push({ page: lastPage, text: segText, normText: normalizeLight(segText) });
+  if (matches.length > 0) {
+    // İlk marker öncesi metin
+    if (matches[0].index > 0) {
+      const preText = cleanText.substring(0, matches[0].index);
+      if (preText.trim()) {
+        pageSegments.push({ page: '1', text: preText, normText: normalizeLight(preText) });
+      }
     }
-    lastIdx = segEnd;
+    // Marker'lar arası metin segmentleri
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i].index + matches[i].length;
+      const end = (i + 1 < matches.length) ? matches[i + 1].index : cleanText.length;
+      const segText = cleanText.substring(start, end).trim();
+      pageSegments.push({ page: matches[i].page, text: segText, normText: normalizeLight(segText) });
+    }
   }
 
   // PAGE marker yoksa (belge tüm metin olarak işlendi)
@@ -498,8 +501,8 @@ export async function GET(request: Request) {
       // PDF binary/operatör çöplerini kes
       const garbageIdx = cleanText.indexOf('Artifact    Attached');
       if (garbageIdx !== -1) cleanText = cleanText.substring(0, garbageIdx);
-      // Çok uzun metni kırp (50k karakter yeterli)
-      if (cleanText.length > 50000) cleanText = cleanText.substring(0, 50000);
+      // Çok uzun metinleri kırpma (Kitapların tamamı taranabilsin diye limiti 5 Milyon karaktere çıkardık)
+      if (cleanText.length > 5000000) cleanText = cleanText.substring(0, 5000000);
 
       const normFileName = normalize(file.name || '');
       const normCatId   = normalize(file.categoryId || '');

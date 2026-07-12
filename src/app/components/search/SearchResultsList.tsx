@@ -25,7 +25,7 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
     if (page) params.set('page', page);
     const hasPageMatches = file.type === 'application/pdf' && file.pageMatches && file.pageMatches.length > 0;
     if (hasPageMatches) {
-      const pmSlice = file.pageMatches.slice(0, 20);
+      const pmSlice = file.pageMatches.slice(0, 100);
       params.set('pm', encodeURIComponent(JSON.stringify(pmSlice)));
       params.set('mc', String(file.matchCount || 0));
     }
