@@ -547,3 +547,13 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - **Orijinal Metni Koruma (`data-original-text`):** Span'ler modifiye edilmeden önce orijinal halleri `data-original-text` attribute'u altında yedekleniyor. Arama sorgusu temizlendiğinde veya değiştiğinde, tüm metinler hiçbir bozulma olmadan orijinal haline geri döndürülüyor.
   - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T01:52] V2.17 — Yanlış Arapça Font Eşleşmesinin Çözümü (route.ts & PDFViewerClient.tsx)
+
+### 1. Ý Harfi Arapça Te (ت) Olarak Düzeltildi
+- **Sorun:** Kullanıcı `هل` (He-Lam) kelimesini arattığında, `الَّتِي` (El-Tî) ve `الَّتِيَا` (El-Tîyâ) kelimelerinin içindeki `الَّتـ` kısımları sarıya boyanıyordu.
+- **Sebep Analizi:** `الَّتِي` kelimesinin PDF'teki bozuk kod karşılığı `ĹِÝَّĤَا` idi. `mapCorruptedArabic` fonksiyonumuzda `Ý` harfi `ه` (He) olarak eşlenmişti. `Ĥ` ise `ل` (Lam) idi. Dolayısıyla `ÝĤ` yan yana geldiğinde `هل` kelimesi oluşuyor ve sistem bunu `هل` olarak algılayıp sarıya boyuyordu. Oysaki dizindeki `حَتَّى` (`ĵَّÝَè`), `مَتَى` (`ĵَÝَĨ`) ve `الَّتِي` kelimelerindeki `Ý` harfi Arapça `ت` (Te) sesine karşılık gelmektedir.
+- **Çözüm:** Hem `route.ts` hem de `PDFViewerClient.tsx` içindeki `mapCorruptedArabic` ve `normalizeWithMap` fonksiyonlarında `Ý` harfinin eşleşmesi `ه` (He) yerine `ت` (Te) olarak düzeltildi. Ayrıca eksik olan `Ĺ` (büyük L-acute) karakteri de `ي` (Ya) harfine yönlendirildi.
+- **Sonuç:** `Ý` harfi `ت` (Te) olarak eşlendiğinden, `الَّتِي` kelimesi artık `التي` şeklinde doğru transkribe ediliyor ve `هل` kelimesiyle benzerliği/yanlış eşleşmesi tamamen ortadan kaldırıldı.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
