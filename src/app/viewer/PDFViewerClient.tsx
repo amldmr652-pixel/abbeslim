@@ -179,6 +179,7 @@ function PDFViewerContent() {
     if (!text) return '';
     let result = text
       .replace(/ĺ/g, 'ي')
+      .replace(/Ĺ/g, 'ي')
       .replace(/ï/g, 'د')
       .replace(/Û/g, 'ت')
       .replace(/Ą/g, 'ض')
@@ -196,7 +197,7 @@ function PDFViewerContent() {
       .replace(/ĉ/g, 'ح')
       .replace(/ĝ/g, 'ي')
       .replace(/Ĥ/g, 'ل')
-      .replace(/Ý/g, 'ه')
+      .replace(/Ý/g, 'ت')
       .replace(/Ę/g, 'ف')
       .replace(/ā/g, 'ا')
       .replace(/đ/g, 'ر')
@@ -237,7 +238,7 @@ function PDFViewerContent() {
 
       let char = origChar;
       // Map corrupted Arabic character
-      if (char === 'ĺ') char = 'ي';
+      if (char === 'ĺ' || char === 'Ĺ') char = 'ي';
       else if (char === 'ï') char = 'د';
       else if (char === 'Û') char = 'ت';
       else if (char === 'Ą') char = 'ض';
@@ -255,7 +256,7 @@ function PDFViewerContent() {
       else if (char === 'ĉ') char = 'ح';
       else if (char === 'ĝ') char = 'ي';
       else if (char === 'Ĥ') char = 'ل';
-      else if (char === 'Ý') char = 'ه';
+      else if (char === 'Ý') char = 'ت';
       else if (char === 'Ę') char = 'ف';
       else if (char === 'ā') char = 'ا';
       else if (char === 'đ') char = 'ر';

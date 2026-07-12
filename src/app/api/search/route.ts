@@ -24,6 +24,7 @@ function mapCorruptedArabic(text: string): string {
   if (!text) return '';
   let result = text
     .replace(/ĺ/g, 'ي')
+    .replace(/Ĺ/g, 'ي')
     .replace(/ï/g, 'د')
     .replace(/Û/g, 'ت')
     .replace(/Ą/g, 'ض')
@@ -41,7 +42,7 @@ function mapCorruptedArabic(text: string): string {
     .replace(/ĉ/g, 'ح')
     .replace(/ĝ/g, 'ي')
     .replace(/Ĥ/g, 'ل')
-    .replace(/Ý/g, 'ه')
+    .replace(/Ý/g, 'ت')
     .replace(/Ę/g, 'ف')
     .replace(/ā/g, 'ا')
     .replace(/đ/g, 'ر')
