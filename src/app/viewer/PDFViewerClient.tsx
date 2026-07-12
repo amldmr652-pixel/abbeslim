@@ -305,20 +305,33 @@ function PDFViewerContent() {
     return { normalizedText, indexMap };
   };
 
-  // Metin vurgulama (highlight) - Range API
+  // Metin vurgulama (highlight) - DOM-based mark wrapper
   const doHighlight = useCallback(() => {
     if (!query || !containerRef.current) return;
     
-    // Eski highlight div'lerini temizle
-    containerRef.current.querySelectorAll('.custom-word-highlight').forEach(el => el.remove());
-    
+    // Yardımcı HTML kaçış fonksiyonu
+    const escapeHtml = (text: string) => {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    };
+
+    // Önceki sayfaların modifiye edilmiş span içeriklerini temizle/geri yükle
+    containerRef.current.querySelectorAll('.react-pdf__Page__textContent span').forEach(el => {
+      const orig = el.getAttribute('data-original-text');
+      if (orig !== null) {
+        el.textContent = orig;
+        el.removeAttribute('data-original-text');
+      }
+    });
+
     const pages = containerRef.current.querySelectorAll('.react-pdf__Page');
     pages.forEach(page => {
       const textLayer = page.querySelector('.react-pdf__Page__textContent');
       if (!textLayer) return;
-      
-      const layerRect = textLayer.getBoundingClientRect();
-      if (layerRect.width === 0 || layerRect.height === 0) return;
 
       const spans = textLayer.querySelectorAll('span');
       let fullText = '';
@@ -342,11 +355,9 @@ function PDFViewerContent() {
       
       let queryWords: string[] = [];
       if (mode === 'phrase') {
-        // Cümle modunda tüm boşlukları kaldırıp arıyoruz çünkü cleanTextNorm da boşluksuz.
         const normQ = normalizeChar(query);
         queryWords = [normQ.replace(/\s+/g, '')];
         
-        // Arapça cümle ise kelimeleri ters sırayla birleştirip ekle
         const isArabicPhrase = /[\u0600-\u06FF]/.test(normQ);
         if (isArabicPhrase) {
           const revQ = normQ.split(/\s+/).reverse().join('').replace(/\s+/g, '');
@@ -362,7 +373,6 @@ function PDFViewerContent() {
         queryWords = cleanQueryStr.split(/\s+/).filter(w => w.length > 1).map(w => normalizeChar(w));
       }
 
-      // Her Arapça kelime için ters halini (visual order) de vurgulama listesine ekle
       const expandedQueryWords: string[] = [];
       queryWords.forEach(qw => {
         expandedQueryWords.push(qw);
@@ -378,6 +388,8 @@ function PDFViewerContent() {
       
       if (queryWords.length === 0 || !queryWords[0]) return;
 
+      const spanMatches = new Map<HTMLElement, { start: number; end: number }[]>();
+
       queryWords.forEach(qw => {
         let idx = 0;
         while (true) {
@@ -392,41 +404,53 @@ function PDFViewerContent() {
               const localStart = Math.max(0, foundFull - sd.startIdx);
               const localEnd = Math.min(sd.text.length, matchEndFull - sd.startIdx);
               
-              const textNode = sd.el.nodeType === Node.TEXT_NODE ? sd.el : sd.el.firstChild;
-              if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-                try {
-                  const range = document.createRange();
-                  range.setStart(textNode, localStart);
-                  range.setEnd(textNode, localEnd);
-                  
-                  let rects = range.getClientRects();
-                  if (!rects || rects.length === 0) {
-                    rects = [sd.el.getBoundingClientRect()] as any;
-                  }
-
-                  for (let i = 0; i < rects.length; i++) {
-                    const rect = rects[i];
-                    const div = document.createElement('div');
-                    div.className = 'custom-word-highlight';
-                    div.style.position = 'absolute';
-                    div.style.left = `${rect.left - layerRect.left}px`;
-                    div.style.top = `${rect.top - layerRect.top}px`;
-                    div.style.width = `${rect.width}px`;
-                    div.style.height = `${rect.height}px`;
-                    div.style.backgroundColor = 'rgba(234, 179, 8, 0.4)';
-                    div.style.borderRadius = '4px';
-                    div.style.pointerEvents = 'none';
-                    div.style.zIndex = '10';
-                    textLayer.appendChild(div);
-                  }
-                } catch (e) {
-                  console.error('Range hesaplama hatası:', e);
+              if (localStart < localEnd) {
+                if (!spanMatches.has(sd.el)) {
+                  spanMatches.set(sd.el, []);
                 }
+                spanMatches.get(sd.el)!.push({ start: localStart, end: localEnd });
               }
             }
           });
           idx = foundClean + 1;
         }
+      });
+
+      // Her span için eşleşen yerleri `<mark>` tagı ile sar
+      spanMatches.forEach((intervals, el) => {
+        // Aralıkları başlangıç indeksine göre sırala ve birleştir
+        intervals.sort((a, b) => a.start - b.start);
+        const merged: { start: number; end: number }[] = [];
+        intervals.forEach(interval => {
+          if (merged.length === 0) {
+            merged.push(interval);
+          } else {
+            const last = merged[merged.length - 1];
+            if (interval.start <= last.end) {
+              last.end = Math.max(last.end, interval.end);
+            } else {
+              merged.push(interval);
+            }
+          }
+        });
+
+        // Orijinal metni sakla ve HTML yapısını kur
+        const origText = el.getAttribute('data-original-text') || el.textContent || '';
+        if (!el.hasAttribute('data-original-text')) {
+          el.setAttribute('data-original-text', origText);
+        }
+
+        let html = '';
+        let lastIdx = 0;
+        merged.forEach(interval => {
+          html += escapeHtml(origText.substring(lastIdx, interval.start));
+          html += '<mark class="custom-word-highlight">';
+          html += escapeHtml(origText.substring(interval.start, interval.end));
+          html += '</mark>';
+          lastIdx = interval.end;
+        });
+        html += escapeHtml(origText.substring(lastIdx));
+        el.innerHTML = html;
       });
     });
   }, [query, mode]);
