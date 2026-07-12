@@ -645,3 +645,22 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Sonuç:** Kullanıcı düz kitaplarda `هل` aradığında sadece `هل` kelimeleri anında sarıya boyanır, visual order çakışmasından kaynaklanan yanlış boyamalar tamamen giderilmiştir.
 - **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
 
+
+## [2026-07-13T02:33] V2.24 — Eksik Bozuk Harf Eşleşmeleri ve RTL Kararlılık Güncellemesi (route.ts & PDFViewerClient.tsx)
+
+### 1. Yeni Bozuk Karakterlerin Haritaya Eklenmesi (`ġ`, `Ġ`, `ĵ`, `Ĵ`, `Ĩ`)
+- **Sorun:** Sayfa 10'da `هل` kelimesi bulunurken, kitabın asıl gövdesinde (sayfa 220 ve 221 gibi) geçen gerçek `هل` kelimeleri aramada listelenmiyordu.
+- **Sebep Analizi:** Bozuk PDF metin katmanı incelendiğinde, bu kelimelerin `ġĤ` şeklinde kodlandığı görüldü. `Ĥ` = `ل` (Lam) olarak tanımlı olmasına rağmen, küçük g-dot (`ġ`) harfi eşleme listemizde yoktu. Bu yüzden normalize edilerek `g` olarak kalıyor ve `هل` aramasıyla eşleşmiyordu. Aynı şekilde script çıktılarındaki `ĵَÝَĨ` (`مَتَى`) gibi kritik kelimelerde de `ĵ` (j-circumflex) ve `Ĩ` (I-tilde) harfleri eksikti.
+- **Çözüm:**
+  - Hem `search/route.ts` hem de `PDFViewerClient.tsx` içindeki `mapCorruptedArabic` ve `normalizeWithMap` fonksiyonlarına:
+    - `ġ` / `Ġ` -> `ه` (He)
+    - `ĵ` / `Ĵ` -> `م` (Mim)
+    - `Ĩ` -> `ي` (Ya)
+    eşlemeleri eklendi.
+
+### 2. RTL Yön Algılamanın Kararlı Hale Getirilmesi
+- **Sorun:** Yön tespiti ham `cleanText` üzerinde yapıldığından, Arapça harekeler/diacritics regex eşleşmelerini bozuyor ve edat aramalarında sıfır eşleşme bularak yanlışlıkla `RTL_NORMAL` kararı verilmesine yol açabiliyordu.
+- **Çözüm:** `detectRtlDirection` fonksiyonu, yön kontrolü yapmadan önce metni `normalizeLight` ile harekelerinden temizleyecek şekilde güncellendi.
+- **Sonuç:** Bozuk karakterler (`ġ`, `ĵ`, `Ĩ`) ve yön kontrolü kararlı çalıştığı için, kitaplardaki gerçek `هل` kelimelerinin tamamı hem arama motorunda listelenmekte hem de sayfa içinde sarı renkle doğru biçimde vurgulanmaktadır.
+- **Doğrulama:** `npm run build` başarıyla tamamlandı. Değişiklikler canlıya deploy edildi.
+
