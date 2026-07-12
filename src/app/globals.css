@@ -17,19 +17,65 @@ body.theme-amoled {
 
 /* Açık (Light) Tema */
 body.theme-light {
-  background: radial-gradient(ellipse at top, #e6f7ed 0%, #ffffff 60%);
-  color: #0a0a0a;
-}
-body.theme-light .glass {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #ecfdf5 100%);
   color: #1a1a1a;
 }
+body.theme-light .glass {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
 body.theme-light .text-white {
-  color: #0a0a0a;
+  color: #111827;
 }
 body.theme-light .text-gray-400 {
-  color: #4b5563;
+  color: #6b7280;
+}
+body.theme-light .text-gray-500 {
+  color: #9ca3af;
+}
+/* Sidebar light */
+body.theme-light .bg-black\/50,
+body.theme-light .bg-black\/30,
+body.theme-light .bg-black\/40 {
+  background: rgba(255, 255, 255, 0.6);
+}
+/* Inputs */
+body.theme-light input,
+body.theme-light textarea,
+body.theme-light select {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #111827 !important;
+}
+body.theme-light input::placeholder,
+body.theme-light textarea::placeholder {
+  color: #9ca3af !important;
+}
+/* Borders */
+body.theme-light .border-green-900\/20,
+body.theme-light .border-green-900\/30,
+body.theme-light .border-green-900\/50,
+body.theme-light .border-white\/10,
+body.theme-light .border-white\/7 {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+/* Cards with green bg */
+body.theme-light .bg-green-900\/20,
+body.theme-light .bg-green-900\/30 {
+  background: rgba(34, 197, 94, 0.08);
+}
+/* Hover states */
+body.theme-light .hover\:bg-white\/5:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+/* Scrollbar */
+body.theme-light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+body.theme-light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.4);
 }
 
 /* Glass efekt - daha ovalimsi ve pürüzsüz */
