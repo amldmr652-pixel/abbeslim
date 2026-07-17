@@ -2,6 +2,7 @@
 
 import { FileText, PlaySquare, Image as ImageIcon } from 'lucide-react';
 import type { SearchMode } from '@/app/hooks/useSearch';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 const getFileIcon = (type: string) => {
   if (type.includes('video')) return <PlaySquare className="text-blue-400" size={24} />;
@@ -17,6 +18,8 @@ interface SearchResultsListProps {
 }
 
 export default function SearchResultsList({ searchResults, searchQuery, searchMode, isSearching }: SearchResultsListProps) {
+  const { t } = useTranslation();
+
   const buildViewerUrl = (file: any, page?: string) => {
     const params = new URLSearchParams();
     params.set('url', file.url);
@@ -47,7 +50,9 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
   if (searchResults.length > 0) {
     return (
       <div className="w-full flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-white mb-2">Bulunan Sonuçlar ({searchResults.length})</h2>
+        <h2 className="text-xl font-bold text-white mb-2">
+          {t('search.resultsFound').replace('{count}', String(searchResults.length))}
+        </h2>
         {searchResults.map((file) => {
           const isPdf = file.type === 'application/pdf';
           const hasPageMatches = isPdf && file.pageMatches && file.pageMatches.length > 0;
@@ -75,19 +80,19 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
                     {/* Eşleşme sayısı badge */}
                     {hasPageMatches && file.matchCount > 0 && (
                       <span className="flex-shrink-0 flex items-center gap-1.5 bg-green-900/50 text-green-300 text-xs px-3 py-1 rounded-full border border-green-500/30 whitespace-nowrap font-semibold">
-                        📍 {file.matchCount} eşleşme
+                        {t('search.matchesCount').replace('{count}', String(file.matchCount))}
                       </span>
                     )}
                     {!hasPageMatches && file.pageMatch && (
                       <span className="flex-shrink-0 flex items-center gap-1 bg-yellow-900/40 text-yellow-300 text-xs px-3 py-1 rounded-full border border-yellow-500/30 whitespace-nowrap">
-                        📄 Sayfa {file.pageMatch}
+                        {t('search.pageNumber').replace('{page}', String(file.pageMatch))}
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-gray-400">
                     📁 {file.categoryName} • 🗓️ {file.date}
                     {isPdf && (
-                      <span className="ml-2 text-green-600 text-xs font-semibold">PDF&apos;de aç →</span>
+                      <span className="ml-2 text-green-600 text-xs font-semibold">{t('search.openInPdf')}</span>
                     )}
                   </p>
                 </div>
@@ -106,7 +111,7 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
                 <div className="flex flex-col gap-1.5">
                   <div className="text-xs text-gray-500 font-semibold px-1 flex items-center gap-1.5">
                     <span className="text-green-600">📑</span>
-                    Konunun geçtiği sayfalar ({file.pageMatches.length} sayfa):
+                    {t('search.pagesWhereMentioned').replace('{count}', String(file.pageMatches.length))}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {file.pageMatches.slice(0, 12).map((pm: { page: string; count: number; snippet?: string }) => (
@@ -115,11 +120,11 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
                         href={buildViewerUrl(file, pm.page)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title={pm.snippet || `Sayfa ${pm.page}`}
+                        title={pm.snippet || t('search.pageNumber').replace('{page}', String(pm.page))}
                         className="flex items-center gap-1.5 bg-black/50 hover:bg-green-900/40 border border-green-900/30 hover:border-green-500/50 text-green-400 hover:text-green-300 text-xs px-3 py-1.5 rounded-xl transition-all group"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="font-semibold">Sayfa {pm.page}</span>
+                        <span className="font-semibold">{t('search.pageNumber').replace('{page}', String(pm.page))}</span>
                         <span className="text-gray-600 group-hover:text-gray-400 font-mono">{pm.count}×</span>
                       </a>
                     ))}
@@ -130,7 +135,7 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 bg-black/30 border border-gray-700/40 text-gray-500 hover:text-gray-300 text-xs px-3 py-1.5 rounded-xl transition-all"
                       >
-                        +{file.pageMatches.length - 12} daha…
+                        {t('search.moreCount').replace('{count}', String(file.pageMatches.length - 12))}
                       </a>
                     )}
                   </div>
@@ -146,7 +151,7 @@ export default function SearchResultsList({ searchResults, searchQuery, searchMo
   if (searchQuery && searchResults.length === 0 && !isSearching) {
     return (
       <div className="w-full glass p-6 rounded-3xl text-center text-gray-400">
-        Aramanızla eşleşen bir sonuç bulunamadı.
+        {t('search.noResults')}
       </div>
     );
   }

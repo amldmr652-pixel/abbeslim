@@ -1,6 +1,7 @@
 'use client';
 
 import { Upload, Loader2, X } from 'lucide-react';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export default function UploadModal({
   isUploading, uploadProgress, uploadStatus,
   onSubmit, categories,
 }: UploadModalProps) {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   return (
@@ -41,28 +44,28 @@ export default function UploadModal({
           <X size={24} />
         </button>
         <h2 className="text-2xl font-bold mb-6 text-green-500 flex items-center gap-2">
-          <Upload size={24} /> Yeni Dosya Yükle
+          <Upload size={24} /> {t('search.upload.title')}
         </h2>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">Dosya İsmi / Başlık *</label>
-            <input type="text" required className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:outline-none focus:border-green-500 transition-colors" placeholder="Örn: Hücre Bölünmesi PDF" value={uploadName} onChange={(e) => setUploadName(e.target.value)} />
+            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">{t('search.upload.fileName')} *</label>
+            <input type="text" required className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:outline-none focus:border-green-500 transition-colors" placeholder={t('search.upload.namePlaceholder')} value={uploadName} onChange={(e) => setUploadName(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">Kategori (Ders) *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">{t('search.upload.category')} *</label>
             <select required className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:outline-none focus:border-green-500 transition-colors" value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)}>
-              <option value="">Kategori Seçin</option>
+              <option value="">{t('search.upload.selectCategory')}</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">Tarih *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">{t('search.upload.date')} *</label>
             <input type="date" required className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:outline-none focus:border-green-500 transition-colors" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">Dosya (Video, Ses, PDF vb.) *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1 px-1">{t('search.upload.fileSelect')} *</label>
             <input type="file" required onChange={(e) => setUploadFile(e.target.files?.[0] || null)} className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-2 text-white file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-900/30 file:text-green-500 hover:file:bg-green-900/50 transition-colors cursor-pointer" />
           </div>
           {/* Progress Bar */}
@@ -82,7 +85,7 @@ export default function UploadModal({
           )}
           <button type="submit" disabled={isUploading} className="mt-6 bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-full transition-colors flex items-center justify-center gap-2 shadow-lg">
             {isUploading ? <Loader2 className="animate-spin" size={20} /> : null}
-            {isUploading ? uploadStatus || 'Yükleniyor...' : 'Dosyayı Yükle'}
+            {isUploading ? uploadStatus || t('common.loading') : t('search.upload.title')}
           </button>
         </form>
       </div>

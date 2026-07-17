@@ -102,11 +102,48 @@
     "recentFiles": "الملفات الأخيرة",
     "allGoals": "عرض كل الأهداف",
     "noFiles": "لا توجد ملفات في مكتبتك بعد.",
-    "focusMusic": "موسيقى التركيز"
+    "focusMusic": "موسيقى التركيز",
+    "weatherDetails": "تفاصيل الطقس",
+    "weather": {
+      "clear": "صافي",
+      "cloudy": "غائم جزئياً",
+      "foggy": "ضبابي",
+      "rainy": "ممطر",
+      "snowy": "ثلجي",
+      "shower": "زخات مطر",
+      "storm": "عاصفة",
+      "error": "خطأ",
+      "unknown": "غير معروف",
+      "yourLocation": "موقعك",
+      "city": "المدينة",
+      "humidity": "الرطوبة",
+      "wind": "الرياح"
+    }
   },
   "search": {
     "title": "قل الملاحظة التي تبحث عنها",
-    "micError": "متصفحك لا يدعم التعرف على الصوت. يرجى استخدام Chrome أو Edge."
+    "micError": "متصفحك لا يدعم التعرف على الصوت. يرجى استخدام Chrome أو Edge.",
+    "clearSearch": "مسح البحث",
+    "searchPlaceholder": "البحث في عنوان الموضوع أو المحتوى...",
+    "voiceSearch": "البحث الصوتي",
+    "semanticSearch": "البحث بالذكاء الاصطناعي",
+    "phraseSearch": "جملة كاملة (Ctrl+F)",
+    "wordSearch": "كلمة كلمة",
+    "upload": "تحميل ملف",
+    "simulations": "المحاكاة",
+    "resultsFound": "النتائج التي تم العثور عليها",
+    "matchesCount": "{count} مطابقة",
+    "pagesWhereMentioned": "الصفحات التي ذكر فيها الموضوع",
+    "moreCount": "و {count} صفحات أخرى",
+    "page": "صفحة",
+    "prevMatch": "المطابقة السابقة",
+    "nextMatch": "المطابقة التالية",
+    "analyzing": "جاري التحليل...",
+    "pageNumber": "صفحة {page}",
+    "errors": {
+      "networkError": "حدث خطأ في الشبكة. يرجى التحقق من اتصالك.",
+      "micDenied": "تم رفض إذن الميكروفون. يرجى السماح به في الإعدادات."
+    }
   },
   "language": {
     "tr": "Türkçe",
@@ -190,7 +227,7 @@
   },
   "settings": {
     "title": "الإعدادات",
-    "subtitle": "إدارة ملفك الشخصي والمظهر وإعدادات الأصوات.",
+    "subtitle": "الإعدادات العامة وتفضيلات الصوت.",
     "personalInfo": "المعلومات الشخصية",
     "email": "البريد الإلكتروني",
     "emailNote": "لا يمكن تغيير البريد الإلكتروني حاليًا.",
@@ -257,5 +294,20 @@
     "nature": "طبيعة",
     "history": "تاريخ",
     "food": "مطاعم"
+  },
+  "viewer": {
+    "back": "عد للخلف",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير",
+    "matchesFound": "{count} مطابقة · {pages} صفحات",
+    "locationsTitle": "مواقع الموضوع",
+    "totalMatches": "إجمالي المطابقات",
+    "differentPages": "صفحات مختلفة",
+    "analyzingPdf": "جاري تحليل ملف PDF...",
+    "scanningAllPages": "جاري مسح جميع الصفحات",
+    "noMatchesFound": "لم يتم العثور على مطابقات في ملف PDF هذا.",
+    "queryNotPresent": "الموضوع \"{query}\" لا يظهر في هذا المستند",
+    "noUrl": "لم يتم تحديد عنوان URL صالح لملف PDF.",
+    "loadError": "حدث خطأ أثناء تحميل ملف PDF. قد يكون الملف مفقودًا أو تالفًا."
   }
 }

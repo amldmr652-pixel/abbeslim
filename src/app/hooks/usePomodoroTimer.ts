@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useMusicContext } from '../context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { usePomodoroStore, Mode as PomodoroMode } from '@/stores/usePomodoroStore';
 
-export type Mode = 'pomodoro' | 'shortBreak' | 'longBreak';
+export type Mode = PomodoroMode;
 
 export const defaultSettings = {
   pomodoro: 25,
@@ -21,13 +22,13 @@ export const MODE_LABELS: Record<Mode, string> = {
 };
 
 export function usePomodoroTimer() {
-  const [settings, setSettings] = useState(defaultSettings);
-  const [currentMode, setCurrentMode] = useState<Mode>('pomodoro');
-  const [timeLeft, setTimeLeft] = useState(defaultSettings.pomodoro * 60);
-  const [isRunning, setIsRunning] = useState(false);
-  const [pomodoroCount, setPomodoroCount] = useState(1);
-  const [isFinished, setIsFinished] = useState(false);
-  const [isShaking, setIsShaking] = useState(false);
+  const {
+    currentMode, timeLeft, isRunning, endTime, pomodoroCount, isFinished, isShaking,
+    start, pause, reset, tick, setMode, setFinished, setShaking, incrementPomodoroCount, setTimeLeft
+  } = usePomodoroStore();
+
+  const settings = useSettingsStore();
+  const { breakSounds, selectedBreakSoundId } = settings;
 
   // Music Context
   const {
@@ -36,155 +37,142 @@ export function usePomodoroTimer() {
     setIsMusicPlaying,
   } = useMusicContext();
 
-  const { breakSounds, selectedBreakSoundId } = useSettingsStore();
-
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const endTimeRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const handleFinishRef = useRef<(() => void) | null>(null);
-  const startTimerRef = useRef<((overrideTime?: number) => void) | null>(null);
+  // Sync settings back to timeLeft when timer is idle
+  const currentWorkTime = settings.pomodoroWork;
+  const currentShortTime = settings.pomodoroShortBreak;
+  const currentLongTime = settings.pomodoroLongBreak;
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('pomodoro-settings-v2');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setSettings(parsed);
-          setTimeLeft(parsed.pomodoro * 60);
-        } catch (e) {
-          console.warn("Ayarlar okunamadı:", e);
-        }
-      }
-    }
-  }, []);
-
-  const saveSettings = (newSettings: typeof defaultSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem('pomodoro-settings-v2', JSON.stringify(newSettings));
     if (!isRunning) {
-      setTimeLeft(newSettings[currentMode] * 60);
+      const duration = currentMode === 'pomodoro'
+        ? currentWorkTime * 60
+        : currentMode === 'shortBreak'
+          ? currentShortTime * 60
+          : currentLongTime * 60;
+      setTimeLeft(duration);
     }
-  };
+  }, [currentMode, currentWorkTime, currentShortTime, currentLongTime, isRunning, setTimeLeft]);
 
-  const stopInterval = useCallback(() => {
-    if (intervalRef.current) { 
-      clearInterval(intervalRef.current); 
-      intervalRef.current = null; 
-    }
-    endTimeRef.current = null;
-  }, []);
-
+  // Tick timer
   useEffect(() => {
-    handleFinishRef.current = () => {
-      stopInterval(); 
-      setIsRunning(false); 
-      setIsFinished(true); 
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 1000);
-      
-      if (typeof window !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('Süre Doldu! 🍅', {
-          body: currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!',
+    if (!isRunning) return;
+    const interval = setInterval(() => {
+      tick();
+    }, 500);
+    return () => clearInterval(interval);
+  }, [isRunning, tick]);
+
+  const handleFinish = useCallback(() => {
+    pause();
+    setFinished(true);
+    setShaking(true);
+    setTimeout(() => setShaking(false), 1000);
+
+    if (typeof window !== 'undefined' && Notification.permission === 'granted') {
+      new Notification('Süre Doldu! 🍅', {
+        body: currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!',
+      });
+    }
+
+    const isPomodoro = currentMode === 'pomodoro';
+    let nextMode: Mode;
+
+    if (isPomodoro) {
+      nextMode = pomodoroCount % (settings.pomodoroLongBreakInterval + 1) === 0 ? 'longBreak' : 'shortBreak';
+      incrementPomodoroCount();
+    } else {
+      nextMode = 'pomodoro';
+    }
+
+    // Get time for next mode
+    const nextTime = nextMode === 'pomodoro' 
+      ? settings.pomodoroWork * 60 
+      : nextMode === 'shortBreak' 
+        ? settings.pomodoroShortBreak * 60 
+        : settings.pomodoroLongBreak * 60;
+
+    const autoStart = isPomodoro ? settings.pomodoroAutoStartBreaks : settings.pomodoroAutoStartPomodoros;
+
+    setTimeout(() => {
+      setMode(nextMode, nextTime);
+      setFinished(false);
+      if (autoStart) {
+        start(nextTime);
+      }
+    }, 3000);
+
+    // Log seansı
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const duration = currentMode === 'pomodoro' 
+          ? settings.pomodoroWork 
+          : currentMode === 'shortBreak' 
+            ? settings.pomodoroShortBreak 
+            : settings.pomodoroLongBreak;
+
+        supabase.from('pomodoro_sessions').insert([{
+          user_id: user.id,
+          duration_minutes: duration,
+          mode: currentMode
+        }]).then(({ error }) => {
+          if (error) console.error("Pomodoro log error:", error);
         });
       }
-      
-      const isPomodoro = currentMode === 'pomodoro';
-      let nextMode: Mode;
-      let newCount = pomodoroCount;
+    });
+  }, [currentMode, pomodoroCount, settings, pause, setFinished, setShaking, incrementPomodoroCount, setMode, start]);
 
-      if (isPomodoro) {
-        nextMode = pomodoroCount % (settings.longBreakInterval + 1) === 0 ? 'longBreak' : 'shortBreak';
-        newCount = pomodoroCount + 1;
-        setPomodoroCount(newCount);
-      } else {
-        nextMode = 'pomodoro';
-      }
+  // Handle completion check
+  useEffect(() => {
+    if (timeLeft === 0 && isRunning) {
+      handleFinish();
+    }
+  }, [timeLeft, isRunning, handleFinish]);
 
-      const nextTime = settings[nextMode] * 60;
-      const autoStart = isPomodoro ? settings.autoStartBreaks : settings.autoStartPomodoros;
+  const startTimer = () => {
+    if (typeof window !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    start(timeLeft);
+  };
 
-      setTimeout(() => { 
-        setCurrentMode(nextMode); 
-        setIsFinished(false); 
-        setTimeLeft(nextTime); 
-        
-        if (autoStart) {
-          startTimerRef.current?.(nextTime);
-        }
-      }, 3000);
+  const pauseTimer = () => {
+    pause();
+  };
 
-      // Log session to Supabase in background
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          supabase.from('pomodoro_sessions').insert([{
-            user_id: user.id,
-            duration_minutes: settings[currentMode],
-            mode: currentMode
-          }]).then(({ error }) => {
-            if (error) console.error("Pomodoro log error:", error);
-          });
-        }
-      });
-    };
-
-    startTimerRef.current = (overrideTime?: number) => {
-      if (intervalRef.current) return; // Zaten çalışıyorsa engelle
-      if (typeof window !== 'undefined' && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-      
-      const timeToRun = overrideTime !== undefined ? overrideTime : timeLeft;
-      if (timeToRun <= 0) return;
-
-      setIsRunning(true);
-      
-      // Arka plan senkronizasyonu için hedef zamanı kaydet (Background Sync)
-      endTimeRef.current = Date.now() + timeToRun * 1000;
-
-      intervalRef.current = setInterval(() => {
-        if (!endTimeRef.current) return;
-        
-        const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
-        
-        if (remaining <= 0) {
-          setTimeLeft(0);
-          handleFinishRef.current?.();
-        } else {
-          setTimeLeft(remaining);
-        }
-      }, 500); // Daha hızlı tick, yüksek isabet oranı
-    };
-  }, [currentMode, pomodoroCount, settings, stopInterval, timeLeft]);
-
-  const startTimer  = () => startTimerRef.current?.();
-  const pauseTimer  = useCallback(() => { stopInterval(); setIsRunning(false); }, [stopInterval]);
-  const resetTimer  = useCallback((mode?: Mode) => { 
-    stopInterval(); 
-    setIsRunning(false); 
-    setIsFinished(false); 
+  const resetTimer = useCallback((mode?: Mode) => {
     const targetMode = mode ?? currentMode;
-    setTimeLeft(settings[targetMode] * 60); 
-  }, [stopInterval, currentMode, settings]);
-  
-  const switchMode  = useCallback((mode: Mode) => { 
-    setCurrentMode(mode); 
-    resetTimer(mode); 
-  }, [resetTimer]);
-  
+    const time = targetMode === 'pomodoro' 
+      ? settings.pomodoroWork * 60 
+      : targetMode === 'shortBreak' 
+        ? settings.pomodoroShortBreak * 60 
+        : settings.pomodoroLongBreak * 60;
+    reset(time);
+  }, [currentMode, settings, reset]);
+
+  const switchMode = useCallback((mode: Mode) => {
+    const time = mode === 'pomodoro' 
+      ? settings.pomodoroWork * 60 
+      : mode === 'shortBreak' 
+        ? settings.pomodoroShortBreak * 60 
+        : mode === 'longBreak' 
+          ? settings.pomodoroLongBreak * 60
+          : 25 * 60;
+    setMode(mode, time);
+  }, [settings, setMode]);
+
   const skipSession = useCallback(() => {
-    stopInterval(); setIsRunning(false);
+    pause();
     if (currentMode === 'pomodoro') {
-      switchMode(pomodoroCount % (settings.longBreakInterval + 1) === 0 ? 'longBreak' : 'shortBreak');
-      setPomodoroCount(prev => prev + 1);
+      const nextMode = pomodoroCount % (settings.pomodoroLongBreakInterval + 1) === 0 ? 'longBreak' : 'shortBreak';
+      incrementPomodoroCount();
+      switchMode(nextMode);
     } else {
       switchMode('pomodoro');
     }
-  }, [stopInterval, currentMode, pomodoroCount, settings.longBreakInterval, switchMode]);
-
-  useEffect(() => () => stopInterval(), [stopInterval]);
+  }, [currentMode, pomodoroCount, settings.pomodoroLongBreakInterval, incrementPomodoroCount, switchMode, pause]);
 
   // Pomodoro ile müzik senkronizasyonu
   useEffect(() => {
@@ -216,8 +204,33 @@ export function usePomodoroTimer() {
     }
   }, [isRunning, currentMode, breakSounds, selectedBreakSoundId]);
 
+  const saveSettings = (newSettings: {
+    pomodoro: number;
+    shortBreak: number;
+    longBreak: number;
+    longBreakInterval: number;
+    autoStartBreaks: boolean;
+    autoStartPomodoros: boolean;
+  }) => {
+    settings.updateSettings({
+      pomodoroWork: newSettings.pomodoro,
+      pomodoroShortBreak: newSettings.shortBreak,
+      pomodoroLongBreak: newSettings.longBreak,
+      pomodoroLongBreakInterval: newSettings.longBreakInterval,
+      pomodoroAutoStartBreaks: newSettings.autoStartBreaks,
+      pomodoroAutoStartPomodoros: newSettings.autoStartPomodoros
+    });
+  };
+
   return {
-    settings,
+    settings: {
+      pomodoro: settings.pomodoroWork,
+      shortBreak: settings.pomodoroShortBreak,
+      longBreak: settings.pomodoroLongBreak,
+      longBreakInterval: settings.pomodoroLongBreakInterval,
+      autoStartBreaks: settings.pomodoroAutoStartBreaks,
+      autoStartPomodoros: settings.pomodoroAutoStartPomodoros
+    },
     saveSettings,
     currentMode,
     timeLeft,

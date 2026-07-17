@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getEmbedding } from '@/lib/ml';
+import { mapCorruptedArabic, normalizeChar } from '@/app/viewer/utils/textNormalization';
 
 // -------------------------------------------------------
 // Vektör benzerliği
@@ -18,67 +19,11 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 // -------------------------------------------------------
-// Bozuk Arapça font eşleşmelerini düzelt
-// -------------------------------------------------------
-function mapCorruptedArabic(text: string): string {
-  if (!text) return '';
-  let result = text
-    .replace(/ĺ/g, 'ي')
-    .replace(/Ĺ/g, 'ي')
-    .replace(/ï/g, 'د')
-    .replace(/Û/g, 'ت')
-    .replace(/Ą/g, 'ض')
-    .replace(/Ö/g, 'ب')
-    .replace(/ó/g, 'ر')
-    .replace(/ĩ/g, 'ع')
-    .replace(/Đ/g, 'م')
-    .replace(/Ĝ/g, 'ق')
-    .replace(/א/g, 'ا')
-    .replace(/ħ/g, 'م')
-    .replace(/Ĭ/g, 'ن')
-    .replace(/ģ/g, 'ه')
-    .replace(/ġ/g, 'ه')
-    .replace(/Ġ/g, 'ه')
-    .replace(/ĵ/g, 'م')
-    .replace(/Ĵ/g, 'م')
-    .replace(/Ĩ/g, 'ي')
-    .replace(/Ļ/g, 'ي')
-    .replace(/ė/g, 'ف')
-    .replace(/ĉ/g, 'ح')
-    .replace(/ĝ/g, 'ي')
-    .replace(/Ĥ/g, 'ل')
-    .replace(/Ý/g, 'ت')
-    .replace(/Ę/g, 'ف')
-    .replace(/ā/g, 'ا')
-    .replace(/đ/g, 'ر')
-    .replace(/כ/g, 'ك');
-
-  // Türkçe büyük İ harfini sadece Arapça/Bozuk font harf/hareke bağlamında Arapça Lam (ل) harfine dönüştür
-  result = result.replace(/İ(?=[\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨכĻėĉĝĤÝĘāđ])/g, 'ل');
-  result = result.replace(/([\u0600-\u06FFĺïÛĄÖóĩĐĜאħĬģġĠĵĴĨģכĻėĉĝĤÝĘāđ])İ/g, '$1ل');
-
-  return result;
-}
-
-// -------------------------------------------------------
 // Türkçe ve Arapça karakter normalize (arama için)
 // -------------------------------------------------------
 function normalize(text: string): string {
   if (!text) return '';
-  let clean = mapCorruptedArabic(text);
-  return clean
-    .toLocaleLowerCase('tr-TR')
-    // Türkçe normalizasyonu
-    .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
-    .replace(/İ/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
-    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
-    // Arapça normalizasyonu
-    .replace(/[\u064b-\u0652\u0670]/g, '') // Diacritics (Tashkeel)
-    .replace(/\u0640/g, '') // Tatweel (Kashida)
-    .replace(/[أإآٱ]/g, 'ا') // Alifs
-    .replace(/[ىی]/g, 'ي') // Ya / Alif Maksura
-    .replace(/ة/g, 'ه') // Ta Marbuta
-    // Noktalama ve boşluklar
+  return normalizeChar(text)
     .replace(/[.,!?;:()\[\]{}\*_~="'\/\\]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -86,20 +31,7 @@ function normalize(text: string): string {
 
 // İndeks için (noktalama temizlemeden)
 function normalizeLight(text: string): string {
-  if (!text) return '';
-  let clean = mapCorruptedArabic(text);
-  return clean
-    .toLocaleLowerCase('tr-TR')
-    // Türkçe normalizasyonu
-    .replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i')
-    .replace(/İ/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u')
-    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u')
-    // Arapça normalizasyonu
-    .replace(/[\u064b-\u0652\u0670]/g, '') // Diacritics
-    .replace(/\u0640/g, '') // Tatweel
-    .replace(/[أإآٱ]/g, 'ا') // Alifs
-    .replace(/[ىی]/g, 'ي') // Ya / Alif Maksura
-    .replace(/ة/g, 'ه'); // Ta Marbuta
+  return normalizeChar(text);
 }
 
 // RTL yönünü otomatik algıla (RTL_NORMAL = düz Arapça karakter sırası, RTL_REVERSED = görsel ters karakter sırası)
@@ -466,6 +398,16 @@ function extractKeywords(rawQuery: string): string {
 }
 
 // -------------------------------------------------------
+// HTML Snippet XSS Temizleyici
+// -------------------------------------------------------
+function sanitizeSnippet(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<(?!\/?(mark|span)\b)[^>]*>/gi, '') // Sadece mark ve span taglarına izin ver
+    .replace(/&(?!amp;|lt;|gt;|quot;|#\d+;)/g, '&amp;');
+}
+
+// -------------------------------------------------------
 // Ana Arama Endpoint
 // -------------------------------------------------------
 export async function GET(request: Request) {
@@ -477,6 +419,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const rawQuery = searchParams.get('q')?.trim() || '';
     const mode = searchParams.get('mode') || 'word'; // 'phrase' | 'word' | 'semantic'
+    const lang = searchParams.get('lang') || 'tr';
 
     if (!rawQuery) return NextResponse.json({ results: [] });
 
@@ -568,18 +511,19 @@ export async function GET(request: Request) {
         const isArabicLight = /[\u0600-\u06FF]/.test(normQueryLight);
         const reversedQueryLight = isArabicLight ? normQueryLight.split(/\s+/).reverse().join(' ') : '';
         const matchNormal = normFull.includes(normQueryLight);
-        const matchReversed = reversedQueryLight && normFull.includes(reversedQueryLight);
+        const matchReversed = reversedQueryLight ? normFull.includes(reversedQueryLight) : false;
+        
         if (matchNormal || matchReversed) {
-          exactMatchScore = 0.85;
+          exactMatchScore = 0.80;
         }
       }
 
-      // --- 5. Kelime bazlı eşleşme skoru ---
+      // --- 5. Bireysel kelime eşleşme skoru (Lexical matching) ---
       let wordScore = 0;
       let matchedCount = 0;
       let contentMatchCount = 0;
+
       for (const word of queryWords) {
-        if (word.length < 2) continue;
         const isArabicWord = /[\u0600-\u06FF]/.test(word);
         const reversedWord = isArabicWord ? word.split('').reverse().join('') : '';
 
@@ -626,6 +570,15 @@ export async function GET(request: Request) {
           isAiMatch = false;
         }
       }
+
+      // Dil bazlı skor önceliği (Küçük bir boost)
+      let langBoost = 0;
+      if (lang === 'ar' && /[\u0600-\u06FF]/.test(cleanText)) {
+        langBoost = 0.05;
+      } else if (lang === 'tr' && /[çğışöüÇĞİŞÖÜ]/.test(cleanText)) {
+        langBoost = 0.05;
+      }
+      score += langBoost;
 
       return { file, score, matchedChunkText, isAiMatch, cleanText };
     });
@@ -729,14 +682,14 @@ export async function GET(request: Request) {
 
         return {
           ...file,
-          snippet,
+          snippet: sanitizeSnippet(snippet),
           pageMatch,
           direction: docDirection,
           // YENİ: Çoklu konum bilgisi
           pageMatches: pageMatches.slice(0, 100).map(pm => ({
             page: pm.page,
             count: pm.count,
-            snippet: pm.firstSnippet,
+            snippet: sanitizeSnippet(pm.firstSnippet),
           })),
           matchCount,
           // Hassas verileri client'a gönderme

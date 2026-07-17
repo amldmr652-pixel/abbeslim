@@ -1,101 +1,100 @@
 @import "tailwindcss";
 
-/* Arka plan: koyu siyah-yeşil gradient (Varsayılan Dark) */
+/* Theme Custom Properties */
+:root {
+  --bg-primary: radial-gradient(ellipse at top, #001a0d 0%, #000000 60%);
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+}
+
+body.theme-amoled {
+  --bg-primary: #000000;
+  --glass-bg: rgba(255, 255, 255, 0.01);
+  --glass-border: rgba(255, 255, 255, 0.04);
+}
+
+body.theme-light {
+  --bg-primary: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #ecfdf5 100%);
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+}
+
 body {
-  background: radial-gradient(ellipse at top, #001a0d 0%, #000000 60%);
-  color: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   margin: 0;
   transition: background 0.5s ease, color 0.5s ease;
 }
 
-/* AMOLED Siyah Tema */
-body.theme-amoled {
-  background: #000000;
-}
-
-/* Açık (Light) Tema */
-body.theme-light {
-  background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #ecfdf5 100%);
-  color: #1a1a1a;
-}
-body.theme-light .glass {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: #1a1a1a;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-body.theme-light .text-white {
-  color: #111827;
-}
-body.theme-light .text-gray-400 {
-  color: #6b7280;
-}
-body.theme-light .text-gray-500 {
-  color: #9ca3af;
-}
-/* Sidebar light */
-body.theme-light .bg-black\/50,
-body.theme-light .bg-black\/30,
-body.theme-light .bg-black\/40 {
-  background: rgba(255, 255, 255, 0.6);
-}
-/* Inputs */
-body.theme-light input,
-body.theme-light textarea,
-body.theme-light select {
-  background: rgba(0, 0, 0, 0.03) !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  color: #111827 !important;
-}
-body.theme-light input::placeholder,
-body.theme-light textarea::placeholder {
-  color: #9ca3af !important;
-}
-/* Borders */
-body.theme-light .border-green-900\/20,
-body.theme-light .border-green-900\/30,
-body.theme-light .border-green-900\/50,
-body.theme-light .border-white\/10,
-body.theme-light .border-white\/7 {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-/* Cards with green bg */
-body.theme-light .bg-green-900\/20,
-body.theme-light .bg-green-900\/30 {
-  background: rgba(34, 197, 94, 0.08);
-}
-/* Hover states */
-body.theme-light .hover\:bg-white\/5:hover {
-  background: rgba(0, 0, 0, 0.04);
-}
-/* Scrollbar - Light Theme */
-body.theme-light * {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-body.theme-light ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-}
-body.theme-light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(34, 197, 94, 0.45);
-}
-
-/* Glass efekt - daha ovalimsi ve pürüzsüz */
+/* Glass effect component */
 .glass {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--glass-border);
   border-radius: 24px;
 }
 
-/* Global Modern Scrollbar (Chrome, Safari, Edge, Firefox) */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+/* Light Theme Component Overrides */
+body.theme-light {
+  .text-white {
+    color: #111827;
+  }
+  .text-gray-400 {
+    color: #6b7280;
+  }
+  .text-gray-500 {
+    color: #9ca3af;
+  }
+  .bg-black\/50,
+  .bg-black\/30,
+  .bg-black\/40 {
+    background: rgba(255, 255, 255, 0.6);
+  }
+  
+  input,
+  textarea,
+  select {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+    color: #111827 !important;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af !important;
+  }
+
+  .border-green-900\/20,
+  .border-green-900\/30,
+  .border-green-900\/50,
+  .border-white\/10,
+  .border-white\/7 {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .bg-green-900\/20,
+  .bg-green-900\/30 {
+    background: rgba(34, 197, 94, 0.08);
+  }
+
+  .hover\:bg-white\/5:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
 }
 
-/* Chrome, Edge, Safari custom styling */
+/* Scrollbars styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -106,7 +105,7 @@ body.theme-light ::-webkit-scrollbar-thumb:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--scrollbar-thumb);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
@@ -118,7 +117,7 @@ body.theme-light ::-webkit-scrollbar-thumb:hover {
   background-clip: content-box;
 }
 
-/* Mikrofon aktif pulse animasyonu */
+/* Animations */
 @keyframes mic-pulse {
   0% { transform: scale(1); opacity: 0.6; }
   50% { transform: scale(1.3); opacity: 0.2; }
@@ -137,6 +136,7 @@ body.theme-light ::-webkit-scrollbar-thumb:hover {
 .music-cover-spin {
   animation: spin-slow 8s linear infinite;
 }
+
 @keyframes musicFadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -144,6 +144,3 @@ body.theme-light ::-webkit-scrollbar-thumb:hover {
 .music-fade-in {
   animation: musicFadeIn 0.2s ease-out;
 }
-
-
-

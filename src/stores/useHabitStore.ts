@@ -44,7 +44,62 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      set({ habits: data || [] });
+
+      const todayStr = new Date().toDateString();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toDateString();
+
+      // Check and reset expired streaks
+      const updatedHabits = await Promise.all((data || []).map(async (habit: Habit) => {
+        if (!habit.last_completed) return habit;
+
+        const lastCompletedDate = new Date(habit.last_completed);
+        const lastCompletedStr = lastCompletedDate.toDateString();
+
+        if (habit.frequency === 'daily') {
+          // If last completed is not today and not yesterday, reset streak to 0
+          if (lastCompletedStr !== todayStr && lastCompletedStr !== yesterdayStr) {
+            if (habit.streak > 0) {
+              try {
+                const { data: updated } = await getSupabase()
+                  .from('habits')
+                  .update({ streak: 0 })
+                  .eq('id', habit.id)
+                  .select()
+                  .single();
+                if (updated) return updated;
+              } catch (err) {
+                console.error('Failed to auto-reset streak for habit:', habit.id, err);
+              }
+              return { ...habit, streak: 0 };
+            }
+          }
+        } else if (habit.frequency === 'weekly') {
+          // If last completed was more than 14 days ago, reset streak
+          const diffTime = Date.now() - lastCompletedDate.getTime();
+          const diffDays = diffTime / (1000 * 60 * 60 * 24);
+          if (diffDays > 14) {
+            if (habit.streak > 0) {
+              try {
+                const { data: updated } = await getSupabase()
+                  .from('habits')
+                  .update({ streak: 0 })
+                  .eq('id', habit.id)
+                  .select()
+                  .single();
+                if (updated) return updated;
+              } catch (err) {
+                console.error('Failed to auto-reset weekly streak for habit:', habit.id, err);
+              }
+              return { ...habit, streak: 0 };
+            }
+          }
+        }
+        return habit;
+      }));
+
+      set({ habits: updatedHabits });
     } catch (error: any) {
       console.error('Error fetching habits:', error.message);
       set({ error: error.message });

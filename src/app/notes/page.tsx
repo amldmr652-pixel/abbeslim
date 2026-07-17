@@ -5,13 +5,15 @@ import type { User } from '@supabase/supabase-js';
 import { Card, Button, Input } from '@/app/components/ui';
 import { useNoteStore, Note } from '@/stores/useNoteStore';
 import { useTranslation } from '@/app/hooks/useTranslation';
-import { StickyNote, Plus, AlertCircle, Pin, Trash2, Mic, Square, Save, Loader2, BookOpen, Clock, X } from 'lucide-react';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { StickyNote, Plus, AlertCircle, Pin, Trash2, Mic, Square, Save, Loader2, BookOpen, Clock, X, Menu, ChevronLeft } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function NotesPage() {
   const { t, language } = useTranslation();
+  const settings = useSettingsStore();
   const { notes, isLoading, fetchNotes, addNote, updateNote, deleteNote, togglePin, uploadAudio } = useNoteStore();
   const [user, setUser] = useState<User | null>(null);
   const supabase = createClient();
@@ -21,6 +23,8 @@ export default function NotesPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -39,12 +43,34 @@ export default function NotesPage() {
     });
   }, [fetchNotes]);
 
+  // Debounced auto-save effect
+  useEffect(() => {
+    if (!isEditing || !activeNote) return;
+    if (!settings.notesAutoSave) return;
+
+    const intervalTime = (settings.notesAutoSaveInterval || 30) * 1000;
+
+    const timer = setTimeout(async () => {
+      try {
+        await updateNote(activeNote.id, {
+          title: title.trim() || 'İsimsiz Not',
+          content,
+        });
+      } catch (err) {
+        console.error("Auto save failed:", err);
+      }
+    }, intervalTime);
+
+    return () => clearTimeout(timer);
+  }, [content, title, isEditing, activeNote, settings.notesAutoSave, settings.notesAutoSaveInterval, updateNote]);
+
   const handleSelectNote = (note: Note) => {
     setActiveNote(note);
     setTitle(note.title);
     setContent(note.content);
     setIsEditing(false);
     setAudioBlob(null);
+    setShowMobileSidebar(false); // Hide list on mobile when note is selected
   };
 
   const handleNewNote = () => {
@@ -53,6 +79,7 @@ export default function NotesPage() {
     setContent('');
     setIsEditing(true);
     setAudioBlob(null);
+    setShowMobileSidebar(false); // Hide list on mobile
   };
 
   const startRecording = async () => {
@@ -172,11 +199,20 @@ export default function NotesPage() {
     }
   };
 
+  const filteredNotes = notes.filter(n =>
+    n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    n.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const charCount = content.length;
+  const fontSize = settings.notesFontSize === 'small' ? '13px' : settings.notesFontSize === 'large' ? '17px' : '15px';
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh]">
         <AlertCircle size={48} className="text-yellow-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">Giriş Yapmanız Gerekiyor</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">{t('common.loginRequired') || 'Giriş Gerekli'}</h2>
         <p className="text-gray-400">Notlarınızı görmek için lütfen giriş yapın.</p>
       </div>
     );
@@ -187,11 +223,13 @@ export default function NotesPage() {
       <div className="flex h-full gap-6">
         
         {/* Sol Panel: Not Listesi */}
-        <div className="w-full md:w-80 flex flex-col gap-4 border-r border-white/5 pr-4 hidden md:flex">
+        <div className={`w-full md:w-80 flex flex-col gap-4 border-r border-white/5 pr-4 md:flex ${
+          showMobileSidebar ? 'flex' : 'hidden'
+        }`}>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <BookOpen className="text-green-500" size={24} />
-              Notlar
+              {t('sidebar.notes') || 'Notlar'}
             </h1>
             <button 
               onClick={handleNewNote}
@@ -201,15 +239,25 @@ export default function NotesPage() {
             </button>
           </div>
 
+          {/* Search bar */}
+          <div className="relative">
+            <Input
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Notlarda ara..."
+              className="text-xs py-2 px-3 bg-black/40 border-stone-800"
+            />
+          </div>
+
           <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
             {isLoading && notes.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">{t('common.loading')}</div>
-            ) : notes.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">{t('common.loading') || 'Yükleniyor...'}</div>
+            ) : filteredNotes.length === 0 ? (
               <div className="text-center py-8 text-gray-500 text-sm bg-black/20 rounded-2xl border border-white/5 border-dashed">
-                Henüz hiç notunuz yok.
+                {searchQuery ? 'Sonuç bulunamadı.' : 'Henüz hiç notunuz yok.'}
               </div>
             ) : (
-              notes.map(note => (
+              filteredNotes.map(note => (
                 <div 
                   key={note.id} 
                   onClick={() => handleSelectNote(note)}
@@ -229,30 +277,43 @@ export default function NotesPage() {
               ))
             )}
           </div>
-        </div>
+        </div> 
 
         {/* Sağ Panel: Editör / Görüntüleyici */}
-        <div className="flex-1 flex flex-col h-full bg-black/40 rounded-3xl border border-white/5 overflow-hidden relative">
+        <div className={`flex-1 flex flex-col h-full bg-black/40 rounded-3xl border border-white/5 overflow-hidden relative ${
+          showMobileSidebar ? 'hidden md:flex' : 'flex'
+        }`}>
           {!activeNote && !isEditing ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
-              <StickyNote size={64} className="opacity-20 mb-4" />
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+              <StickyNote size={64} className="opacity-20 mb-4 animate-[pulse_3s_infinite]" />
               <p>Görüntülemek için bir not seçin veya yeni oluşturun.</p>
               <Button onClick={handleNewNote} className="mt-4 flex items-center gap-2">
                 <Plus size={16} /> Yeni Not Oluştur
               </Button>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col h-full">
+            <div className="flex-1 flex flex-col h-full justify-between">
               {/* Toolbar */}
               <div className="flex items-center justify-between p-4 border-b border-white/5 bg-black/20">
                 <div className="flex items-center gap-2">
+                  {/* Mobile Back Button */}
+                  <button 
+                    onClick={() => setShowMobileSidebar(true)}
+                    className="md:hidden flex items-center gap-1.5 text-xs text-green-400 font-semibold px-2 py-1.5 bg-green-500/10 rounded-lg hover:bg-green-500/20 mr-2 border border-green-500/20"
+                  >
+                    <ChevronLeft size={16} /> {t('common.back') || 'Geri'}
+                  </button>
+
                   {!isEditing && activeNote ? (
                     <>
                       <Button onClick={() => setIsEditing(true)} variant="secondary" className="!py-1.5 !px-4 !text-sm">Düzenle</Button>
                       <button 
                         onClick={() => {
-                          deleteNote(activeNote.id);
-                          setActiveNote(null);
+                          if (confirm('Bu notu silmek istediğinizden emin misiniz?')) {
+                            deleteNote(activeNote.id);
+                            setActiveNote(null);
+                            setShowMobileSidebar(true);
+                          }
                         }}
                         className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-xl transition-colors"
                       >
@@ -332,6 +393,7 @@ export default function NotesPage() {
                     <textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
+                      style={{ fontSize }}
                       placeholder="Markdown formatında notunu buraya yaz... 
 
 Örneğin:
@@ -340,7 +402,7 @@ export default function NotesPage() {
 - Liste öğesi 1
 - Liste öğesi 2
 **Kalın Yazı**"
-                      className="flex-1 bg-transparent border-none outline-none text-gray-300 resize-none font-mono text-sm leading-relaxed"
+                      className="flex-1 bg-transparent border-none outline-none text-gray-300 resize-none font-mono leading-relaxed"
                     />
                   </div>
                 ) : (
@@ -356,7 +418,10 @@ export default function NotesPage() {
                       </div>
                     )}
 
-                    <div className="prose prose-invert prose-green prose-lg max-w-none prose-headings:font-bold prose-a:text-green-400 hover:prose-a:text-green-300">
+                    <div 
+                      className="prose prose-invert prose-green prose-lg max-w-none prose-headings:font-bold prose-a:text-green-400 hover:prose-a:text-green-300"
+                      style={{ fontSize }}
+                    >
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {activeNote?.content || '*Boş not...*'}
                       </ReactMarkdown>
@@ -364,6 +429,16 @@ export default function NotesPage() {
                   </div>
                 )}
               </div>
+
+              {/* Word & Char Counter bar inside editor */}
+              {isEditing && (
+                <div className="flex justify-between items-center px-6 py-2.5 bg-stone-900/30 border-t border-white/5 text-[10px] text-gray-500">
+                  <div>{wordCount} kelime • {charCount} karakter</div>
+                  {settings.notesAutoSave && (
+                    <div className="text-green-500/60">Otomatik kaydetme aktif ({settings.notesAutoSaveInterval}s)</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

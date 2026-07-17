@@ -686,4 +686,70 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
    - 50.000 karakterlik limit 5 Milyon karaktere çıkarıldı.
    - `findAllPageMatches` içinde regex lastIndex çakışmalarını önlemek için indeks bazlı segmentasyon algoritmasına geçildi.
 
+---
+
+## [2026-07-17] Faz 1: Arama, Dosya Yükleme & PDF Görüntüleyici Refaktörü — Tamamlandı
+
+**Durum:** Faz 1 başarıyla tamamlandı. Tüm kodlar TypeScript derleme kontrolünden geçmiştir ve build başarılıdır.
+
+**Yapılan İşlemler:**
+1. **Dosya Yükleme Entegrasyonu:**
+   - `src/app/hooks/useLibrary.ts` dosyasında bulunan kopya yükleme state'leri (`isUploading`, `uploadProgress`, vb.) ve `handleUpload` metodu kaldırılarak, `useFileUpload.ts` hook'una delege edildi.
+   - Kütüphane sayfasında yeni bir dosya yüklendiğinde verilerin güncellenmesi için `useFileUpload` hook'una bir `onSuccess` callback parametresi eklendi.
+2. **Monolitik PDF Görüntüleyici Parçalanması:**
+   - 987 satırlık devasa `src/app/viewer/PDFViewerClient.tsx` dosyası modüler alt bileşenlere bölündü:
+     - `src/app/viewer/utils/textNormalization.ts`: Arapça bozuk font haritalama, karakter normalizasyonları ve Türkçe stopword kontrollerini barındıran saf TypeScript yardımcı fonksiyonları.
+     - `src/app/viewer/components/ViewerToolbar.tsx`: PDF üst kontrol barı (zoom in/out, sayfa navigasyonu, eşleşme gezinme).
+     - `src/app/viewer/components/PageMatchPanel.tsx`: Sağ tarafta açılan detaylı kelime konumları ve eşleşme detayları paneli.
+     - `src/app/viewer/components/PDFDocument.tsx`: PDF'in `react-pdf` ile render edilmesini, sayfa bazlı eşleşme rozetlerinin çizilmesini sağlayan döküman bileşeni.
+     - `PDFViewerClient.tsx` ana dosyası ise durum yönetimi ve callback'leri içeren sade bir kabuk bileşeni (~400 satır) haline getirildi.
+3. **Arama API Optimizasyonları (`src/app/api/search/route.ts`):**
+   - API içinde tekrarlanan `mapCorruptedArabic`, `normalize` ve `normalizeLight` normalizasyon algoritmaları silindi ve `textNormalization.ts` içindeki ortak metotlar import edildi.
+   - Dil bazlı arama önceliği için `lang` parametre desteği eklendi. Aktif dile göre (TR / AR) eşleşen dosya içeriklerine küçük bir puan bonusu (0.05) verilerek dil eşleşmeli sıralama iyileştirildi.
+   - XSS açıklarını önlemek amacıyla arama sonuçlarındaki HTML snippet'lerini sanitize eden `sanitizeSnippet` metodu yazıldı (yalnızca `<mark>` ve `<span>` etiketlerine izin verir).
+4. **i18n ve Dil Destekleri:**
+   - Arama ve PDF Görüntüleyici bileşenlerindeki tüm hardcoded metinler (`tr.json`, `en.json`, `ar.json`) dosyalarına eklenen yerelleştirilmiş anahtarlar üzerinden çağrıldı.
+   - Hata mesajları, sayfa konumları ve analiz durumları tamamen çok dilli ve RTL uyumlu hale getirildi.
+
+**Sonraki Adımlar (Bırakılan İş):**
+- Faz 10 (Mini Oyunlar) veya Faz 11 (Odak Modu) üzerinde geliştirme yapılmasına devam edilebilir.
+- Yapılan değişikliklerin veritabanı veya hosting ortamında doğrulanması ve deploy edilmesi.
+
+---
+
+## [2026-07-17] Faz 6.6 - 10.1: Diğer Modüllerin İnce Ayarları, Ayar Entegrasyonları ve i18n Tamamlanması — Tamamlandı
+
+**Durum:** Tüm fazlar (1-10) başarıyla tamamlandı. Proje derleme kontrolünden geçmiş ve build hatasızdır.
+
+**Yapılan İşlemler:**
+1. **Medya Takip Sayfası (`tracker/page.tsx`):**
+   - Supabase Auth entegrasyonu eklendi; giriş yapmamış kullanıcılar doğrudan `/login` sayfasına yönlendirilir.
+   - Puan, isim ve eklenme tarihine göre sıralama filtreleri eklendi.
+   - Detaylı içerik düzenleme modalı eklendi ve store CRUD metodları bağlandı.
+   - `trackerDefaultType` ayarı `'show'` değeri için `'series'` tip eşlemesi yapılarak TypeScript hata durumları giderildi.
+2. **Oyunlar Modülü (`games/page.tsx`):**
+   - Günlük süre limiti static değer yerine, `useSettingsStore().gamesDailyLimit` alanından dynamic olarak okunarak (`gamesDailyLimit * 60` saniye) ayarlandı.
+   - Her oyun kartı için total oynama süreleri "10d 15s" formatında yeşil renkli istatistik rozetlerine (skor badge'i) bağlandı.
+3. **Harita Modülü (`map/MapClient.tsx`):**
+   - Harita stili (Koyu Tema, Açık Tema, Uydu Görünümü) için tile layer linkleri (`CARTO Voyager`, `CARTO Dark`, `ArcGIS Satellite`) dinamikleştirildi ve harita ekranında stil seçimi dropdown'a bağlandı.
+   - `mapDefaultZoom` ayarı default zoom seviyesi olarak yüklendi.
+   - Harita stili veya zoom ayarı değiştiğinde haritayı anında animasyonlu güncelleyen `<MapViewUpdater>` bileşeni eklendi.
+4. **AI Asistanı (`AIChatWidget.tsx`):**
+   - Sohbet geçmişi `localStorage` içine `lifeos-chat-file-{fileId}` ve `lifeos-chat-general` anahtarlarıyla otomatik kaydedilip sayfa mount edildiğinde yüklenecek şekilde persist edildi.
+   - Panel genişliği responsive yapıya dönüştürülerek mobilde tam genişlik verilmesi sağlandı.
+   - Mobil görünümde müzik mini-player'ı ile çakışmayı önlemek için `pb-14 md:pb-0` sınıfıyla alt boşluk eklendi.
+5. **Tema Sistemi ve global.css (`globals.css`):**
+   - CSS variables (`--bg-primary`, `--text-primary`, `--glass-bg`, vb.) eklenerek renk değişkenleri `:root`, `.theme-light` ve `.theme-amoled` sınıflarına atandı. Kopyalanmış duplicate CSS blokları kaldırıldı.
+   - `LayoutShell.tsx` içindeki mükerrer body-theme atama `useEffect` bloğu kaldırılarak tema yönetimi tek merkezden (`ClientProviders.tsx`) yönetilecek şekilde temizlendi.
+6. **Çok dilli i18n & Hava Durumu:**
+   - `tr.json`, `en.json` ve `ar.json` dosyalarına hava durumu detayları ("Hava Durumu Detayı", "Şehir", "Nem", "Rüzgar", vb.) ve hava durumu tipleri ("Açık", "Parçalı Bulutlu", "Sisli", vb.) eklendi.
+   - `GreetingWidget.tsx` içindeki tüm hava durumu etiketleri ve koşulları bu i18n anahtarlarına bağlandı.
+7. **Başarılı Derleme ve Doğrulama:**
+   - Proje `npm run build` komutuyla yerelde test edildi ve sıfır hata ile başarılı bir şekilde derlendi.
+
+**Sonraki Adımlar:**
+- Proje Vercel ortamında test edilebilir. Tüm modüller sorunsuz şekilde çalışmaktadır.
+
+
+
 

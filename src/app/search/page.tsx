@@ -6,7 +6,7 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { useSearch } from '@/app/hooks/useSearch';
 import { useSpeechRecognition } from '@/app/hooks/useSpeechRecognition';
 import { useFileUpload } from '@/app/hooks/useFileUpload';
-import { useI18nStore } from '@/stores/useI18nStore';
+import { useTranslation } from '@/app/hooks/useTranslation';
 import SearchHero from '@/app/components/search/SearchHero';
 import MicrophoneButton from '@/app/components/search/MicrophoneButton';
 import SearchBar from '@/app/components/search/SearchBar';
@@ -19,7 +19,7 @@ import UploadModal from '@/app/components/search/UploadModal';
 function SearchContent() {
   const search = useSearch();
   const upload = useFileUpload();
-  const { language } = useI18nStore();
+  const { t, language } = useTranslation();
   const [speechLanguage, setSpeechLanguage] = useState<string>(language);
 
   // Sync state if UI language changes
@@ -57,7 +57,14 @@ function SearchContent() {
         {/* Tarayıcı desteği uyarısı */}
         {!speech.micSupported && (
           <div className="bg-red-900/50 text-red-200 p-4 rounded-2xl mb-8 text-center border border-red-500/30">
-            ⚠️ Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome veya Edge kullanın.
+            ⚠️ {t('search.micError')}
+          </div>
+        )}
+
+        {/* Arama hatası */}
+        {search.searchError && (
+          <div className="bg-red-900/50 text-red-200 p-4 rounded-2xl mb-8 text-center border border-red-500/30 w-full">
+            ⚠️ {t(search.searchError)}
           </div>
         )}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { Mic } from 'lucide-react';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 interface MicrophoneButtonProps {
   listening: boolean;
@@ -21,6 +22,8 @@ export default function MicrophoneButton({
   speechLanguage,
   setSpeechLanguage,
 }: MicrophoneButtonProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       {/* Mikrofon Butonu */}
@@ -28,7 +31,7 @@ export default function MicrophoneButton({
         <button
           onClick={toggleListen}
           disabled={!micSupported}
-          aria-label={listening ? 'Dinlemeyi Durdur' : 'Dinlemeyi Başlat'}
+          aria-label={listening ? t('search.stopListening') : t('search.startListening')}
           className={`absolute z-10 p-8 rounded-full transition-all duration-300 ${
             listening
               ? 'bg-green-500 scale-110 shadow-[0_0_50px_rgba(34,197,94,0.4)]'
@@ -90,11 +93,11 @@ export default function MicrophoneButton({
         {listening ? (
           <div className="flex items-center gap-2 text-green-400 text-sm animate-pulse">
             <span className="w-2.5 h-2.5 bg-green-400 rounded-full inline-block" />
-            Dinliyorum… Konuşun, bitince butona tekrar basın
+            {t('search.listening')}
           </div>
         ) : searchQuery && !isSearching ? (
           <div className="text-gray-500 text-sm">
-            &quot;{searchQuery}&quot; için sonuçlar
+            {t('search.resultsFor').replace('{query}', searchQuery)}
           </div>
         ) : null}
       </div>

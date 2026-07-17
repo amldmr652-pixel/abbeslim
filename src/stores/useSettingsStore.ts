@@ -46,9 +46,9 @@ export const DEFAULT_SHORTCUTS: Record<string, ShortcutConfig> = {
 };
 
 const DEFAULT_BREAK_SOUNDS: BreakSound[] = [
-  { id: 'forest', name: 'Orman Kuşları', url: '/sounds/forest.mp3' },
-  { id: 'rain', name: 'Hafif Yağmur', url: '/sounds/rain.mp3' },
-  { id: 'waves', name: 'Okyanus Dalgaları', url: '/sounds/waves.mp3' },
+  { id: 'forest', name: 'Orman Kuşları', url: 'https://cdn.freesound.org/previews/531/531015_2394828-lq.mp3' },
+  { id: 'rain', name: 'Hafif Yağmur', url: 'https://cdn.freesound.org/previews/346/346642_4939433-lq.mp3' },
+  { id: 'waves', name: 'Okyanus Dalgaları', url: 'https://cdn.freesound.org/previews/467/467539_5765618-lq.mp3' },
 ];
 
 const DEFAULT_WIDGET_LAYOUT: WidgetPosition[] = [
@@ -67,6 +67,62 @@ interface SettingsState {
   selectedBreakSoundId: string;
   sidebarCollapsed: boolean;
   shortcuts: Record<string, ShortcutConfig | null>;
+
+  // ── YENİ: Müzik Ayarları ──
+  musicDefaultVolume: number;        // 0-1, default 0.7
+  musicAutoplayOnLogin: boolean;     // default false
+  musicShowMiniPlayer: boolean;      // default true
+  musicSleepTimer: number | null;    // dakika, null=kapalı
+
+  // ── YENİ: Pomodoro Ayarları ──
+  pomodoroWork: number;              // default 25
+  pomodoroShortBreak: number;        // default 5
+  pomodoroLongBreak: number;         // default 15
+  pomodoroLongBreakInterval: number; // default 3
+  pomodoroAutoStartBreaks: boolean;  // default true
+  pomodoroAutoStartPomodoros: boolean; // default false
+
+  // ── YENİ: Takvim Ayarları ──
+  calendarDefaultView: 'month' | 'week'; // default 'month'
+  calendarFirstDayOfWeek: 0 | 1;    // default 1
+  calendarShowTasks: boolean;        // default true
+  calendarEventColor: string;        // default '#22c55e'
+
+  // ── YENİ: Finans Ayarları ──
+  financeCurrency: string;           // default '₺'
+  financeCategories: string[];       // default ['Yemek','Ulaşım','Eğlence','Eğitim','Sağlık','Kira','Maaş','Diğer']
+
+  // ── YENİ: Not Ayarları ──
+  notesAutoSave: boolean;            // default true
+  notesAutoSaveInterval: number;     // saniye, default 30
+  notesFontSize: 'small' | 'medium' | 'large'; // default 'medium'
+
+  // ── YENİ: Görev Ayarları ──
+  tasksDefaultPriority: 'low' | 'medium' | 'high'; // default 'medium'
+  tasksShowCompleted: boolean;       // default true
+  tasksSortBy: 'date' | 'priority' | 'name'; // default 'date'
+
+  // ── YENİ: Hedef Ayarları ──
+  goalsShowCompleted: boolean;       // default false
+  habitsShowStreak: boolean;         // default true
+
+  // ── YENİ: Tracker Ayarları ──
+  trackerDefaultType: 'movie' | 'show' | 'book'; // default 'movie'
+
+  // ── YENİ: Oyun Ayarları ──
+  gamesDailyLimit: number;           // dakika, default 15
+
+  // ── YENİ: Harita Ayarları ──
+  mapDefaultCenter: [number, number]; // default [39.0, 35.0]
+  mapDefaultZoom: number;            // default 6
+  mapTileStyle: 'dark' | 'light' | 'satellite'; // default 'dark'
+
+  // ── YENİ: AI Chat Ayarları ──
+  chatDefaultMode: 'sources' | 'hybrid' | 'independent'; // default 'hybrid'
+  chatSaveHistory: boolean;          // default true
+
+  // ── YENİ: Arama Ayarları ──
+  searchDefaultMode: 'hybrid' | 'phrase' | 'word' | 'semantic'; // default 'hybrid'
   
   setTheme: (theme: ThemeType) => void;
   setDashboardOrder: (order: string[]) => void;
@@ -76,6 +132,7 @@ interface SettingsState {
   setSidebarCollapsed: (collapsed: boolean) => void;
   setShortcut: (action: string, shortcut: ShortcutConfig | null) => void;
   resetShortcuts: () => void;
+  updateSettings: (partial: Partial<SettingsState>) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -87,6 +144,51 @@ export const useSettingsStore = create<SettingsState>()(
       selectedBreakSoundId: 'forest',
       sidebarCollapsed: false,
       shortcuts: DEFAULT_SHORTCUTS,
+
+      // Default values for new states
+      musicDefaultVolume: 0.7,
+      musicAutoplayOnLogin: false,
+      musicShowMiniPlayer: true,
+      musicSleepTimer: null,
+
+      pomodoroWork: 25,
+      pomodoroShortBreak: 5,
+      pomodoroLongBreak: 15,
+      pomodoroLongBreakInterval: 3,
+      pomodoroAutoStartBreaks: true,
+      pomodoroAutoStartPomodoros: false,
+
+      calendarDefaultView: 'month',
+      calendarFirstDayOfWeek: 1,
+      calendarShowTasks: true,
+      calendarEventColor: '#22c55e',
+
+      financeCurrency: '₺',
+      financeCategories: ['Yemek', 'Ulaşım', 'Eğlence', 'Eğitim', 'Sağlık', 'Kira', 'Maaş', 'Diğer'],
+
+      notesAutoSave: true,
+      notesAutoSaveInterval: 30,
+      notesFontSize: 'medium',
+
+      tasksDefaultPriority: 'medium',
+      tasksShowCompleted: true,
+      tasksSortBy: 'date',
+
+      goalsShowCompleted: false,
+      habitsShowStreak: true,
+
+      trackerDefaultType: 'movie',
+
+      gamesDailyLimit: 15,
+
+      mapDefaultCenter: [39.0, 35.0],
+      mapDefaultZoom: 6,
+      mapTileStyle: 'dark',
+
+      chatDefaultMode: 'hybrid',
+      chatSaveHistory: true,
+
+      searchDefaultMode: 'hybrid',
       
       setTheme: (theme) => set({ theme }),
       setDashboardOrder: (dashboardOrder) => set({ dashboardOrder }),
@@ -111,10 +213,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
       })),
       
-      resetShortcuts: () => set({ shortcuts: DEFAULT_SHORTCUTS })
+      resetShortcuts: () => set({ shortcuts: DEFAULT_SHORTCUTS }),
+      updateSettings: (partial) => set((state) => ({ ...state, ...partial }))
     }),
     {
-      name: 'lifeos-settings-storage',
+      name: 'lifeos-settings-storage-v2', // bumped storage key version to prevent migration issues
     }
   )
 );

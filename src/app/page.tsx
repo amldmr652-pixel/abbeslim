@@ -50,7 +50,7 @@ function SortableWidgetWrapper({ id, children }: { id: string, children: React.R
 
 function DashboardContent() {
   const { setIsMusicPanelOpen } = useMusicContext();
-  const { tasks } = useTaskStore();
+  const { tasks, fetchTasks } = useTaskStore();
   const { goals, fetchGoals } = useGoalStore();
   const { dashboardOrder, setDashboardOrder } = useSettingsStore();
   const { fetchTransactions, getTotalExpense } = useFinanceStore();
@@ -65,6 +65,7 @@ function DashboardContent() {
   useEffect(() => {
     fetchGoals();
     fetchTransactions();
+    fetchTasks();
     
     const fetchDashboardData = async () => {
       const supabase = createClient();
@@ -105,7 +106,7 @@ function DashboardContent() {
     };
 
     fetchDashboardData();
-  }, [fetchGoals]);
+  }, [fetchGoals, fetchTransactions, fetchTasks]);
 
   const workTimeHours = Math.floor(totalWorkMinutes / 60);
   const workTimeMinutes = totalWorkMinutes % 60;

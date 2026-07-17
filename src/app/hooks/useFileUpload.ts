@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { extractTextClientSide } from '@/utils/fileExtractor';
 
-export function useFileUpload() {
+export function useFileUpload(onSuccess?: () => void) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadName, setUploadName] = useState('');
   const [uploadCategory, setUploadCategory] = useState('');
@@ -42,7 +42,7 @@ export function useFileUpload() {
       setUploadStatus('Bağlanıyor ve metin okunuyor... (Adım 1/3)');
       setUploadProgress(5);
 
-      const [urlRes, extractedText] = await Promise.all([
+      const [urlRes, extractionResult] = await Promise.all([
         fetch('/api/get-upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -55,7 +55,9 @@ export function useFileUpload() {
       if (!urlRes.ok) throw new Error(urlData.error || 'URL alınamadı');
       const { signedUrl, storagePath, fileId } = urlData;
 
-      console.log(`Client metin çıkarma: ${extractedText.length} karakter`);
+      const { text: extractedText, hasArabic } = extractionResult;
+
+      console.log(`Client metin çıkarma: ${extractedText.length} karakter (Arapça: ${hasArabic})`);
       setUploadProgress(40);
 
       // Adım 2: Dosyayı Supabase'e yükle (Vercel bypass)
@@ -101,6 +103,9 @@ export function useFileUpload() {
         alert('Dosya başarıyla yüklendi!\n' + textInfo);
         setIsUploadModalOpen(false);
         setUploadName(''); setUploadCategory(''); setUploadDate(''); setUploadFile(null);
+        if (onSuccess) {
+          onSuccess();
+        }
       } else {
         alert('İşlem hatası: ' + processData.error);
       }

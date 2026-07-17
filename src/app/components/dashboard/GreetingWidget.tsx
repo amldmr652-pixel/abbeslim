@@ -78,7 +78,7 @@ export default function GreetingWidget() {
           const position = await getPosition();
           lat = position.coords.latitude;
           lon = position.coords.longitude;
-          city = 'Konumunuz';
+          city = t('dashboard.weather.yourLocation') || 'Konumunuz';
         } catch (e) {
           console.log('Konum alınamadı, varsayılan (İstanbul) kullanılıyor.');
         }
@@ -90,14 +90,14 @@ export default function GreetingWidget() {
         
         const wmoCode = data.current.weather_code;
         let icon = 'clear';
-        let desc = 'Açık';
+        let desc = t('dashboard.weather.clear') || 'Açık';
         
-        if (wmoCode >= 1 && wmoCode <= 3) { icon = 'cloud'; desc = 'Parçalı Bulutlu'; }
-        else if (wmoCode >= 45 && wmoCode <= 48) { icon = 'cloud'; desc = 'Sisli'; }
-        else if (wmoCode >= 51 && wmoCode <= 67) { icon = 'rain'; desc = 'Yağmurlu'; }
-        else if (wmoCode >= 71 && wmoCode <= 77) { icon = 'snow'; desc = 'Kar Yağışlı'; }
-        else if (wmoCode >= 80 && wmoCode <= 82) { icon = 'rain'; desc = 'Sağanak Yağışlı'; }
-        else if (wmoCode >= 95) { icon = 'storm'; desc = 'Fırtına'; }
+        if (wmoCode >= 1 && wmoCode <= 3) { icon = 'cloud'; desc = t('dashboard.weather.cloudy') || 'Parçalı Bulutlu'; }
+        else if (wmoCode >= 45 && wmoCode <= 48) { icon = 'cloud'; desc = t('dashboard.weather.foggy') || 'Sisli'; }
+        else if (wmoCode >= 51 && wmoCode <= 67) { icon = 'rain'; desc = t('dashboard.weather.rainy') || 'Yağmurlu'; }
+        else if (wmoCode >= 71 && wmoCode <= 77) { icon = 'snow'; desc = t('dashboard.weather.snowy') || 'Kar Yağışlı'; }
+        else if (wmoCode >= 80 && wmoCode <= 82) { icon = 'rain'; desc = t('dashboard.weather.shower') || 'Sağanak Yağışlı'; }
+        else if (wmoCode >= 95) { icon = 'storm'; desc = t('dashboard.weather.storm') || 'Fırtına'; }
 
         setWeather({
           temp: Math.round(data.current.temperature_2m),
@@ -109,14 +109,21 @@ export default function GreetingWidget() {
         });
       } catch (error) {
         console.error("Hava durumu alınamadı:", error);
-        setWeather({ temp: 20, desc: 'Hata', icon: 'cloud', city: 'Bilinmiyor', humidity: 0, wind: 0 });
+        setWeather({ 
+          temp: 20, 
+          desc: t('dashboard.weather.error') || 'Hata', 
+          city: t('dashboard.weather.unknown') || 'Bilinmiyor', 
+          icon: 'cloud', 
+          humidity: 0, 
+          wind: 0 
+        });
       } finally {
         setWeatherLoading(false);
       }
     };
 
     fetchWeather();
-  }, []);
+  }, [t]);
 
   const getWeatherIcon = (iconName: string, size = 20) => {
     if (iconName.includes('rain')) return <CloudRain size={size} className="text-blue-400" />;
@@ -176,15 +183,15 @@ export default function GreetingWidget() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-green-900/20 p-4 rounded-2xl border border-green-900/30 flex flex-col items-center">
-                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Şehir</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('dashboard.weather.city') || 'Şehir'}</span>
                 <span className="text-lg font-semibold text-white">{weather?.city || 'İstanbul'}</span>
               </div>
               <div className="bg-green-900/20 p-4 rounded-2xl border border-green-900/30 flex flex-col items-center">
-                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Nem</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('dashboard.weather.humidity') || 'Nem'}</span>
                 <span className="text-lg font-semibold text-white">%{weather?.humidity || 0}</span>
               </div>
               <div className="col-span-2 bg-green-900/20 p-4 rounded-2xl border border-green-900/30 flex flex-col items-center">
-                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Rüzgar</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('dashboard.weather.wind') || 'Rüzgar'}</span>
                 <span className="text-lg font-semibold text-white">{weather?.wind || 0} km/s</span>
               </div>
             </div>

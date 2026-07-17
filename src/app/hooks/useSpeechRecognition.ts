@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useI18nStore } from '@/stores/useI18nStore';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 // -------------------------------------------------------
 // Yardımcı: native Web Speech API başlat
@@ -22,7 +22,7 @@ interface UseSpeechRecognitionOptions {
 }
 
 export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang }: UseSpeechRecognitionOptions) {
-  const { language } = useI18nStore();
+  const { t, language } = useTranslation();
   const [listening, setListening] = useState(false);
   const [micSupported, setMicSupported] = useState(true);
   const [micError, setMicError] = useState('');
@@ -63,6 +63,9 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
       networkRetryCount.current = 0;
     }
 
+    // Dil değiştiğinde veya yeni oturum başladığında biriken metni sıfırla
+    currentTranscriptRef.current = '';
+
     // Eğer zaten aktif bir dinleme varsa önce durdur
     if (recognitionRef.current) {
       recognitionRef.current.stop();
@@ -86,10 +89,6 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-
-    if (!isRestart) {
-      currentTranscriptRef.current = '';
-    }
 
     recognition.onstart = () => {
       setListening(true);
@@ -129,7 +128,7 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
 
         // 3 denemede de bağlanamadıysa simülasyon modalını aç
         const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
-        const msg = `Tarayıcı Google Ses sunucularına bağlanamadı. (Gerçek mikrofon için ${currentOrigin} adresini normal Google Chrome'da açtığınızdan emin olun.)`;
+        const msg = t('search.errors.networkError').replace('{origin}', currentOrigin);
         shouldRestartRef.current = false;
         setIsSimulatingMic(true);
         setMicError(msg);
@@ -146,12 +145,12 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
         return;
       }
 
-      let msg = 'Mikrofon hatası oluştu.';
+      let msg = t('search.errors.micError');
       if (event.error === 'not-allowed') {
-        msg = 'Mikrofon izni reddedildi. Adres çubuğundaki kilit simgesine tıklayarak izin verin.';
+        msg = t('search.errors.micDenied');
         shouldRestartRef.current = false;
       } else if (event.error === 'audio-capture') {
-        msg = 'Mikrofon bulunamadı veya başka bir uygulama tarafından kullanılıyor.';
+        msg = t('search.errors.micNotFound');
         shouldRestartRef.current = false;
       }
       setMicError(msg);
@@ -183,7 +182,7 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
     recognitionRef.current = recognition;
     shouldRestartRef.current = true;
     recognition.start();
-  }, [onTranscriptChange, onSearch]);
+  }, [onTranscriptChange, onSearch, speechLang, language, t]);
 
   const stopListening = useCallback(() => {
     shouldRestartRef.current = false;

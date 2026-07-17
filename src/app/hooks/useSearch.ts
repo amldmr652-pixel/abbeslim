@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 export type SearchMode = 'phrase' | 'word' | 'semantic' | 'hybrid';
 
 export function useSearch() {
+  const { language } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [searchMode, setSearchMode] = useState<SearchMode>('hybrid');
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const categoriesRef = useRef<any[]>([]);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -33,10 +36,14 @@ export function useSearch() {
   // -------------------------------------------------------
   const doSearch = useCallback((query: string, mode: SearchMode = searchMode) => {
     const q = query.trim();
-    if (!q) { setSearchResults([]); return; }
+    if (!q) { setSearchResults([]); setSearchError(null); return; }
     setIsSearching(true);
-    fetch(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}`)
-      .then(res => res.json())
+    setSearchError(null);
+    fetch(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}&lang=${language}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Arama isteği başarısız oldu');
+        return res.json();
+      })
       .then(data => {
         if (data.results) {
           setSearchResults(
@@ -47,9 +54,12 @@ export function useSearch() {
           );
         }
       })
-      .catch(err => console.error('Arama hatası:', err))
+      .catch(err => {
+        console.error('Arama hatası:', err);
+        setSearchError('search.errors.searchError');
+      })
       .finally(() => setIsSearching(false));
-  }, [searchMode]);
+  }, [searchMode, language]);
 
   // Arama modunu değiştirme ve anında arama
   const handleModeChange = (newMode: SearchMode) => {
@@ -64,7 +74,7 @@ export function useSearch() {
     setSearchQuery(value);
     currentTranscriptRef.current = value;
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (!value.trim()) { setSearchResults([]); return; }
+    if (!value.trim()) { setSearchResults([]); setSearchError(null); return; }
     searchTimeoutRef.current = setTimeout(() => doSearch(value), 500);
   };
 
@@ -83,6 +93,8 @@ export function useSearch() {
     isSearching,
     categories,
     searchMode,
+    searchError,
+    setSearchError,
     categoriesRef,
     searchTimeoutRef,
     currentTranscriptRef,

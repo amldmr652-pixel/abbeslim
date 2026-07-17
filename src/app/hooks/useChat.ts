@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 
 export interface Source {
@@ -23,6 +23,39 @@ export function useChat(currentFileId?: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'sources' | 'independent' | 'hybrid'>('hybrid');
   const [noteStates, setNoteStates] = useState<{ [msgId: string]: 'idle' | 'saving' | 'saved' }>({});
+
+  const storageKey = currentFileId ? `lifeos-chat-file-${currentFileId}` : 'lifeos-chat-general';
+
+  // Load chat history from localStorage
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // Set initial messages directly in state hook
+          messages.push(...parsed);
+        } catch (e) {
+          console.warn("Sohbet geçmişi okunamadı:", e);
+        }
+      }
+    }
+  });
+
+  // Save chat history to localStorage
+  const saveToStorage = (newMsgs: Message[]) => {
+    if (typeof window !== 'undefined') {
+      if (newMsgs.length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(newMsgs));
+      } else {
+        localStorage.removeItem(storageKey);
+      }
+    }
+  };
+
+  useEffect(() => {
+    saveToStorage(messages);
+  }, [messages, storageKey]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useMapStore, MapPin, PinCategory, PinStatus } from '@/stores/useMapStore';
-import { Trash2, Edit2, Plus } from 'lucide-react';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { Trash2, Edit2, Plus, Settings } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
-// Leaflet ikon düzeltmesi (Next.js uyumluluk)
+// Leaflet default icon fix for Next.js compatibility
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -17,8 +18,8 @@ L.Icon.Default.mergeOptions({
 });
 
 const STATUS_COLORS: Record<PinStatus, string> = {
-  planned: '#eab308',  // Altın — gitmek istediğim
-  visited: '#22c55e',  // Yeşil — gittim
+  planned: '#eab308',  // Gold - planned
+  visited: '#22c55e',  // Green - visited
 };
 
 const CATEGORIES: { id: PinCategory; label: string; emoji: string }[] = [
@@ -30,7 +31,13 @@ const CATEGORIES: { id: PinCategory; label: string; emoji: string }[] = [
   { id: 'food', label: 'Yeme-İçme', emoji: '🍽️' },
 ];
 
-// Durum bazlı özel pin ikonu oluşturma
+const TILE_LAYERS = {
+  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{x}/{y}',
+};
+
+// Custom DivIcon creator
 const createPinIcon = (status: PinStatus) => {
   const color = STATUS_COLORS[status];
   return L.divIcon({
@@ -42,18 +49,27 @@ const createPinIcon = (status: PinStatus) => {
   });
 };
 
-// Harita tıklama olayı yakalayıcı
 function ClickHandler({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) {
   useMapEvents({ click: (e) => onMapClick(e) });
   return null;
 }
 
+// Controller to update center & zoom dynamically
+function MapViewUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [map, center, zoom]);
+  return null;
+}
+
 export default function MapClient() {
+  const settings = useSettingsStore();
   const { pins, isLoading, fetchPins, addPin, updatePin, removePin } = useMapStore();
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<PinCategory | 'all'>('all');
 
-  // Yeni konum ekleme state'leri
+  // Add Position
   const [isAddMode, setIsAddMode] = useState(false);
   const [pendingLatLng, setPendingLatLng] = useState<{ lat: number; lng: number } | null>(null);
   const [newTitle, setNewTitle] = useState('');
@@ -61,7 +77,7 @@ export default function MapClient() {
   const [newCategory, setNewCategory] = useState<PinCategory>('general');
   const [newStatus, setNewStatus] = useState<PinStatus>('planned');
 
-  // Düzenleme state'leri
+  // Edit Position
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -91,7 +107,6 @@ export default function MapClient() {
       status: newStatus,
       color: STATUS_COLORS[newStatus],
     });
-    // State sıfırla
     setPendingLatLng(null);
     setNewTitle('');
     setNewDesc('');
@@ -108,7 +123,7 @@ export default function MapClient() {
   const startEdit = (pin: MapPin) => {
     setEditingId(pin.id);
     setEditTitle(pin.title);
-    setEditDesc(pin.description);
+    setEditDesc(pin.description || '');
   };
 
   const saveEdit = async () => {
@@ -121,33 +136,54 @@ export default function MapClient() {
     ? pins
     : pins.filter((p) => p.category === selectedCategory);
 
+  const tileStyle = settings.mapTileStyle || 'dark';
+  const mapZoom = settings.mapDefaultZoom || 6;
+  const tileUrl = TILE_LAYERS[tileStyle] || TILE_LAYERS.dark;
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-180px)]">
-      {/* Sol Panel — Kontroller ve Pin Listesi */}
-      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4">
+      {/* Sol Panel */}
+      <div className="w-full lg:w-72 shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
+        
         {/* Yeni Konum Ekle Butonu */}
         <button
           onClick={() => { setIsAddMode(!isAddMode); if (isAddMode) setPendingLatLng(null); }}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-medium transition-all ${
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold transition-all border ${
             isAddMode
-              ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-              : 'glass text-gray-300 hover:text-white hover:border-green-500/30'
+              ? 'bg-green-500 text-stone-950 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:bg-green-400'
+              : 'glass text-gray-300 hover:text-white border-white/5 hover:border-green-500/30'
           }`}
         >
           <Plus size={18} />
           {isAddMode ? 'Haritaya Tıklayın...' : 'Yeni Konum Ekle'}
         </button>
 
+        {/* Harita Stili Seçici */}
+        <div className="glass p-4 rounded-2xl border border-white/5">
+          <p className="text-xs text-gray-500 uppercase font-bold mb-3 tracking-wider flex items-center gap-2">
+            <Settings size={12} /> Harita Stili
+          </p>
+          <select
+            value={tileStyle}
+            onChange={(e) => settings.updateSettings({ mapTileStyle: e.target.value as any })}
+            className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 text-white text-xs outline-none cursor-pointer"
+          >
+            <option value="dark" className="bg-stone-950 text-white">Koyu Tema (CARTO)</option>
+            <option value="light" className="bg-stone-950 text-white">Açık Tema (CARTO)</option>
+            <option value="satellite" className="bg-stone-950 text-white">Uydu Görünümü (ArcGIS)</option>
+          </select>
+        </div>
+
         {/* Kategori Filtresi */}
-        <div className="glass p-4 rounded-2xl">
+        <div className="glass p-4 rounded-2xl border border-white/5">
           <p className="text-xs text-gray-500 uppercase font-bold mb-3 tracking-wider">Kategori</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              className={`px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 selectedCategory === 'all'
-                  ? 'bg-green-600/30 text-green-400 border border-green-500/30'
-                  : 'text-gray-400 hover:text-white glass'
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  : 'text-gray-400 hover:text-white glass border border-transparent'
               }`}
             >
               Tümü ({pins.length})
@@ -158,10 +194,10 @@ export default function MapClient() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  className={`px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                     selectedCategory === cat.id
-                      ? 'bg-green-600/30 text-green-400 border border-green-500/30'
-                      : 'text-gray-400 hover:text-white glass'
+                      ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                      : 'text-gray-400 hover:text-white glass border border-transparent'
                   }`}
                 >
                   {cat.emoji} {cat.label} {count > 0 && `(${count})`}
@@ -172,12 +208,12 @@ export default function MapClient() {
         </div>
 
         {/* Pin Listesi */}
-        <div className="glass p-4 rounded-2xl flex-1 overflow-y-auto custom-scrollbar">
+        <div className="glass p-4 rounded-2xl flex-1 overflow-y-auto border border-white/5">
           <p className="text-xs text-gray-500 uppercase font-bold mb-3 tracking-wider">
             Konumlar {isLoading && <span className="text-green-500 ml-1">•</span>}
           </p>
           {filteredPins.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">
+            <p className="text-xs text-gray-500 text-center py-6">
               {isLoading ? 'Yükleniyor...' : 'Henüz konum eklenmemiş.'}
             </p>
           ) : (
@@ -185,22 +221,24 @@ export default function MapClient() {
               {filteredPins.map((pin) => {
                 const cat = CATEGORIES.find((c) => c.id === pin.category);
                 return (
-                  <div key={pin.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group">
+                  <div key={pin.id} className="flex items-center gap-3 p-2 px-3 rounded-xl hover:bg-white/5 transition-colors group">
                     <div
-                      className="w-3 h-3 rounded-full shrink-0"
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: STATUS_COLORS[pin.status as PinStatus] || '#22c55e' }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">{pin.title}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs font-semibold text-white truncate">{pin.title}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
                         {cat?.emoji} {cat?.label} • {pin.status === 'visited' ? '✅ Gidildi' : '⏳ Planlandı'}
                       </p>
                     </div>
                     <button
-                      onClick={() => removePin(pin.id)}
-                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        if (confirm('Bu konumu haritadan kaldırmak istiyor musunuz?')) removePin(pin.id);
+                      }}
+                      className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 );
@@ -211,18 +249,19 @@ export default function MapClient() {
       </div>
 
       {/* Harita Alanı */}
-      <div className="flex-1 rounded-3xl overflow-hidden border border-green-900/30 shadow-2xl z-0 isolate relative">
+      <div className="flex-1 rounded-3xl overflow-hidden border border-green-900/10 shadow-2xl z-0 isolate relative">
         <MapContainer
           center={[39.0, 35.0]}
-          zoom={6}
+          zoom={mapZoom}
           style={{ height: '100%', width: '100%', background: '#0a0a0a', zIndex: 0 }}
         >
-          {/* CARTO Dark — doğrudan koyu tema, CSS filter gerekmiyor */}
           <TileLayer
-            attribution='&copy; <a href="https://carto.com">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            key={tileStyle} // Force re-render tile layer on style change
+            attribution='&copy; <a href="https://carto.com">CARTO</a> / ArcGIS'
+            url={tileUrl}
           />
           <ClickHandler onMapClick={handleMapClick} />
+          <MapViewUpdater center={[39.0, 35.0]} zoom={mapZoom} />
 
           {filteredPins.map((pin) => (
             <Marker
@@ -287,27 +326,27 @@ export default function MapClient() {
           ))}
         </MapContainer>
 
-        {/* Yeni Konum Ekleme Paneli (haritaya tıklandığında açılır) */}
+        {/* Yeni Konum Ekleme Paneli */}
         {pendingLatLng && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[500] glass p-5 rounded-2xl w-[90%] max-w-md border border-green-500/30 shadow-2xl">
-            <h3 className="text-white font-bold mb-3">Yeni Konum</h3>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[500] glass p-5 rounded-2xl w-[90%] max-w-md border border-green-500/35 shadow-2xl">
+            <h3 className="text-white font-bold mb-3 text-sm">Konum Detayları Ekle</h3>
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Konum adı..."
-              className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 px-4 text-white text-sm mb-2 outline-none focus:border-green-500 transition-colors"
+              className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 px-4 text-white text-xs mb-2 outline-none focus:border-green-500 transition-colors"
             />
             <textarea
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               placeholder="Açıklama (opsiyonel)"
-              className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 px-4 text-white text-sm mb-3 outline-none focus:border-green-500 resize-none h-16 transition-colors"
+              className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 px-4 text-white text-xs mb-3 outline-none focus:border-green-500 resize-none h-16 transition-colors"
             />
             <div className="flex gap-2 mb-3">
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value as PinCategory)}
-                className="flex-1 bg-black/50 border border-green-900/50 rounded-xl p-2 text-white text-sm outline-none"
+                className="flex-1 bg-black/50 border border-green-900/50 rounded-xl p-2 text-white text-xs outline-none cursor-pointer"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
@@ -316,7 +355,7 @@ export default function MapClient() {
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value as PinStatus)}
-                className="flex-1 bg-black/50 border border-green-900/50 rounded-xl p-2 text-white text-sm outline-none"
+                className="flex-1 bg-black/50 border border-green-900/50 rounded-xl p-2 text-white text-xs outline-none cursor-pointer"
               >
                 <option value="planned">⏳ Gitmek İstiyorum</option>
                 <option value="visited">✅ Gittim</option>
@@ -326,13 +365,13 @@ export default function MapClient() {
               <button
                 onClick={handleAddConfirm}
                 disabled={!newTitle.trim()}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white py-2.5 rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-stone-950 font-bold py-2.5 rounded-xl text-xs transition-colors"
               >
                 Ekle
               </button>
               <button
                 onClick={() => { setPendingLatLng(null); setIsAddMode(false); }}
-                className="px-4 py-2.5 glass text-gray-400 hover:text-white rounded-xl text-sm transition-colors"
+                className="px-4 py-2.5 glass text-gray-400 hover:text-white rounded-xl text-xs transition-colors"
               >
                 İptal
               </button>

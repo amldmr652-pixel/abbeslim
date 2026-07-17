@@ -25,6 +25,7 @@ interface FinanceState {
   fetchTransactions: () => Promise<void>;
   addTransaction: (transaction: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   getTotalIncome: () => number;
   getTotalExpense: () => number;
   getBalance: () => number;
@@ -78,6 +79,25 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       }));
     } catch (error: any) {
       console.error('Error deleting transaction:', error.message);
+      throw error;
+    }
+  },
+
+  updateTransaction: async (id, updates) => {
+    try {
+      const { data, error } = await getSupabase()
+        .from('transactions')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      set((state) => ({
+        transactions: state.transactions.map((t) => (t.id === id ? data : t)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }));
+    } catch (error: any) {
+      console.error('Error updating transaction:', error.message);
       throw error;
     }
   },

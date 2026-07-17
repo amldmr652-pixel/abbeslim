@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { extractTextClientSide } from '@/utils/fileExtractor';
+import { useFileUpload } from '@/app/hooks/useFileUpload';
 
 export function useLibrary() {
   const [files, setFiles] = useState<any[]>([]);
@@ -20,15 +20,9 @@ export function useLibrary() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
 
-  // Yükleme Modalı State
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadName, setUploadName] = useState('');
-  const [uploadCategory, setUploadCategory] = useState('');
-  const [uploadDate, setUploadDate] = useState('');
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const upload = useFileUpload(() => {
+    fetch('/api/files').then(r => r.json()).then(d => { if (d.files) setFiles(d.files); });
+  });
 
   // Dosya Yeniden Adlandırma State
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
@@ -306,107 +300,8 @@ export function useLibrary() {
   };
 
   const handleOpenUploadModal = () => {
-    setUploadCategory(selectedCategory || '');
-    setIsUploadModalOpen(true);
-  };
-
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadFile || !uploadName || !uploadCategory || !uploadDate) {
-      alert('Lütfen tüm alanları doldurun:\n' +
-        (!uploadName ? '• Dosya ismi eksik\n' : '') +
-        (!uploadCategory ? '• Kategori seçilmedi\n' : '') +
-        (!uploadDate ? '• Tarih girilmedi\n' : '') +
-        (!uploadFile ? '• Dosya seçilmedi\n' : ''));
-      return;
-    }
-
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (uploadFile.size > MAX_FILE_SIZE) {
-      alert(`Dosya boyutu çok büyük. Maksimum 50MB yükleyebilirsiniz. (Seçilen dosya: ${(uploadFile.size / (1024 * 1024)).toFixed(2)}MB)`);
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadStatus('Hazırlanıyor...');
-
-    try {
-      // Adım 1: İmzalı URL al + Metni browser'da çıkar (paralel)
-      setUploadStatus('Bağlanıyor ve metin okunuyor... (Adım 1/3)');
-      setUploadProgress(5);
-
-      const [urlRes, extractedText] = await Promise.all([
-        fetch('/api/get-upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName: uploadFile.name, fileType: uploadFile.type }),
-        }),
-        extractTextClientSide(uploadFile),
-      ]);
-
-      const urlData = await urlRes.json();
-      if (!urlRes.ok) throw new Error(urlData.error || 'URL alınamadı');
-      const { signedUrl, storagePath, fileId } = urlData;
-
-      console.log(`Client metin çıkarma: ${extractedText.length} karakter`);
-      setUploadProgress(40);
-
-      // Adım 2: Dosyayı Supabase'e yükle (Vercel bypass)
-      setUploadStatus('Dosya yükleniyor... (Adım 2/3)');
-
-      const uploadRes = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': uploadFile.type || 'application/octet-stream' },
-        body: uploadFile,
-      });
-
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error('Dosya yüklenemedi: ' + errText);
-      }
-
-      setUploadProgress(70);
-      setUploadStatus('Kayıt oluşturuluyor... (Adım 3/3)');
-
-      // Adım 3: Metadata + çıkarılan metin gönder — sunucu hiç dosya indirmiyor
-      const processRes = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileId,
-          fileName: uploadFile.name,
-          fileType: uploadFile.type,
-          storagePath,
-          name: uploadName,
-          categoryId: uploadCategory,
-          date: uploadDate,
-          extractedText, // Browser'dan geliyor
-        }),
-      });
-
-      const processData = await processRes.json();
-      setUploadProgress(100);
-
-      if (processData.success) {
-        const textInfo = processData.extractedTextLength > 0
-          ? `\n✅ ${processData.extractedTextLength} karakter okundu, ${processData.chunksCount} parçaya bölündü.`
-          : '\n⚠️ Metin okunamadı, sadece dosya adıyla aranabilir.';
-        alert('Dosya başarıyla yüklendi!' + textInfo);
-        setIsUploadModalOpen(false);
-        setUploadName(''); setUploadCategory(''); setUploadDate(''); setUploadFile(null);
-        fetch('/api/files').then(r => r.json()).then(d => { if (d.files) setFiles(d.files); });
-      } else {
-        alert('İşlem hatası: ' + processData.error);
-      }
-    } catch (err: any) {
-      console.error('Yükleme hatası:', err);
-      alert('Yükleme sırasında bir hata oluştu: ' + (err.message || 'Bilinmeyen hata'));
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setUploadStatus('');
-    }
+    upload.setUploadCategory(selectedCategory || '');
+    upload.setIsUploadModalOpen(true);
   };
 
   const getBreadcrumbs = (catId: string) => {
@@ -456,27 +351,41 @@ export function useLibrary() {
     editingCategoryName, setEditingCategoryName,
     newCategoryName, setNewCategoryName,
     showAddCategory, setShowAddCategory,
-    isUploadModalOpen, setIsUploadModalOpen,
-    uploadName, setUploadName,
-    uploadCategory, setUploadCategory,
-    uploadDate, setUploadDate,
-    uploadFile, setUploadFile,
-    isUploading, setIsUploading,
-    uploadProgress, setUploadProgress,
-    uploadStatus, setUploadStatus,
+    isUploadModalOpen: upload.isUploadModalOpen,
+    setIsUploadModalOpen: upload.setIsUploadModalOpen,
+    uploadName: upload.uploadName,
+    setUploadName: upload.setUploadName,
+    uploadCategory: upload.uploadCategory,
+    setUploadCategory: upload.setUploadCategory,
+    uploadDate: upload.uploadDate,
+    setUploadDate: upload.setUploadDate,
+    uploadFile: upload.uploadFile,
+    setUploadFile: upload.setUploadFile,
+    isUploading: upload.isUploading,
+    uploadProgress: upload.uploadProgress,
+    uploadStatus: upload.uploadStatus,
     renamingFileId, setRenamingFileId,
     renamingFileName, setRenamingFileName,
-    isRenaming, setIsRenaming,
-    movingFileId, setMovingFileId,
-    movingFileCategoryId, setMovingFileCategoryId,
-    isMovingFile, setIsMovingFile,
-    movingCategoryId, setMovingCategoryId,
-    movingCategoryParentId, setMovingCategoryParentId,
-    isMovingCategory, setIsMovingCategory,
+    isRenaming,
+    setIsRenaming,
+    movingFileId,
+    setMovingFileId,
+    movingFileCategoryId,
+    setMovingFileCategoryId,
+    isMovingFile,
+    setIsMovingFile,
+    movingCategoryId,
+    setMovingCategoryId,
+    movingCategoryParentId,
+    setMovingCategoryParentId,
+    isMovingCategory,
+    setIsMovingCategory,
 
     handleRenameFile, handleMoveFile, handleMoveCategory, handleTrash,
     handleRestore, handlePermanentDelete, handleClearTrash, handleSaveCategory, handleAddCategory,
-    handleDeleteCategory, handleOpenUploadModal, handleUpload, getBreadcrumbs,
+    handleDeleteCategory, handleOpenUploadModal,
+    handleUpload: (e: React.FormEvent) => upload.handleUpload(e, categories),
+    getBreadcrumbs,
     getDescendants, filteredSidebarCategories, currentCategories, filteredFiles,
     breadcrumbs
   };

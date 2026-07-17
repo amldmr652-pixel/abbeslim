@@ -102,11 +102,48 @@
     "recentFiles": "Recent Files",
     "allGoals": "See all goals",
     "noFiles": "No files in your library yet.",
-    "focusMusic": "Focus Music"
+    "focusMusic": "Focus Music",
+    "weatherDetails": "Weather Details",
+    "weather": {
+      "clear": "Clear",
+      "cloudy": "Cloudy",
+      "foggy": "Foggy",
+      "rainy": "Rainy",
+      "snowy": "Snowy",
+      "shower": "Shower",
+      "storm": "Storm",
+      "error": "Error",
+      "unknown": "Unknown",
+      "yourLocation": "Your Location",
+      "city": "City",
+      "humidity": "Humidity",
+      "wind": "Wind"
+    }
   },
   "search": {
     "title": "Say the Note You're Looking For",
-    "micError": "Your browser does not support speech recognition. Please use Chrome or Edge."
+    "micError": "Your browser does not support speech recognition. Please use Chrome or Edge.",
+    "clearSearch": "Clear Search",
+    "searchPlaceholder": "Search topic title or content...",
+    "voiceSearch": "Voice Search",
+    "semanticSearch": "AI Semantic",
+    "phraseSearch": "Phrase (Ctrl+F)",
+    "wordSearch": "Word by Word",
+    "upload": "Upload File",
+    "simulations": "Simulations",
+    "resultsFound": "results found",
+    "matchesCount": "{count} matches",
+    "pagesWhereMentioned": "pages where topic is mentioned",
+    "moreCount": "and {count} more pages",
+    "page": "page",
+    "prevMatch": "Previous match",
+    "nextMatch": "Next match",
+    "analyzing": "Analyzing…",
+    "pageNumber": "Page {page}",
+    "errors": {
+      "networkError": "A network error occurred. Please check your connection.",
+      "micDenied": "Microphone permission denied. Please allow it in settings."
+    }
   },
   "language": {
     "tr": "Türkçe",
@@ -257,5 +294,20 @@
     "nature": "Nature",
     "history": "History",
     "food": "Dining"
+  },
+  "viewer": {
+    "back": "Go Back",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "matchesFound": "{count} matches · {pages} pages",
+    "locationsTitle": "Topic Locations",
+    "totalMatches": "total matches",
+    "differentPages": "different pages",
+    "analyzingPdf": "Analyzing PDF…",
+    "scanningAllPages": "Scanning all pages",
+    "noMatchesFound": "No matches found in this PDF.",
+    "queryNotPresent": "The topic \"{query}\" does not appear in this document",
+    "noUrl": "No valid PDF URL specified.",
+    "loadError": "An error occurred while loading the PDF. The file may be missing or corrupted."
   }
 }

@@ -1,40 +1,62 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clapperboard, Plus, Star, Tv, Book, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Clapperboard, Plus, Star, Tv, Book, Image as ImageIcon, Trash2, Edit, AlertCircle } from 'lucide-react';
 import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useTrackerStore, MediaItem, MediaType, MediaStatus } from '@/stores/useTrackerStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
-import Image from 'next/image';
 
 export default function TrackerPage() {
   const { t } = useTranslation();
+  const settings = useSettingsStore();
   const { items, fetchItems, addItem, updateItem, deleteItem } = useTrackerStore();
+  
   const [userId, setUserId] = useState<string | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   const [activeTab, setActiveTab] = useState<MediaType>('movie');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeStatus, setActiveStatus] = useState<MediaStatus | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'rating' | 'title' | 'date'>('date');
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  // Form State
+  // Sync settings default type on mount
+  useEffect(() => {
+    if (settings.trackerDefaultType) {
+      setActiveTab(settings.trackerDefaultType === 'show' ? 'series' : settings.trackerDefaultType);
+    }
+  }, [settings.trackerDefaultType]);
+
+  // Add Form State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [mediaType, setMediaType] = useState<MediaType>('movie');
   const [status, setStatus] = useState<MediaStatus>('planned');
   const [posterUrl, setPosterUrl] = useState('');
   const [rating, setRating] = useState(0);
   const [tmdbId, setTmdbId] = useState<string | null>(null);
-  
   const [tmdbResults, setTmdbResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Edit Form State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editStatus, setEditStatus] = useState<MediaStatus>('planned');
+  const [editPosterUrl, setEditPosterUrl] = useState('');
+  const [editRating, setEditRating] = useState(0);
+  const [editMediaType, setEditMediaType] = useState<MediaType>('movie');
+
   useEffect(() => {
-    fetchItems();
-    
     const getUser = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
+      if (user) {
+        setUserId(user.id);
+        fetchItems();
+      }
+      setLoadingUser(false);
     };
     getUser();
   }, [fetchItems]);
@@ -49,7 +71,7 @@ export default function TrackerPage() {
       setIsSearching(true);
       try {
         if (mediaType === 'book') {
-          // OpenLibrary API (Free, no rate limit issues like Google Books)
+          // OpenLibrary API
           const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(title)}&limit=5`);
           const data = await res.json();
           const formattedResults = (data.docs || []).map((item: any) => {
@@ -61,12 +83,12 @@ export default function TrackerPage() {
               release_date: item.first_publish_year ? item.first_publish_year.toString() : '',
               vote_average: 0,
               poster_path: poster,
-              is_google_book: true // Keeps the same rendering logic
+              is_google_book: true
             };
           });
           setTmdbResults(formattedResults);
         } else {
-          // TMDB search via server-side proxy
+          // TMDB search
           const res = await fetch(`/api/tracker/search?type=${mediaType}&query=${encodeURIComponent(title)}`);
           if (!res.ok) throw new Error('Search failed');
           const data = await res.json();
@@ -111,7 +133,7 @@ export default function TrackerPage() {
     try {
       await addItem({
         user_id: userId,
-        title,
+        title: title.trim(),
         media_type: mediaType,
         status,
         rating,
@@ -119,7 +141,7 @@ export default function TrackerPage() {
         tmdb_id: tmdbId,
       });
 
-      setIsModalOpen(false);
+      setIsAddModalOpen(false);
       setTitle('');
       setMediaType('movie');
       setStatus('planned');
@@ -131,18 +153,58 @@ export default function TrackerPage() {
     }
   };
 
-  const [activeStatus, setActiveStatus] = useState<MediaStatus | 'all'>('all');
+  const handleOpenEditModal = (item: MediaItem) => {
+    setSelectedItem(item);
+    setEditTitle(item.title);
+    setEditStatus(item.status);
+    setEditPosterUrl(item.poster_url || '');
+    setEditRating(item.rating || 0);
+    setEditMediaType(item.media_type);
+    setIsEditModalOpen(true);
+  };
 
+  const handleUpdateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItem || !editTitle.trim()) return;
+
+    try {
+      await updateItem(selectedItem.id, {
+        title: editTitle.trim(),
+        status: editStatus,
+        poster_url: editPosterUrl.trim() || null,
+        rating: editRating,
+        media_type: editMediaType
+      });
+      setIsEditModalOpen(false);
+      setSelectedItem(null);
+    } catch (error: any) {
+      alert("Düzenleme kaydedilemedi.");
+    }
+  };
+
+  // Filter items
   const filteredItems = items.filter(item => 
     item.media_type === activeTab && 
     (activeStatus === 'all' || item.status === activeStatus)
   );
 
+  // Sort items
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (sortBy === 'rating') {
+      return b.rating - a.rating;
+    }
+    if (sortBy === 'title') {
+      return a.title.localeCompare(b.title);
+    }
+    // Default: date added
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
+
   const getStatusColor = (s: MediaStatus) => {
     switch (s) {
-      case 'planned': return 'bg-gray-600/50 text-gray-300 border-gray-500/30';
-      case 'active': return 'bg-yellow-600/50 text-yellow-300 border-yellow-500/30';
-      case 'completed': return 'bg-green-600/50 text-green-300 border-green-500/30';
+      case 'planned': return 'bg-stone-800 text-stone-300 border-stone-700';
+      case 'active': return 'bg-yellow-950/20 text-yellow-400 border-yellow-500/10';
+      case 'completed': return 'bg-green-950/20 text-green-400 border-green-500/10';
     }
   };
 
@@ -166,95 +228,130 @@ export default function TrackerPage() {
     );
   };
 
+  if (loadingUser) {
+    return (
+      <div className="flex items-center justify-center h-[70vh] text-white">
+        <Loader2 size={32} className="animate-spin text-green-500" />
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh]">
+        <AlertCircle size={48} className="text-yellow-500 mb-4" />
+        <h2 className="text-2xl font-bold text-white mb-2">{t('common.loginRequired') || 'Giriş Gerekli'}</h2>
+        <p className="text-gray-400">Takip listenizi görmek için lütfen giriş yapın.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto animate-[fadeIn_0.5s_ease-out]">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Clapperboard className="text-green-500" size={32} />
-            {t('tracker.title')}
+            {t('tracker.title') || 'İzleme & Okuma Takibi'}
           </h1>
-          <p className="text-gray-400 mt-2">{t('tracker.subtitle')}</p>
+          <p className="text-gray-400 mt-2">{t('tracker.subtitle') || 'İzlediğiniz dizi, filmleri ve kitapları arşivleyin'}</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
-          <Plus size={16} /> {t('tracker.newItem')}
+        <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
+          <Plus size={16} /> {t('tracker.newItem') || 'Yeni Öğe'}
         </Button>
       </div>
 
       {/* Tabs & Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-green-900/30 pb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-green-900/20 pb-4">
         {/* Type Tabs */}
-        <div className="flex gap-4 overflow-x-auto hide-scrollbar w-full md:w-auto">
+        <div className="flex gap-3 overflow-x-auto hide-scrollbar w-full md:w-auto">
           <button
             onClick={() => setActiveTab('movie')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
               activeTab === 'movie' 
-                ? 'bg-green-600 text-white shadow-lg shadow-green-900/50' 
+                ? 'bg-green-500 text-stone-950 shadow-md font-bold' 
                 : 'text-gray-400 hover:text-white glass'
             }`}
           >
-            <Clapperboard size={18} /> {t('tracker.movies')}
+            <Clapperboard size={16} /> {t('tracker.movies') || 'Filmler'}
           </button>
           <button
             onClick={() => setActiveTab('series')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
               activeTab === 'series' 
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' 
+                ? 'bg-purple-500 text-stone-950 shadow-md font-bold' 
                 : 'text-gray-400 hover:text-white glass'
             }`}
           >
-            <Tv size={18} /> {t('tracker.series')}
+            <Tv size={16} /> {t('tracker.series') || 'Diziler'}
           </button>
           <button
             onClick={() => setActiveTab('book')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
               activeTab === 'book' 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
+                ? 'bg-blue-500 text-stone-950 shadow-md font-bold' 
                 : 'text-gray-400 hover:text-white glass'
             }`}
           >
-            <Book size={18} /> {t('tracker.books')}
+            <Book size={16} /> {t('tracker.books') || 'Kitaplar'}
           </button>
         </div>
 
-        {/* Status Filters */}
-        <div className="flex gap-2 bg-black/40 p-1 rounded-full border border-green-900/30 overflow-x-auto hide-scrollbar w-full md:w-auto">
-          <button 
-            onClick={() => setActiveStatus('all')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'all' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
-          >
-            Tümü
-          </button>
-          <button 
-            onClick={() => setActiveStatus('planned')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'planned' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'}`}
-          >
-            {t('tracker.planned')}
-          </button>
-          <button 
-            onClick={() => setActiveStatus('active')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'active' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-white'}`}
-          >
-            {t('tracker.active')}
-          </button>
-          <button 
-            onClick={() => setActiveStatus('completed')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${activeStatus === 'completed' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'}`}
-          >
-            {t('tracker.completed')}
-          </button>
+        {/* Status Filters & Sorting */}
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Sort bar */}
+          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-stone-800 text-xs text-gray-400">
+            <span className="font-semibold">Sırala:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent text-white outline-none border-none pr-4 font-semibold cursor-pointer"
+            >
+              <option value="date" className="bg-stone-900 text-white">Tarihe Göre</option>
+              <option value="rating" className="bg-stone-900 text-white">Puana Göre</option>
+              <option value="title" className="bg-stone-900 text-white">İsme Göre</option>
+            </select>
+          </div>
+
+          {/* Status filters */}
+          <div className="flex gap-1.5 bg-black/40 p-1 rounded-full border border-stone-800 overflow-x-auto hide-scrollbar">
+            <button 
+              onClick={() => setActiveStatus('all')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'all' ? 'bg-stone-750 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Tümü
+            </button>
+            <button 
+              onClick={() => setActiveStatus('planned')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'planned' ? 'bg-stone-750 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              {t('tracker.planned') || 'Planlandı'}
+            </button>
+            <button 
+              onClick={() => setActiveStatus('active')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'active' ? 'bg-yellow-600 text-white font-bold' : 'text-gray-400 hover:text-white'}`}
+            >
+              {t('tracker.active') || 'İzleniyor/Okunuyor'}
+            </button>
+            <button 
+              onClick={() => setActiveStatus('completed')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'completed' ? 'bg-green-600 text-stone-950 font-bold' : 'text-gray-400 hover:text-white'}`}
+            >
+              {t('tracker.completed') || 'Tamamlandı'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-        {filteredItems.length === 0 ? (
+        {sortedItems.length === 0 ? (
           <div className="col-span-full text-center text-gray-500 py-20 glass rounded-3xl">
-            {t('tracker.noItems')}
+            {t('tracker.noItems') || 'Listeniz henüz boş.'}
           </div>
         ) : (
-          filteredItems.map((item) => (
-            <div key={item.id} className="group relative rounded-2xl overflow-hidden glass hover:-translate-y-2 transition-all duration-300">
+          sortedItems.map((item) => (
+            <div key={item.id} className="group relative rounded-2xl overflow-hidden glass border border-white/[0.03] hover:-translate-y-2 transition-all duration-300">
               {/* Poster */}
               <div className="aspect-[2/3] w-full bg-black/50 relative">
                 {item.poster_url && !imageErrors[item.id] ? (
@@ -266,20 +363,30 @@ export default function TrackerPage() {
                     onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 gap-2">
-                    <ImageIcon size={40} />
-                    <span className="text-xs">No Poster</span>
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 gap-2 p-4 text-center">
+                    <ImageIcon size={40} className="opacity-30" />
+                    <span className="text-[10px] uppercase font-bold tracking-wider">Görsel Yok</span>
                   </div>
                 )}
                 
                 {/* Overlay actions on hover */}
-                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4">
-                  <div className="flex justify-end">
+                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4 z-10">
+                  <div className="flex justify-end gap-1.5">
                     <button 
-                      onClick={() => deleteItem(item.id)}
-                      className="text-gray-400 hover:text-red-500 bg-black/50 p-2 rounded-full backdrop-blur-sm"
+                      onClick={() => handleOpenEditModal(item)}
+                      className="text-gray-400 hover:text-white bg-black/50 p-2 rounded-full backdrop-blur-sm transition-colors"
+                      title="Düzenle"
                     >
-                      <Trash2 size={16} />
+                      <Edit size={14} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) deleteItem(item.id);
+                      }}
+                      className="text-gray-400 hover:text-red-500 bg-black/50 p-2 rounded-full backdrop-blur-sm transition-colors"
+                      title="Sil"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                   
@@ -287,11 +394,11 @@ export default function TrackerPage() {
                     <select
                       value={item.status}
                       onChange={(e) => updateItem(item.id, { status: e.target.value as MediaStatus })}
-                      className="w-full bg-white/10 text-white text-xs rounded-lg p-2 outline-none cursor-pointer"
+                      className="w-full bg-stone-900 border border-white/10 text-white text-xs rounded-lg p-2 outline-none cursor-pointer"
                     >
-                      <option value="planned">{t('tracker.planned')}</option>
-                      <option value="active">{t('tracker.active')}</option>
-                      <option value="completed">{t('tracker.completed')}</option>
+                      <option value="planned">{t('tracker.planned') || 'Planlandı'}</option>
+                      <option value="active">{t('tracker.active') || 'Devam Ediyor'}</option>
+                      <option value="completed">{t('tracker.completed') || 'Tamamlandı'}</option>
                     </select>
                     
                     <div className="flex justify-center bg-black/50 p-2 rounded-lg backdrop-blur-sm">
@@ -306,12 +413,12 @@ export default function TrackerPage() {
                 <h3 className="font-bold text-white text-sm line-clamp-1 mb-1" title={item.title}>
                   {item.title}
                 </h3>
-                <div className="flex justify-between items-center">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getStatusColor(item.status)}`}>
-                    {t(`tracker.${item.status}`)}
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${getStatusColor(item.status)}`}>
+                    {item.status === 'planned' ? 'Planlandı' : item.status === 'active' ? 'Devam Ediyor' : 'Tamamlandı'}
                   </span>
                   {item.rating > 0 && (
-                    <span className="text-xs text-yellow-400 flex items-center">
+                    <span className="text-xs text-yellow-400 flex items-center font-bold">
                       <Star size={10} fill="currentColor" className="mr-0.5" />
                       {item.rating}
                     </span>
@@ -324,7 +431,7 @@ export default function TrackerPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('tracker.newItem')} maxWidth="sm">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title={t('tracker.newItem') || 'Yeni Öğe Ekle'} maxWidth="sm">
         <form onSubmit={handleAddItem} className="space-y-4">
           <div className="flex gap-2 p-1 bg-black/50 rounded-xl border border-white/5 mb-4">
             {(['movie', 'series', 'book'] as MediaType[]).map((type) => (
@@ -333,20 +440,20 @@ export default function TrackerPage() {
                 type="button"
                 onClick={() => setMediaType(type)}
                 className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                  mediaType === type ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                  mediaType === type ? 'bg-green-500 text-stone-950 font-bold shadow-md' : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {t(`tracker.${type === 'movie' ? 'movies' : type === 'series' ? 'series' : 'books'}`)}
+                {type === 'movie' ? 'Film' : type === 'series' ? 'Dizi' : 'Kitap'}
               </button>
             ))}
           </div>
 
           <div className="relative">
-            <label className="text-sm text-gray-400 block mb-2">{t('tracker.titleLabel')}</label>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('tracker.titleLabel') || 'Başlık'}</label>
             <Input 
               value={title}
               onChange={handleTitleChange}
-              placeholder={t('tracker.titlePlaceholder')}
+              placeholder={t('tracker.titlePlaceholder') || 'Aramak veya eklemek istediğiniz başlığı girin...'}
               required
             />
             {isSearching && (
@@ -355,13 +462,13 @@ export default function TrackerPage() {
             
             {/* TMDB Results Dropdown */}
             {tmdbResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-black/90 border border-white/10 rounded-xl overflow-hidden z-50 backdrop-blur-xl shadow-2xl">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-stone-950 border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl">
                 {tmdbResults.map((res) => (
                   <button
                     key={res.id}
                     type="button"
                     onClick={() => handleSelectTmdb(res)}
-                    className="w-full text-left p-3 hover:bg-white/10 transition-colors flex items-center gap-3 border-b border-white/5 last:border-0"
+                    className="w-full text-left p-3 hover:bg-white/5 transition-colors flex items-center gap-3 border-b border-white/5 last:border-0"
                   >
                     {res.poster_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -389,44 +496,134 @@ export default function TrackerPage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-400 block mb-2">{t('tracker.posterUrl')}</label>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('tracker.posterUrl') || 'Poster / Kapak Resim Linki'}</label>
             <Input 
               value={posterUrl}
-              onChange={(val) => setPosterUrl(val as string)}
-              placeholder={t('tracker.posterPlaceholder')}
+              onChange={setPosterUrl}
+              placeholder={t('tracker.posterPlaceholder') || 'Görsel linki yapıştırın veya üstten aratın...'}
             />
           </div>
 
-          <div>
-            <label className="text-sm text-gray-400 block mb-2">{t('tracker.status')}</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as MediaStatus)}
-              className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:border-green-500/50 focus:ring-2 focus:ring-green-500/20"
-            >
-              <option value="planned" className="bg-black text-white">{t('tracker.planned')}</option>
-              <option value="active" className="bg-black text-white">{t('tracker.active')}</option>
-              <option value="completed" className="bg-black text-white">{t('tracker.completed')}</option>
-            </select>
-          </div>
-
-          {status === 'completed' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-400 block mb-2">{t('tracker.rating')}</label>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-2xl flex justify-center">
-                {renderStars(rating, true, setRating)}
-              </div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('tracker.status') || 'Durum'}</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as MediaStatus)}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 outline-none text-sm"
+              >
+                <option value="planned">{t('tracker.planned') || 'Planlandı'}</option>
+                <option value="active">{t('tracker.active') || 'Devam Ediyor'}</option>
+                <option value="completed">{t('tracker.completed') || 'Tamamlandı'}</option>
+              </select>
             </div>
-          )}
+            
+            {status === 'completed' && (
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('tracker.rating') || 'Puan'}</label>
+                <div className="bg-black/50 border border-green-900/50 p-2.5 rounded-2xl flex justify-center">
+                  {renderStars(rating, true, setRating)}
+                </div>
+              </div>
+            )}
+          </div>
           
-          <div className="flex justify-end pt-4">
-            <Button type="submit" className="bg-green-600 hover:bg-green-500">
-              {t('common.save')}
+          <div className="flex justify-end gap-3 pt-4 border-t border-green-900/30">
+            <Button variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>
+              {t('common.cancel') || 'İptal'}
+            </Button>
+            <Button type="submit" className="bg-green-600 text-stone-950 font-bold hover:bg-green-500">
+              {t('common.save') || 'Kaydet'}
             </Button>
           </div>
         </form>
       </Modal>
 
+      {/* Edit Modal */}
+      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedItem(null); }} title="Öğeyi Düzenle" maxWidth="sm">
+        <form onSubmit={handleUpdateItem} className="space-y-4">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Başlık</label>
+            <Input 
+              value={editTitle}
+              onChange={setEditTitle}
+              required
+            />
+          </div>
+
+          <div className="flex gap-2 p-1 bg-black/50 rounded-xl border border-white/5 mb-4">
+            {(['movie', 'series', 'book'] as MediaType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setEditMediaType(type)}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                  editMediaType === type ? 'bg-green-500 text-stone-950 font-bold shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {type === 'movie' ? 'Film' : type === 'series' ? 'Dizi' : 'Kitap'}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Poster / Kapak Resim Linki</label>
+            <Input 
+              value={editPosterUrl}
+              onChange={setEditPosterUrl}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Durum</label>
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value as MediaStatus)}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 outline-none text-sm"
+              >
+                <option value="planned">Planlandı</option>
+                <option value="active">Devam Ediyor</option>
+                <option value="completed">Tamamlandı</option>
+              </select>
+            </div>
+            
+            {editStatus === 'completed' && (
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Puan</label>
+                <div className="bg-black/50 border border-green-900/50 p-2.5 rounded-2xl flex justify-center">
+                  {renderStars(editRating, true, setEditRating)}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4 border-t border-green-900/30">
+            <Button variant="ghost" type="button" onClick={() => { setIsEditModalOpen(false); setSelectedItem(null); }}>
+              İptal
+            </Button>
+            <Button type="submit" className="bg-green-600 text-stone-950 font-bold hover:bg-green-500">
+              Güncelle
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
+  );
+}
+
+// Simple loader helper
+function Loader2({ size = 24, className = '' }) {
+  return (
+    <svg 
+      className={`animate-spin ${className}`} 
+      style={{ width: size, height: size }}
+      xmlns="http://www.w3.org/2000/svg" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
   );
 }

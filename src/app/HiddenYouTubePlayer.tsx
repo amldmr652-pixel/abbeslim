@@ -53,7 +53,26 @@ export default function HiddenYouTubePlayer() {
     const audio = new Audio();
     audio.preload = 'none';
     audioRef.current = audio;
-    audio.addEventListener('ended', () => ctxRef.current.handleNextTrack());
+
+    audio.addEventListener('ended', () => {
+      if (ctxRef.current.repeatMode === 'one') {
+        audio.currentTime = 0;
+        audio.play().catch(e => console.warn('Audio loop replay:', e));
+      } else {
+        ctxRef.current.handleNextTrack();
+      }
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      if (!ctxRef.current.seekRequest) {
+        ctxRef.current.updateProgress(audio.currentTime, audio.duration || 0);
+      }
+    });
+
+    audio.addEventListener('loadedmetadata', () => {
+      ctxRef.current.updateProgress(audio.currentTime, audio.duration || 0);
+    });
+
     return () => { audio.pause(); audio.src = ''; audioRef.current = null; };
   }, [mounted]);
 
@@ -114,9 +133,6 @@ export default function HiddenYouTubePlayer() {
         ytPlayerRef.current = null;
       }
 
-      // YouTube inner div'i iframe ile değiştirir
-      // ytContainerRef (wrapper) DOM'da kalır ve pointer-events:none özelliği
-      // iframe'e de uygulanır — tıklama artık geçemez
       if (!ytInnerRef.current) return;
       ytPlayerRef.current = new window.YT.Player(ytInnerRef.current, {
         width : 200,
@@ -134,7 +150,6 @@ export default function HiddenYouTubePlayer() {
           onReady: (e: any) => {
             ytReadyRef.current = true;
             ctx.registerYTPlayer(ytPlayerRef.current);
-            // Ek güvenlik: getIframe() ile de pointer-events:none zorla
             try {
               const iframe = e.target.getIframe() as HTMLElement;
               if (iframe) {
@@ -146,7 +161,24 @@ export default function HiddenYouTubePlayer() {
             e.target.setVolume(vol);
             if (ctxRef.current.isMusicPlaying) e.target.playVideo();
           },
-          onError: (e: any) => console.warn('YT Error:', e.data),
+          onStateChange: (e: any) => {
+            if (e.data === window.YT.PlayerState.PLAYING) {
+              const videoData = e.target.getVideoData();
+              ctxRef.current.updateSongInfo(videoData.title || '', videoData.author || '');
+            } else if (e.data === window.YT.PlayerState.ENDED) {
+              if (ctxRef.current.repeatMode === 'one') {
+                e.target.seekTo(0, true);
+                e.target.playVideo();
+              } else {
+                ctxRef.current.handleNextTrack();
+              }
+            }
+          },
+          onError: (e: any) => {
+            console.warn('YT Error:', e.data);
+            // Hata durumunda otomatik sonraki parçaya geç
+            ctxRef.current.handleNextTrack();
+          },
         },
       });
     };
@@ -185,6 +217,41 @@ export default function HiddenYouTubePlayer() {
     if (!mounted || !ytMode || !ytReadyRef.current || !ytPlayerRef.current) return;
     ytPlayerRef.current.setVolume?.(ctx.isMuted ? 0 : Math.round(ctx.volume * 100));
   }, [mounted, ytMode, ctx.volume, ctx.isMuted]);
+
+  // Gelişmiş Özellikler: Seek listener
+  useEffect(() => {
+    if (!mounted || !ctx.seekRequest) return;
+    const { time } = ctx.seekRequest;
+    if (ytMode) {
+      if (ytReadyRef.current && ytPlayerRef.current) {
+        ytPlayerRef.current.seekTo?.(time, true);
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.currentTime = time;
+      }
+    }
+    ctx.clearSeekRequest();
+  }, [mounted, ytMode, ctx.seekRequest]);
+
+  // YouTube: progress check loop
+  useEffect(() => {
+    if (!mounted || !ytMode || !ctx.isMusicPlaying) return;
+    const interval = setInterval(() => {
+      if (ytReadyRef.current && ytPlayerRef.current) {
+        try {
+          const current = ytPlayerRef.current.getCurrentTime?.() || 0;
+          const total = ytPlayerRef.current.getDuration?.() || 0;
+          if (!ctxRef.current.seekRequest) {
+            ctxRef.current.updateProgress(current, total);
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [mounted, ytMode, ctx.isMusicPlaying, ctx.selectedChannelId, ctx.currentTrackIndex]);
 
   if (!mounted) return null;
 

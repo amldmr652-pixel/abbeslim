@@ -1,6 +1,7 @@
 'use client';
 
 import { Mic, X, Sparkles } from 'lucide-react';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 interface SimulationModalProps {
   isOpen: boolean;
@@ -15,12 +16,22 @@ interface SimulationModalProps {
 export default function SimulationModal({
   isOpen, onClose, onSearch, onRetryMic, micError, simulatedQuery, setSimulatedQuery
 }: SimulationModalProps) {
+  const { t, language } = useTranslation();
+
   if (!isOpen) return null;
 
   const handleSimulatedSearch = (query: string) => {
     onClose();
     onSearch(query);
   };
+
+  const samplesByLang: Record<string, string[]> = {
+    'tr': ["Hücre bölünmesi nedir", "Mitoz bölünme evreleri", "Biyoloji notlarını aç"],
+    'ar': ["ما هو انقسام الخلايا", "مراحل الانقسام المتساوي", "افتح ملاحظات الأحياء"],
+    'en': ["What is cell division", "Mitosis division phases", "Open biology notes"]
+  };
+
+  const activeSamples = samplesByLang[language] || samplesByLang.tr;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -32,10 +43,10 @@ export default function SimulationModal({
           <X size={24} />
         </button>
         <h2 className="text-2xl font-bold mb-3 text-green-500 flex items-center gap-2">
-          <Mic size={28} className="text-green-400 animate-pulse" /> Sesli Arama Simülasyonu
+          <Mic size={28} className="text-green-400 animate-pulse" /> {t('search.simulation.title')}
         </h2>
         <p className="text-sm text-gray-300 mb-6 leading-relaxed">
-          IDE önizleme penceresinde Google Ses API anahtarları bulunmadığından <strong>Simülasyon Modu</strong> devreye girdi. Gerçek sesinizle denemek için <code className="text-green-400 bg-green-950/50 px-2 py-0.5 rounded">{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001'}</code> adresini normal Google Chrome tarayıcısında açabilirsiniz.
+          {t('search.simulation.desc').replace('{origin}', typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001')}
         </p>
 
         {/* Mikrofon hata mesajı */}
@@ -49,7 +60,7 @@ export default function SimulationModal({
         {/* Gerçek Mikrofonu Yeniden Bağlamayı Dene Butonu */}
         <div className="mb-6 p-4 bg-green-950/30 border border-green-500/30 rounded-2xl flex items-center justify-between gap-4">
           <div className="text-sm text-green-200">
-            🌐 Zaten <strong>Google Chrome / Edge</strong> kullanıyorsanız ve gerçek mikrofonu zorlamak istiyorsanız:
+            {t('search.simulation.retryWarning')}
           </div>
           <button
             onClick={() => {
@@ -58,23 +69,25 @@ export default function SimulationModal({
             }}
             className="bg-green-600 hover:bg-green-500 text-white font-bold px-5 py-2.5 rounded-xl transition-colors shadow-lg flex-shrink-0 flex items-center gap-2 text-sm"
           >
-            🔄 Gerçek Mikrofonu Başlat
+            🔄 {t('search.simulation.retryButton')}
           </button>
         </div>
 
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-300 mb-3">
-            💡 Mikrofona söylemiş gibi test etmek istediğiniz örnek aramayı seçin:
+            {t('search.simulation.chooseSample')}
           </label>
           <div className="flex flex-col gap-2.5">
-            {['Hücre bölünmesi nedir', 'Mitoz bölünme evreleri', 'Biyoloji notlarını aç'].map((q) => (
+            {activeSamples.map((q) => (
               <button
                 key={q}
                 onClick={() => handleSimulatedSearch(q)}
                 className="w-full text-left glass p-3.5 px-5 rounded-2xl hover:bg-green-900/40 hover:border-green-500/50 transition-all text-white flex items-center justify-between group"
               >
                 <span>🗣️ &quot;{q}&quot;</span>
-                <span className="text-xs text-green-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">Simüle Et →</span>
+                <span className="text-xs text-green-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                  {t('search.simulation.simulateBtn')} →
+                </span>
               </button>
             ))}
           </div>
@@ -82,12 +95,12 @@ export default function SimulationModal({
 
         <div className="border-t border-white/10 pt-6">
           <label className="block text-sm font-semibold text-gray-300 mb-2">
-            ✏️ Veya mikrofona söylemek istediğiniz metni kendiniz yazın:
+            {t('search.simulation.customLabel')}
           </label>
           <div className="flex gap-3">
             <input
               type="text"
-              placeholder="Örn: fotosentez tepkimeleri..."
+              placeholder={t('search.simulation.placeholder')}
               className="bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:outline-none focus:border-green-500 transition-colors flex-1"
               value={simulatedQuery}
               onChange={(e) => setSimulatedQuery(e.target.value)}
@@ -97,7 +110,7 @@ export default function SimulationModal({
               onClick={() => { if (simulatedQuery.trim()) handleSimulatedSearch(simulatedQuery); }}
               className="bg-green-600 hover:bg-green-500 text-white font-bold px-6 rounded-2xl transition-colors shadow"
             >
-              Ara
+              {t('common.search')}
             </button>
           </div>
         </div>

@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Timer, MessageCircle, Maximize, X } from 'lucide-react';
+import {
+  Timer, MessageCircle, Maximize, X, SkipForward, SkipBack,
+  Volume2, VolumeX, Heart, Play, Pause
+} from 'lucide-react';
 import PomodoroWidget from './components/PomodoroWidget';
 import AIChatWidget from './components/AIChatWidget';
 import Sidebar from './components/layout/Sidebar';
@@ -21,10 +24,15 @@ const AUTH_ROUTES = ['/login', '/register', '/pending-approval'];
  */
 import FocusModeOverlay from './components/FocusModeOverlay';
 import { useFocusStore } from '@/stores/useFocusStore';
-// Maximize and X imported above from lucide-react
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
-  const { setIsMusicPanelOpen, isMusicPanelOpen } = useMusicContext();
+  const {
+    setIsMusicPanelOpen, isMusicPanelOpen, selectedChannelId, isMusicPlaying,
+    activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
+    duration, volume, isMuted, setIsMusicPlaying, handlePrevTrack, handleNextTrack,
+    toggleFavorite, setIsMuted, setVolume
+  } = useMusicContext();
+
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -140,13 +148,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [shortcuts, isAuthenticated, isMusicPanelOpen, sidebarCollapsed, toggleFocusMode, setSidebarCollapsed, setIsMusicPanelOpen, router]);
 
-  // Tema sınıfını body'ye uygula
-  useEffect(() => {
-    document.body.classList.remove('theme-dark', 'theme-light', 'theme-amoled');
-    if (theme !== 'dark') {
-      document.body.classList.add(`theme-${theme}`);
-    }
-  }, [theme]);
+
 
   // Panel dışına tıklanırsa kapat
   const handleBackdropClick = () => {
@@ -156,6 +158,14 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   const togglePanel = (panel: 'pomodoro' | 'ai') => {
     setActivePanel(prev => prev === panel ? 'none' : panel);
+  };
+
+  // Time Formatter
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds === Infinity) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   // Auth sayfalarında sadece children render et
@@ -170,7 +180,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen overflow-hidden relative">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 overflow-y-auto ${selectedChannelId ? 'pb-24' : ''}`}>
         {children}
       </main>
 
@@ -286,6 +296,102 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
             <AIChatWidget isDropdown={true} />
           </div>
         </>
+      )}
+
+      {/* Bottom Mini Player Bar */}
+      {isAuthenticated && selectedChannelId && activeChannel && activeTrack && (
+        <div 
+          onClick={() => setIsMusicPanelOpen(true)}
+          className={`fixed bottom-0 right-0 h-20 bg-stone-950/95 backdrop-blur-md border-t border-green-900/30 z-[9900] flex items-center justify-between px-6 cursor-pointer hover:bg-stone-900/80 transition-colors left-0 ${
+            sidebarCollapsed ? 'md:left-[68px]' : 'md:left-[240px]'
+          }`}
+        >
+          {/* Left section: song info */}
+          <div className="flex items-center gap-3 min-w-0 max-w-[30%]">
+            <div 
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
+                isMusicPlaying ? 'animate-spin [animation-duration:12s]' : ''
+              }`}
+              style={{ background: activeChannel.coverBg }}
+            >
+              {activeChannel.icon}
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-white truncate">{currentSongTitle}</div>
+              <div className="text-[10px] text-gray-400 truncate mt-0.5">{currentSongArtist}</div>
+            </div>
+          </div>
+
+          {/* Middle section: playback controls & simple seek bar */}
+          <div className="flex flex-col items-center gap-1.5 flex-1 max-w-[40%]">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={(e) => { e.stopPropagation(); handlePrevTrack(); }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <SkipBack size={16} />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsMusicPlaying(!isMusicPlaying); }}
+                className="w-8 h-8 rounded-full bg-green-500 text-stone-950 flex items-center justify-center hover:scale-105 hover:bg-green-400 transition-all"
+              >
+                {isMusicPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleNextTrack(); }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <SkipForward size={16} />
+              </button>
+            </div>
+
+            {/* Simple progress bar */}
+            <div className="w-full flex items-center gap-2 px-4">
+              <span className="text-[9px] text-gray-500 font-mono">{formatTime(currentTime)}</span>
+              <div className="flex-1 h-1 bg-stone-800 rounded-full relative overflow-hidden">
+                <div 
+                  className="absolute top-0 left-0 bottom-0 bg-green-500 rounded-full"
+                  style={{ width: `${(currentTime / (duration || 100)) * 100}%` }}
+                />
+              </div>
+              <span className="text-[9px] text-gray-500 font-mono">{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* Right section: volume & favorite */}
+          <div className="flex items-center gap-4 min-w-0 max-w-[30%] justify-end">
+            <button 
+              onClick={(e) => { e.stopPropagation(); toggleFavorite(activeChannel.id); }}
+              className={`transition-colors ${
+                activeChannel.isFavorite ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Heart size={16} fill={activeChannel.isFavorite ? 'currentColor' : 'none'} />
+            </button>
+            
+            <div className="flex items-center gap-1.5 hidden sm:flex">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                {isMuted || volume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => {
+                  setIsMuted(false);
+                  setVolume(parseFloat(e.target.value));
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-16 h-1 bg-stone-850 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Odak Müzik Modalı (Global) */}

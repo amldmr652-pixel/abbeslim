@@ -102,11 +102,48 @@
     "recentFiles": "Son Dosyalar",
     "allGoals": "Tüm hedefleri gör",
     "noFiles": "Kütüphanenizde henüz dosya yok.",
-    "focusMusic": "Odak Müzik"
+    "focusMusic": "Odak Müzik",
+    "weatherDetails": "Hava Durumu Detayı",
+    "weather": {
+      "clear": "Açık",
+      "cloudy": "Parçalı Bulutlu",
+      "foggy": "Sisli",
+      "rainy": "Yağmurlu",
+      "snowy": "Kar Yağışlı",
+      "shower": "Sağanak Yağışlı",
+      "storm": "Fırtına",
+      "error": "Hata",
+      "unknown": "Bilinmiyor",
+      "yourLocation": "Konumunuz",
+      "city": "Şehir",
+      "humidity": "Nem",
+      "wind": "Rüzgar"
+    }
   },
   "search": {
     "title": "Aradığın Notu Söyle",
-    "micError": "Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome veya Edge kullanın."
+    "micError": "Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome veya Edge kullanın.",
+    "clearSearch": "Aramayı Temizle",
+    "searchPlaceholder": "Konu başlığı veya içerik ara...",
+    "voiceSearch": "Sesli Arama",
+    "semanticSearch": "AI Semantik",
+    "phraseSearch": "Cümle (Ctrl+F)",
+    "wordSearch": "Kelime Kelime",
+    "upload": "Dosya Yükle",
+    "simulations": "Simülasyonlar",
+    "resultsFound": "sonuç bulundu",
+    "matchesCount": "{count} eşleşme",
+    "pagesWhereMentioned": "konunun geçtiği sayfalar",
+    "moreCount": "ve {count} sayfa daha",
+    "page": "sayfa",
+    "prevMatch": "Önceki eşleşme",
+    "nextMatch": "Sonraki eşleşme",
+    "analyzing": "Analiz ediliyor…",
+    "pageNumber": "Sayfa {page}",
+    "errors": {
+      "networkError": "Ağ hatası oluştu. Lütfen bağlantınızı kontrol edin.",
+      "micDenied": "Mikrofon izni reddedildi. Lütfen ayarlardan izin verin."
+    }
   },
   "language": {
     "tr": "Türkçe",
@@ -257,5 +294,20 @@
     "nature": "Doğa",
     "history": "Tarih",
     "food": "Yeme-İçme"
+  },
+  "viewer": {
+    "back": "Geri Dön",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "matchesFound": "{count} eşleşme · {pages} sayfa",
+    "locationsTitle": "Konu Konumları",
+    "totalMatches": "toplam eşleşme",
+    "differentPages": "farklı sayfa",
+    "analyzingPdf": "PDF analiz ediliyor…",
+    "scanningAllPages": "Tüm sayfalar taranıyor",
+    "noMatchesFound": "Bu PDF'de eşleşme bulunamadı.",
+    "queryNotPresent": "\"{query}\" konusu bu belgede geçmiyor",
+    "noUrl": "Geçerli bir PDF URL'si belirtilmedi.",
+    "loadError": "PDF yüklenirken hata oluştu. Dosya bulunamamış veya bozuk olabilir."
   }
 }

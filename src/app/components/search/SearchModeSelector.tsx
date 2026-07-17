@@ -1,20 +1,23 @@
 'use client';
 
 import type { SearchMode } from '@/app/hooks/useSearch';
+import { useTranslation } from '@/app/hooks/useTranslation';
 
 interface SearchModeSelectorProps {
   searchMode: SearchMode;
   onModeChange: (mode: SearchMode) => void;
 }
 
-const modes: { key: SearchMode; label: string; icon: string }[] = [
-  { key: 'hybrid', label: 'Hibrit', icon: '🌀' },
-  { key: 'phrase', label: 'Cümle', icon: '🔤' },
-  { key: 'word', label: 'Kelime', icon: '🔠' },
-  { key: 'semantic', label: 'Mana (AI)', icon: '✨' },
-];
-
 export default function SearchModeSelector({ searchMode, onModeChange }: SearchModeSelectorProps) {
+  const { t } = useTranslation();
+
+  const modes: { key: SearchMode; label: string; icon: string }[] = [
+    { key: 'hybrid', label: t('search.modes.hybrid'), icon: '🌀' },
+    { key: 'phrase', label: t('search.modes.phrase'), icon: '🔤' },
+    { key: 'word', label: t('search.modes.word'), icon: '🔠' },
+    { key: 'semantic', label: t('search.modes.semantic'), icon: '✨' },
+  ];
+
   return (
     <div className="flex gap-1.5 p-1 bg-[#121212]/80 border border-green-900/30 rounded-full mb-10 max-w-md w-full justify-around shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] backdrop-blur-sm">
       {modes.map(({ key, label, icon }) => (

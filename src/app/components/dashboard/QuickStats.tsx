@@ -4,6 +4,8 @@ import { Clock, TrendingUp, Flame, Zap } from 'lucide-react';
 import { Card } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 
+import { useSettingsStore } from '@/stores/useSettingsStore';
+
 interface QuickStatsProps {
   completedTasks: number;
   totalTasks: number;
@@ -22,6 +24,7 @@ export default function QuickStats({
   activeGoalsCount
 }: QuickStatsProps) {
   const { t } = useTranslation();
+  const { financeCurrency } = useSettingsStore();
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-[fadeIn_0.7s_ease-out]">
@@ -60,7 +63,7 @@ export default function QuickStats({
           </div>
           <div>
             <p className="text-xs text-gray-500">{t('dashboard.expense')}</p>
-            <p className="text-xl font-bold text-white">₺{monthlyExpense}</p>
+            <p className="text-xl font-bold text-white">{financeCurrency}{monthlyExpense}</p>
           </div>
         </div>
       </Card>

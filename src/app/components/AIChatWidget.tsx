@@ -42,9 +42,10 @@ export default function AIChatWidget({ currentFileId, currentFileUrl, isDropdown
 
   return (
     <div
-      className="flex flex-col overflow-hidden"
+      className="flex flex-col overflow-hidden pb-14 md:pb-0"
       style={{
-        width: isDropdown ? 400 : 400,
+        width: '100%',
+        maxWidth: isDropdown ? 400 : 400,
         height: isDropdown ? 'calc(100vh - 80px)' : '85vh',
         maxHeight: isDropdown ? 'calc(100vh - 80px)' : 800,
         background: 'rgba(10,12,14,0.97)',

@@ -1,13 +1,17 @@
 'use client';
 
+import { useTranslation } from '@/app/hooks/useTranslation';
+
 export default function SearchHero() {
+  const { t } = useTranslation();
+
   return (
     <>
       <h1 className="text-4xl md:text-6xl font-bold mb-4 text-center">
-        Aradığın Notu <span className="text-green-500">Söyle</span>
+        {t('search.title')}
       </h1>
       <p className="text-gray-400 mb-12 text-center max-w-lg">
-        Ders notlarınız, videolarınız veya ses kayıtlarınız arasında yapay zeka destekli akıllı arama yapın.
+        {t('search.subtitle')}
       </p>
     </>
   );
