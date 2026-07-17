@@ -140,8 +140,20 @@ export default function NotesPage() {
       setIsTranscribing(!!interimTranscript);
     };
 
-    recognition.onerror = () => setIsTranscribing(false);
-    recognition.onend = () => setIsTranscribing(false);
+    recognition.onerror = (e: any) => {
+      console.error("Speech recognition error in notes page:", e);
+      setIsTranscribing(false);
+    };
+    recognition.onend = () => {
+      setIsTranscribing(false);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        try {
+          recognition.start();
+        } catch (err) {
+          console.error("Failed to restart speech recognition in notes page:", err);
+        }
+      }
+    };
 
     recognitionRef.current = recognition;
     recognition.start();

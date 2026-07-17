@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'games', icon: <Gamepad2 size={20} />, href: '/games' },
   { id: 'tracker', icon: <Clapperboard size={20} />, href: '/tracker' },
   { id: 'map', icon: <Map size={20} />, href: '/map' },
-  { id: 'music', icon: <Music size={20} />, action: 'music' },
+  { id: 'music', icon: <Music size={20} />, href: '/music' },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [

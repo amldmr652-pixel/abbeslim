@@ -16,7 +16,9 @@
     "update": "Update",
     "confirm": "Confirm",
     "close": "Close",
-    "noData": "No data yet."
+    "noData": "No data yet.",
+    "prev": "Previous",
+    "next": "Next"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -41,7 +43,12 @@
     "eventName": "Event Name",
     "date": "Date",
     "timeOptional": "Time (Optional)",
-    "subtitle": "Plan and track your agenda."
+    "subtitle": "Plan and track your agenda.",
+    "today": "Today",
+    "monthView": "Month",
+    "weekView": "Week",
+    "description": "Description",
+    "color": "Color Selection"
   },
   "tasks": {
     "newTask": "New Task",
@@ -122,6 +129,8 @@
   },
   "search": {
     "title": "Say the Note You're Looking For",
+    "subtitle": "Find course notes, presentations, and PDFs instantly",
+    "placeholder": "Type search term or phrase...",
     "micError": "Your browser does not support speech recognition. Please use Chrome or Edge.",
     "clearSearch": "Clear Search",
     "searchPlaceholder": "Search topic title or content...",
@@ -140,6 +149,14 @@
     "nextMatch": "Next match",
     "analyzing": "Analyzing…",
     "pageNumber": "Page {page}",
+    "noResults": "No results found",
+    "openInPdf": "Open in PDF",
+    "modes": {
+      "hybrid": "Hybrid",
+      "phrase": "Phrase",
+      "word": "Word",
+      "semantic": "Semantic"
+    },
     "errors": {
       "networkError": "A network error occurred. Please check your connection.",
       "micDenied": "Microphone permission denied. Please allow it in settings."
@@ -197,7 +214,7 @@
     "posterUrl": "Cover Image URL",
     "posterPlaceholder": "https://... (Optional)",
     "status": "Status",
-    "planned": "Plan to Watch / Read",
+    "planned": "Planned",
     "active": "Currently Active",
     "completed": "Completed",
     "rating": "Rating (0-5)",

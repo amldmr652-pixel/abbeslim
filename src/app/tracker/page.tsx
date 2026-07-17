@@ -415,7 +415,7 @@ export default function TrackerPage() {
                 </h3>
                 <div className="flex justify-between items-center mt-1">
                   <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${getStatusColor(item.status)}`}>
-                    {item.status === 'planned' ? 'Planlandı' : item.status === 'active' ? 'Devam Ediyor' : 'Tamamlandı'}
+                    {item.status === 'planned' ? t('tracker.planned') : item.status === 'active' ? t('tracker.active') : t('tracker.completed')}
                   </span>
                   {item.rating > 0 && (
                     <span className="text-xs text-yellow-400 flex items-center font-bold">

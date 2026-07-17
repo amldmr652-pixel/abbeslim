@@ -2,9 +2,8 @@
 
 import React from 'react';
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  className?: string;
   hover?: boolean;
   glow?: boolean;
   padding?: 'sm' | 'md' | 'lg';
@@ -22,6 +21,7 @@ export default function Card({
   hover = false,
   glow = false,
   padding = 'md',
+  ...props
 }: CardProps) {
   return (
     <div
@@ -33,6 +33,7 @@ export default function Card({
         ${glow ? 'shadow-lg shadow-green-500/10 hover:shadow-green-500/20' : ''}
         ${className}
       `}
+      {...props}
     >
       {children}
     </div>

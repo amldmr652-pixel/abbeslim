@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Clock, TrendingUp, Flame, Zap } from 'lucide-react';
 import { Card } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
-
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import WorkTimePanel from './WorkTimePanel';
 
 interface QuickStatsProps {
   completedTasks: number;
@@ -25,6 +26,7 @@ export default function QuickStats({
 }: QuickStatsProps) {
   const { t } = useTranslation();
   const { financeCurrency } = useSettingsStore();
+  const [showWorkTimePanel, setShowWorkTimePanel] = useState(false);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-[fadeIn_0.7s_ease-out]">
@@ -42,7 +44,7 @@ export default function QuickStats({
         </div>
       </Card>
 
-      <Card hover glow padding="md">
+      <Card hover glow padding="md" className="cursor-pointer" onClick={() => setShowWorkTimePanel(true)}>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-blue-900/30">
             <Clock size={20} className="text-blue-400" />
@@ -79,6 +81,10 @@ export default function QuickStats({
           </div>
         </div>
       </Card>
+
+      {showWorkTimePanel && (
+        <WorkTimePanel onClose={() => setShowWorkTimePanel(false)} />
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Card, Input, Button } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore, BreakSound, ThemeType } from '@/stores/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
+import AvatarCropModal from '@/app/components/ui/AvatarCropModal';
 
 type TabType = 'profile' | 'theme' | 'shortcuts' | 'music' | 'pomodoro' | 'calendar' | 'finance' | 'notes' | 'tasks' | 'goals' | 'tracker' | 'games' | 'map';
 
@@ -149,6 +150,33 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
+  const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
+
+  const handleCropSave = async (croppedBlob: Blob) => {
+    if (!user) return;
+    try {
+      const ext = 'jpg';
+      const filePath = `${user.id}/avatar.${ext}`;
+      const supabaseClient = createClient();
+      const file = new File([croppedBlob], `avatar.${ext}`, { type: 'image/jpeg' });
+      
+      const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, { upsert: true });
+      if (uploadError) {
+        alert('Avatar yüklenemedi: ' + uploadError.message);
+        return;
+      }
+      
+      const { data: { publicUrl } } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
+      const urlWithCacheBust = publicUrl + '?t=' + Date.now();
+      
+      await supabaseClient.auth.updateUser({ data: { avatar_url: urlWithCacheBust } });
+      setUser({ ...user, user_metadata: { ...user.user_metadata, avatar_url: urlWithCacheBust } });
+      setSelectedCropImage(null);
+    } catch (err: any) {
+      console.error(err);
+      alert('Resim yüklenirken bir hata oluştu.');
+    }
+  };
 
   // Pomodoro custom sound
   const [soundName, setSoundName] = useState('');
@@ -301,18 +329,14 @@ export default function SettingsPage() {
                       </div>
                       <label className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                         <Camera size={20} className="text-white" />
-                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (!file || !user) return;
-                          const ext = file.name.split('.').pop();
-                          const filePath = `${user.id}/avatar.${ext}`;
-                          const supabaseClient = createClient();
-                          const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, file, { upsert: true });
-                          if (uploadError) { alert('Avatar yüklenemedi: ' + uploadError.message); return; }
-                          const { data: { publicUrl } } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
-                          const urlWithCacheBust = publicUrl + '?t=' + Date.now();
-                          await supabaseClient.auth.updateUser({ data: { avatar_url: urlWithCacheBust } });
-                          setUser({ ...user, user_metadata: { ...user.user_metadata, avatar_url: urlWithCacheBust } });
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setSelectedCropImage(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
                         }} />
                       </label>
                     </div>
@@ -1136,6 +1160,14 @@ export default function SettingsPage() {
 
         </div>
       </div>
+      {/* Crop modal */}
+      {selectedCropImage && (
+        <AvatarCropModal
+          imageSrc={selectedCropImage}
+          onClose={() => setSelectedCropImage(null)}
+          onCrop={handleCropSave}
+        />
+      )}
     </div>
   );
 }

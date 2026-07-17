@@ -16,7 +16,9 @@
     "update": "Güncelle",
     "confirm": "Onayla",
     "close": "Kapat",
-    "noData": "Henüz veri yok."
+    "noData": "Henüz veri yok.",
+    "prev": "Önceki",
+    "next": "Sonraki"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -41,7 +43,12 @@
     "eventName": "Etkinlik Adı",
     "date": "Tarih",
     "timeOptional": "Saat (Opsiyonel)",
-    "subtitle": "Ajandanızı planlayın ve takip edin."
+    "subtitle": "Ajandanızı planlayın ve takip edin.",
+    "today": "Bugün",
+    "monthView": "Ay",
+    "weekView": "Hafta",
+    "description": "Açıklama",
+    "color": "Renk Seçimi"
   },
   "tasks": {
     "newTask": "Yeni Görev",
@@ -122,6 +129,8 @@
   },
   "search": {
     "title": "Aradığın Notu Söyle",
+    "subtitle": "Ders notlarını, sunumları ve PDF'leri anında bul",
+    "placeholder": "Konu başlığı veya içerik ara...",
     "micError": "Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome veya Edge kullanın.",
     "clearSearch": "Aramayı Temizle",
     "searchPlaceholder": "Konu başlığı veya içerik ara...",
@@ -140,6 +149,14 @@
     "nextMatch": "Sonraki eşleşme",
     "analyzing": "Analiz ediliyor…",
     "pageNumber": "Sayfa {page}",
+    "noResults": "Sonuç bulunamadı",
+    "openInPdf": "PDF'de Aç",
+    "modes": {
+      "hybrid": "Hibrit",
+      "phrase": "Cümle",
+      "word": "Kelime",
+      "semantic": "Anlamsal"
+    },
     "errors": {
       "networkError": "Ağ hatası oluştu. Lütfen bağlantınızı kontrol edin.",
       "micDenied": "Mikrofon izni reddedildi. Lütfen ayarlardan izin verin."
@@ -197,9 +214,9 @@
     "posterUrl": "Kapak Görseli URL",
     "posterPlaceholder": "https://... (Opsiyonel)",
     "status": "Durum",
-    "planned": "İzlenecek / Okunacak",
+    "planned": "Planlandı",
     "active": "Devam Ediyor",
-    "completed": "Bitti",
+    "completed": "Tamamlandı",
     "rating": "Puan (0-5)",
     "noItems": "Bu kategoride henüz kayıt yok."
   },

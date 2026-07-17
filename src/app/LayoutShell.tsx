@@ -12,7 +12,7 @@ import Sidebar from './components/layout/Sidebar';
 import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 import { useSettingsStore } from '@/stores/useSettingsStore';
-import MusicPanelModal from './components/search/MusicPanelModal';
+
 
 // Auth sayfaları — bu route'larda widget'lar gizlenir
 const AUTH_ROUTES = ['/login', '/register', '/pending-approval'];
@@ -30,7 +30,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     setIsMusicPanelOpen, isMusicPanelOpen, selectedChannelId, isMusicPlaying,
     activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
     duration, volume, isMuted, setIsMusicPlaying, handlePrevTrack, handleNextTrack,
-    toggleFavorite, setIsMuted, setVolume
+    toggleFavorite, setIsMuted, setVolume, seekTo
   } = useMusicContext();
 
   const pathname = usePathname();
@@ -122,7 +122,11 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               router.push('/map');
               break;
             case 'toggleMusic':
-              setIsMusicPanelOpen(!isMusicPanelOpen);
+              if (pathname === '/music') {
+                router.back();
+              } else {
+                router.push('/music');
+              }
               break;
             case 'togglePomodoro':
               togglePanel('pomodoro');
@@ -282,7 +286,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 : 'opacity-0 scale-95 translate-x-4 pointer-events-none'
             }`}
           >
-            <PomodoroWidget onOpenMusicPanel={() => setIsMusicPanelOpen(true)} />
+            <PomodoroWidget onOpenMusicPanel={() => router.push('/music')} />
           </div>
 
           {/* AI Chat Panel (Yandan Açılan) */}
@@ -301,9 +305,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       {/* Bottom Mini Player Bar */}
       {isAuthenticated && selectedChannelId && activeChannel && activeTrack && (
         <div 
-          onClick={() => setIsMusicPanelOpen(true)}
-          className={`fixed bottom-0 right-0 h-20 bg-stone-950/95 backdrop-blur-md border-t border-green-900/30 z-[9900] flex items-center justify-between px-6 cursor-pointer hover:bg-stone-900/80 transition-colors left-0 ${
-            sidebarCollapsed ? 'md:left-[68px]' : 'md:left-[240px]'
+          onClick={() => router.push('/music')}
+          className={`fixed bottom-0 end-0 h-20 bg-stone-950/95 backdrop-blur-md border-t border-green-900/30 z-[9900] flex items-center justify-between px-6 cursor-pointer hover:bg-stone-900/80 transition-colors start-0 ${
+            sidebarCollapsed ? 'md:start-[68px]' : 'md:start-[240px]'
           }`}
         >
           {/* Left section: song info */}
@@ -346,14 +350,16 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
             </div>
 
             {/* Simple progress bar */}
-            <div className="w-full flex items-center gap-2 px-4">
+            <div className="w-full flex items-center gap-2 px-4" onClick={(e) => e.stopPropagation()}>
               <span className="text-[9px] text-gray-500 font-mono">{formatTime(currentTime)}</span>
-              <div className="flex-1 h-1 bg-stone-800 rounded-full relative overflow-hidden">
-                <div 
-                  className="absolute top-0 left-0 bottom-0 bg-green-500 rounded-full"
-                  style={{ width: `${(currentTime / (duration || 100)) * 100}%` }}
-                />
-              </div>
+              <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                value={currentTime}
+                onChange={(e) => seekTo(parseFloat(e.target.value))}
+                className="flex-1 h-1 bg-stone-800 rounded-full appearance-none cursor-pointer accent-green-500 focus:outline-none"
+              />
               <span className="text-[9px] text-gray-500 font-mono">{formatTime(duration)}</span>
             </div>
           </div>
@@ -394,8 +400,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
         </div>
       )}
 
-      {/* Odak Müzik Modalı (Global) */}
-      <MusicPanelModal />
+      {/* Odak Müzik Modalı kaldırıldı (Artık tam sayfa /music route'u var) */}
     </div>
   );
 }

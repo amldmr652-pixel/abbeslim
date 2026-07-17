@@ -86,7 +86,7 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
     };
     const activeLang = speechLang || language;
     recognition.lang = langMap[activeLang] || 'tr-TR';
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
@@ -138,10 +138,11 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
       }
 
       if (event.error === 'aborted' || event.error === 'no-speech') {
-        // Kullanıcı durdurdu veya sessizlik oldu — bunlar hata değildir, sessizce durdur
-        shouldRestartRef.current = false;
-        setListening(false);
-        recognitionRef.current = null;
+        // Kullanıcı durdurdu veya sessizlik oldu
+        if (!shouldRestartRef.current) {
+          setListening(false);
+          recognitionRef.current = null;
+        }
         return;
       }
 
@@ -169,6 +170,16 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
             startListening(true);
           }
         }, 500);
+        return;
+      }
+
+      // Kullanıcı manuel olarak durdurmadıysa, sessizlikten dolayı kapandıysa otomatik yeniden başlat
+      if (shouldRestartRef.current) {
+        setTimeout(() => {
+          if (shouldRestartRef.current) {
+            startListening(true);
+          }
+        }, 300);
         return;
       }
 

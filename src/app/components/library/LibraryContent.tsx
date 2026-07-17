@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, ChevronRight, Folder, Home, Plus, Edit2, FolderUp, Trash2, FileText, Loader2 } from 'lucide-react';
+import { Search, ChevronRight, Folder, Home, Plus, Edit2, FolderUp, Trash2, FileText, Loader2, Download } from 'lucide-react';
 import { LibraryState } from '@/app/hooks/useLibrary';
 import { getFileIcon } from './utils';
 
@@ -229,6 +229,31 @@ export function LibraryContent({ libraryState }: Props) {
                         {getFileIcon(file.type)}
                       </div>
                       <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              const response = await fetch(file.url);
+                              const blob = await response.blob();
+                              const blobUrl = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = blobUrl;
+                              link.download = file.name;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(blobUrl);
+                            } catch (error) {
+                              console.error('İndirme hatası:', error);
+                              window.open(file.url, '_blank');
+                            }
+                          }}
+                          className="p-3 text-gray-400 hover:text-green-400 hover:bg-green-900/30 rounded-2xl transition-colors shadow"
+                          title="Dosyayı İndir"
+                        >
+                          <Download size={22} />
+                        </button>
                         <button
                           onClick={(e) => {
                             e.preventDefault();

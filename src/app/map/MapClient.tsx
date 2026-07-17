@@ -34,7 +34,7 @@ const CATEGORIES: { id: PinCategory; label: string; emoji: string }[] = [
 const TILE_LAYERS = {
   dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
   light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{x}/{y}',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
 
 // Custom DivIcon creator
@@ -58,7 +58,7 @@ function ClickHandler({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => 
 function MapViewUpdater({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
+    map.flyTo(center, zoom, { animate: true, duration: 1.2 });
   }, [map, center, zoom]);
   return null;
 }
@@ -81,6 +81,23 @@ export default function MapClient() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+
+  // Map Centering and Selection
+  const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([39.0, 35.0]);
+  const [currentZoom, setCurrentZoom] = useState<number>(6);
+
+  useEffect(() => {
+    if (settings.mapDefaultZoom) {
+      setCurrentZoom(settings.mapDefaultZoom);
+    }
+  }, [settings.mapDefaultZoom]);
+
+  const handlePinClick = (pin: MapPin) => {
+    setSelectedPinId(pin.id);
+    setMapCenter([pin.lat, pin.lng]);
+    setCurrentZoom(15);
+  };
 
   useEffect(() => {
     fetchPins();
@@ -220,8 +237,17 @@ export default function MapClient() {
             <div className="space-y-2">
               {filteredPins.map((pin) => {
                 const cat = CATEGORIES.find((c) => c.id === pin.category);
+                const isSelected = selectedPinId === pin.id;
                 return (
-                  <div key={pin.id} className="flex items-center gap-3 p-2 px-3 rounded-xl hover:bg-white/5 transition-colors group">
+                  <div 
+                    key={pin.id} 
+                    onClick={() => handlePinClick(pin)}
+                    className={`flex items-center gap-3 p-2 px-3 rounded-xl transition-all cursor-pointer group ${
+                      isSelected 
+                        ? 'bg-green-500/10 border border-green-500/20' 
+                        : 'hover:bg-white/5 border border-transparent'
+                    }`}
+                  >
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: STATUS_COLORS[pin.status as PinStatus] || '#22c55e' }}
@@ -233,7 +259,8 @@ export default function MapClient() {
                       </p>
                     </div>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (confirm('Bu konumu haritadan kaldırmak istiyor musunuz?')) removePin(pin.id);
                       }}
                       className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
@@ -261,13 +288,18 @@ export default function MapClient() {
             url={tileUrl}
           />
           <ClickHandler onMapClick={handleMapClick} />
-          <MapViewUpdater center={[39.0, 35.0]} zoom={mapZoom} />
+          <MapViewUpdater center={mapCenter} zoom={currentZoom} />
 
           {filteredPins.map((pin) => (
             <Marker
               key={pin.id}
               position={[pin.lat, pin.lng]}
               icon={createPinIcon(pin.status as PinStatus)}
+              eventHandlers={{
+                click: () => {
+                  handlePinClick(pin);
+                }
+              }}
             >
               <Popup>
                 <div className="min-w-[220px] text-gray-800">

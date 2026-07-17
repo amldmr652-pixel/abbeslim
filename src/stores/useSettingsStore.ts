@@ -97,6 +97,10 @@ interface SettingsState {
   notesAutoSaveInterval: number;     // saniye, default 30
   notesFontSize: 'small' | 'medium' | 'large'; // default 'medium'
 
+  // ── YENİ: Çalışma Süresi Ayarları ──
+  workTimeDailyGoal: number;         // dakika, default 120
+  workTimeWeeklyGoal: number;        // saat, default 10
+
   // ── YENİ: Görev Ayarları ──
   tasksDefaultPriority: 'low' | 'medium' | 'high'; // default 'medium'
   tasksShowCompleted: boolean;       // default true
@@ -169,6 +173,9 @@ export const useSettingsStore = create<SettingsState>()(
       notesAutoSave: true,
       notesAutoSaveInterval: 30,
       notesFontSize: 'medium',
+
+      workTimeDailyGoal: 120,
+      workTimeWeeklyGoal: 10,
 
       tasksDefaultPriority: 'medium',
       tasksShowCompleted: true,

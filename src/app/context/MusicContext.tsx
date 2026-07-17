@@ -138,6 +138,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   // YouTube player referansı
   const ytPlayerRef = useRef<any>(null);
+  const lastActiveTrackIdRef = useRef<string | null>(null);
   // Supabase kaydetme için debounce timer
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -211,9 +212,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // Song info auto fallback
   useEffect(() => {
     if (activeTrack) {
-      setCurrentSongTitle(activeTrack.title);
-      setCurrentSongArtist(activeTrack.artist || activeChannel?.name || 'Sanatçı');
+      const trackId = `${activeTrack.audioSrc}::${activeTrack.title}`;
+      if (lastActiveTrackIdRef.current !== trackId) {
+        lastActiveTrackIdRef.current = trackId;
+        setCurrentSongTitle(activeTrack.title);
+        setCurrentSongArtist(activeTrack.artist || activeChannel?.name || 'Sanatçı');
+      }
     } else {
+      lastActiveTrackIdRef.current = null;
       setCurrentSongTitle('');
       setCurrentSongArtist('');
     }
