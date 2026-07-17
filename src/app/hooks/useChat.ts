@@ -15,6 +15,7 @@ export interface Message {
   title?: string;
   sources?: Source[];
   hasConflict?: boolean;
+  calendarEvent?: { title: string; date: string; time?: string };
 }
 
 export function useChat(currentFileId?: string) {
@@ -257,6 +258,7 @@ export function useChat(currentFileId?: string) {
         title: data.title ?? 'Calisma_Notu',
         sources: data.sources ?? [],
         hasConflict: data.hasConflict ?? false,
+        calendarEvent: data.calendarEvent ?? undefined,
       };
 
       setMessages(prev => [...prev, aiMsg]);

@@ -239,9 +239,16 @@ export async function POST(req: NextRequest) {
     // Mod bazlı system instruction belirleme
     const titleDirective = '\n\nÖNEMLİ: Cevabının en sonuna mutlaka [TITLE: konu_adi] formatında, Türkçe karakterler içermeyen, boşluk yerine alt çizgi (_) kullanan, dosya ismi olmaya uygun (max 30 karakter) kısa bir konu başlığı ekle (örn: [TITLE: Osmanli_Cokus_Nedenleri]).';
 
+    // Bugünün tarihi
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+    const todayDateStr = localDate.toISOString().split('T')[0];
+    const calendarDirective = `\n\nBugünün tarihi: ${todayDateStr}. Kullanıcı 'ayın 15'ine x ekle' dediğinde bu tarihi baz alarak create_calendar_event aracını çağır.`;
+
     let systemInstructionText = '';
     if (mode === 'independent') {
-      systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcıyla genel konularda sohbet et, sorularını kendi geniş genel bilgine dayanarak Türkçe cevapla. PDF belgelerini veya kaynaklarını referans almana gerek yoktur. Cevabında kesinlikle [1], [2] gibi kaynak numaraları kullanma.` + titleDirective;
+      systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcıyla genel konularda sohbet et, sorularını kendi geniş genel bilgine dayanarak Türkçe cevapla. PDF belgelerini veya kaynaklarını referans almana gerek yoktur. Cevabında kesinlikle [1], [2] gibi kaynak numaraları kullanma.` + titleDirective + calendarDirective;
     } else if (mode === 'sources') {
       systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcının yüklediği PDF belgelerine dayalı sorulara yardımcı olursun.
 DAVRANIŞIN:
@@ -249,7 +256,7 @@ DAVRANIŞIN:
 - PDF kaynaklardan gelen bilgileri kullanırken, bilginin veya cümlenin hemen sonuna [1], [2] gibi kaynak numaraları ekle (örn: "...anlatmaktadır [1]."). Metin içinde kesinlikle dosya adı, sayfa veya URL yazma, sadece [numara] formatını kullan. Numaralar sırasıyla yukarındaki KAYNAK listesindeki sıraya (1'den başlayarak) karşılık gelmelidir.
 - Eğer iki farklı kaynakta çelişen bilgi varsa her ikisini de yaz ve çeliştiğini belirt.
 - Kesinlikle PDF kaynaklarında olmayan bilgileri uydurma.
-- Cevapların kısa, net ve yardımcı olsun.` + titleDirective;
+- Cevapların kısa, net ve yardımcı olsun.` + titleDirective + calendarDirective;
     } else {
       // hybrid (ikisi birlikte)
       systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcının yüklediği PDF belgelerine dayalı sorulara yardımcı olursun.
@@ -258,7 +265,7 @@ DAVRANIŞIN:
 - PDF kaynaklardan gelen bilgileri kullanırken, bilginin veya cümlenin hemen sonuna [1], [2] gibi kaynak numaraları ekle (örn: "...anlatmaktadır [1]."). Metin içinde kesinlikle dosya adı, sayfa veya URL yazma, sadece [numara] formatını kullan. Numaralar sırasıyla yukarındaki KAYNAK listesindeki sıraya (1'den başlayarak) karşılık gelmelidir.
 - PDF belgelerinde aranan bilgi yoksa veya eksikse, kendi genel bilgini kullanarak cevabı zenginleştir, ancak PDF kaynaklarından aldığın bilgileri [numara] ile işaretlemeye devam et. Kendi bilginden ekleme yaptığında kaynak numarası koyma.
 - Eğer iki farklı kaynakta çelişen bilgi varsa her ikisini de yaz ve çeliştiğini belirt.
-- Cevapların kısa, net ve yardımcı olsun.` + titleDirective;
+- Cevapların kısa, net ve yardımcı olsun.` + titleDirective + calendarDirective;
     }
 
     // Gemini API çağrısı (Sırasıyla modelleri dener - Fallback yapısı)
@@ -288,6 +295,38 @@ DAVRANIŞIN:
                   role: 'user',
                   parts: [{ text: userMessage }],
                 },
+              ],
+              tools: [
+                {
+                  functionDeclarations: [
+                    {
+                      name: 'create_calendar_event',
+                      description: 'Takvime yeni bir etkinlik ekler.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          title: {
+                            type: 'STRING',
+                            description: 'Etkinlik başlığı.'
+                          },
+                          date: {
+                            type: 'STRING',
+                            description: 'Etkinlik tarihi (YYYY-MM-DD formatında).'
+                          },
+                          time: {
+                            type: 'STRING',
+                            description: 'Etkinlik saati (HH:MM formatında, isteğe bağlı).'
+                          },
+                          description: {
+                            type: 'STRING',
+                            description: 'Etkinlik açıklaması (isteğe bağlı).'
+                          }
+                        },
+                        required: ['title', 'date']
+                      }
+                    }
+                  ]
+                }
               ],
               generationConfig: {
                 temperature: mode === 'independent' ? 0.7 : 0.3,
@@ -323,6 +362,61 @@ DAVRANIŞIN:
     }
 
     const geminiData = await geminiRes.json();
+
+    // Inspect if a functionCall was requested
+    const part = geminiData?.candidates?.[0]?.content?.parts?.[0];
+    const functionCall = part?.functionCall;
+
+    if (functionCall && functionCall.name === 'create_calendar_event') {
+      const args = functionCall.args as {
+        title: string;
+        date: string;
+        time?: string;
+        description?: string;
+      };
+
+      const eventTitle = args.title;
+      const eventDate = args.date;
+      const eventTime = args.time;
+      const eventDesc = args.description;
+
+      try {
+        const startDateTime = new Date(`${eventDate}T${eventTime || '00:00'}:00`).toISOString();
+        const endDateTime = new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
+
+        const { error: insertError } = await supabase
+          .from('calendar_events')
+          .insert([
+            {
+              user_id: user.id,
+              title: eventTitle,
+              description: eventDesc || null,
+              start_time: startDateTime,
+              end_time: endDateTime,
+              is_all_day: !eventTime,
+              color: '#22c55e',
+            },
+          ]);
+
+        if (insertError) {
+          console.error('Error inserting calendar event:', insertError);
+          return NextResponse.json({ error: 'Etkinlik takvime eklenirken veritabanı hatası oluştu.' }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          answer: `Etkinlik başarıyla takvime eklendi: ${eventTitle}`,
+          calendarEvent: {
+            title: eventTitle,
+            date: eventDate,
+            time: eventTime,
+          },
+        });
+      } catch (err) {
+        console.error('Failed to insert calendar event:', err);
+        return NextResponse.json({ error: 'Etkinlik takvime eklenirken sunucu hatası oluştu.' }, { status: 500 });
+      }
+    }
+
     const rawAnswer: string =
       geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Yanıt alınamadı.';
 

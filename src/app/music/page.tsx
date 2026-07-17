@@ -16,7 +16,7 @@ export default function MusicPage() {
     channels, selectedChannelId, isMusicPlaying, currentTrackIndex,
     isMusicSynced, volume, isMuted, activeChannel, activeTrack,
     favoriteChannelIds, shuffleMode, repeatMode, currentSongTitle, currentSongArtist,
-    currentTime, duration, sleepTimerRemaining,
+    currentTime, duration, sleepTimerRemaining, isLoadingTrack,
     handleSelectChannel, handlePrevTrack, handleNextTrack,
     setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted,
     addChannel, removeChannel, toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer,
@@ -149,7 +149,11 @@ export default function MusicPage() {
                   {activeChannel.icon}
                   {/* Inner vinyl record hole */}
                   <div className="absolute w-16 h-16 rounded-full bg-stone-950 border border-white/10 shadow-inner flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-stone-900" />
+                    {isLoadingTrack ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full bg-stone-900" />
+                    )}
                   </div>
                 </div>
 
@@ -203,7 +207,13 @@ export default function MusicPage() {
                     className="w-16 h-16 rounded-full bg-green-500 text-stone-950 flex items-center justify-center hover:scale-105 hover:bg-green-400 transition-all shadow-xl shadow-green-500/20"
                     title={isMusicPlaying ? 'Duraklat' : 'Oynat'}
                   >
-                    {isMusicPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
+                    {isLoadingTrack ? (
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-stone-950 border-t-transparent" />
+                    ) : isMusicPlaying ? (
+                      <Pause size={28} fill="currentColor" />
+                    ) : (
+                      <Play size={28} fill="currentColor" className="ml-1" />
+                    )}
                   </button>
 
                   {/* Next button */}
@@ -470,9 +480,14 @@ export default function MusicPage() {
           className="flex items-center gap-3.5 flex-1 min-w-0 cursor-pointer"
         >
           <div 
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 relative overflow-hidden"
             style={{ background: channel.coverBg }}
           >
+            {isSelected && isLoadingTrack && (
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent" />
+              </div>
+            )}
             {channel.icon}
           </div>
           <div className="min-w-0 flex-1">

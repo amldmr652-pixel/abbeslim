@@ -137,6 +137,24 @@ export function ChatMessageList({
             </div>
           )}
 
+          {msg.role === 'ai' && msg.calendarEvent && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs max-w-[90%] font-medium transition-all"
+              style={{
+                background: 'rgba(34, 197, 94, 0.08)',
+                border: '1px solid rgba(34, 197, 94, 0.25)',
+                color: '#4ade80',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Check size={14} className="shrink-0 text-green-400 stroke-[3]" />
+              <span>
+                📅 Takvime Eklendi: {msg.calendarEvent.title} - {msg.calendarEvent.date}{msg.calendarEvent.time ? ` ${msg.calendarEvent.time}` : ''}
+              </span>
+            </div>
+          )}
+
           {msg.role === 'ai' && (
             <div className="flex items-center gap-2 mt-1">
               <button

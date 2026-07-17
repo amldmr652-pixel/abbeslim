@@ -6,7 +6,6 @@ import {
   Timer, MessageCircle, Maximize, X, SkipForward, SkipBack,
   Volume2, VolumeX, Heart, Play, Pause
 } from 'lucide-react';
-import PomodoroWidget from './components/PomodoroWidget';
 import AIChatWidget from './components/AIChatWidget';
 import Sidebar from './components/layout/Sidebar';
 import { useMusicContext } from './context/MusicContext';
@@ -30,7 +29,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     setIsMusicPanelOpen, isMusicPanelOpen, selectedChannelId, isMusicPlaying,
     activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
     duration, volume, isMuted, setIsMusicPlaying, handlePrevTrack, handleNextTrack,
-    toggleFavorite, setIsMuted, setVolume, seekTo
+    toggleFavorite, setIsMuted, setVolume, seekTo, isLoadingTrack
   } = useMusicContext();
 
   const pathname = usePathname();
@@ -129,7 +128,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               }
               break;
             case 'togglePomodoro':
-              togglePanel('pomodoro');
+              router.push('/study');
               break;
             case 'toggleAIChat':
               togglePanel('ai');
@@ -222,7 +221,10 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
             {/* Pomodoro Toggle Butonu (Sol - 180 derece) */}
             <button
-              onClick={() => togglePanel('pomodoro')}
+              onClick={() => {
+                router.push('/study');
+                setIsMenuOpen(false);
+              }}
               style={{
                 transform: isMenuOpen ? 'translate(-90px, 0px) scale(1)' : 'translate(0, 0) scale(0)',
                 opacity: isMenuOpen ? 1 : 0,
@@ -231,7 +233,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               className={`absolute w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 z-20 ${
                 isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
               } ${
-                activePanel === 'pomodoro'
+                pathname === '/study'
                   ? 'bg-green-500 text-white shadow-lg shadow-green-500/40 border-transparent'
                   : 'glass text-gray-400 hover:text-green-400 border border-white/10 hover:border-green-500/30'
               }`}
@@ -278,16 +280,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
           <FocusModeOverlay />
 
-          {/* Pomodoro Panel (Yandan Açılan) */}
-          <div
-            className={`fixed right-[130px] top-1/2 -translate-y-1/2 z-[9998] transition-all duration-300 ease-out origin-right ${
-              activePanel === 'pomodoro'
-                ? 'opacity-100 scale-100 translate-x-0'
-                : 'opacity-0 scale-95 translate-x-4 pointer-events-none'
-            }`}
-          >
-            <PomodoroWidget onOpenMusicPanel={() => router.push('/music')} />
-          </div>
+
 
           {/* AI Chat Panel (Yandan Açılan) */}
           <div
@@ -313,11 +306,16 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           {/* Left section: song info */}
           <div className="flex items-center gap-3 min-w-0 max-w-[30%]">
             <div 
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 relative overflow-hidden ${
                 isMusicPlaying ? 'animate-spin [animation-duration:12s]' : ''
               }`}
               style={{ background: activeChannel.coverBg }}
             >
+              {isLoadingTrack && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent" />
+                </div>
+              )}
               {activeChannel.icon}
             </div>
             <div className="min-w-0">
@@ -339,7 +337,13 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 onClick={(e) => { e.stopPropagation(); setIsMusicPlaying(!isMusicPlaying); }}
                 className="w-8 h-8 rounded-full bg-green-500 text-stone-950 flex items-center justify-center hover:scale-105 hover:bg-green-400 transition-all"
               >
-                {isMusicPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+                {isLoadingTrack ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-stone-950 border-t-transparent" />
+                ) : isMusicPlaying ? (
+                  <Pause size={14} fill="currentColor" />
+                ) : (
+                  <Play size={14} fill="currentColor" className="ml-0.5" />
+                )}
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); handleNextTrack(); }}

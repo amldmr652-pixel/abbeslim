@@ -750,6 +750,81 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 **Sonraki Adımlar:**
 - Proje Vercel ortamında test edilebilir. Tüm modüller sorunsuz şekilde çalışmaktadır.
 
+---
 
+## [2026-07-18] 13 Sorun Düzeltmesi, Arayüz & Mimari İyileştirmeler — Tamamlandı
 
+**Durum:** Vercel deploy doğrulama öncesi tüm 13 sorun ve iyileştirme fazı başarıyla tamamlandı. Proje `npm run build` ile yerel olarak başarıyla derlenmiştir.
 
+**Yapılan İşlemler:**
+
+1. **i18n Çeviri Düzeltmeleri (Sorun #2):**
+   - `tr.json`, `en.json` ve `ar.json` dosyalarına arama (modes.hybrid/phrase/word/semantic, openInPdf, noResults), takvim (today, monthView, weekView, description, color) ve ortak (prev, next) alanlarındaki eksik dil anahtarları eklenerek arayüzdeki ham key görünüm problemleri giderildi.
+   - `tracker/page.tsx` üzerindeki hardcoded "Planlandı", "Devam Ediyor" ve "Tamamlandı" durum etiketleri `t('tracker.planned')` vb. i18n çeviri anahtarlarına bağlanarak tüm dillerde (TR/EN/AR) uyumlu hale getirildi.
+
+2. **Ses Kaydı Zaman Aşımı Düzeltmesi (Sorun #3):**
+   - `useSpeechRecognition.ts` içerisindeki Web Speech API tanılama ayarı `continuous = true` olarak değiştirildi. Bu sayede konuşma arasındaki nefes alma duraklamalarında ses kaydının kendiliğinden sonlanması engellendi.
+   - Sessizlik (`no-speech`) veya tarayıcı kesintilerinde eğer kullanıcı manuel durdurma butonuna basmadıysa ses algılamanın otomatik olarak kaldığı yerden devam etmesini sağlayan akıllı yeniden başlatma (`onend` auto-restart) tetikleyicisi entegre edildi.
+   - `notes/page.tsx`'teki ses kaydetme akışına da benzer bir `onend` auto-restart mantığı eklenerek transkripsiyonun aktif kayıt süresince kesintisiz çalışması sağlandı.
+
+3. **Müzik Oynatıcı Şarkı İsmi Korunması (Sorun #4):**
+   - `MusicContext.tsx` içerisindeki kanal/playlist yüklenmelerinde veya Supabase state eşitlemelerinde YouTube oynatıcısının belirlediği güncel şarkı isminin üzerine generic kanal adının yazılması (başta şarkı isminin görünüp sonra kaybolması sorunu) `lastActiveTrackIdRef` kullanılarak engellendi.
+
+4. **Tam Sayfa Müzik Modülü & Sidebar Yönlendirmesi (Sorun #5):**
+   - Eski modal tabanlı `MusicPanelModal.tsx` kaldırıldı.
+   - `/music` rotası altında (`src/app/music/page.tsx`) Spotify benzeri şık, iki sütunlu ve tam sayfa bir müzik kontrol merkezi oluşturuldu. Sol sütunda dönen plak animasyonu, parça adı/sanatçı bilgileri, ses zamanlayıcı ve oynatma kontrolleri, sağ sütunda ise arama, favori radyolar, tüm radyolar ve yeni odak listesi ekleme arayüzü sunuldu.
+   - `Sidebar.tsx` ve `LayoutShell.tsx` (mini player bar ile Pomodoro widget tetikleyicileri) `/music` rotasına yönlendirilecek şekilde güncellendi.
+   - Keyboard kısayolu ile müzik açıldığında eğer kullanıcı `/music` sayfasındaysa bir önceki sayfaya dönecek, farklı sayfadaysa `/music` sayfasına gidecek dinamik yönlendirme yapıldı.
+
+5. **Profil Fotoğrafı Kırpma (Avatar Cropper) (Sorun #1):**
+   - `src/app/components/ui/AvatarCropModal.tsx` adında Canvas tabanlı, sürükle-bırak ve dairesel kırpma kılavuzuna sahip, sıfır-kütüphane bağımlılıklı şık bir kırpma modalı geliştirildi.
+   - `settings/page.tsx` arayüzündeki profil fotoğrafı seçimi bu kırpma modalına bağlandı. Kırpılan resim Blob olarak alınıp doğrudan Supabase Storage'a yükleniyor ve cache-bust parametresi (`?t=timestamp`) ile sayfada anlık olarak güncelleniyor.
+
+6. **Harita İyileştirmeleri (Sorun #8 & #9):**
+   - `MapClient.tsx`'teki ArcGIS uydu görünümü tile layer'ının koordinat eksenlerindeki y/x tersliği (`tile/{z}/{x}/{y}` -> `tile/{z}/{y}/{x}`) düzeltilerek uydu haritasının boş/gri ekran kalması sorunu çözüldü.
+   - Sol paneldeki konum listesi elemanlarına `onClick` dinleyicisi eklenerek tıklanan pime haritanın pürüzsüzce odaklanması (`map.flyTo`) ve zoom yapması (15 seviyesine) sağlandı. Ayrıca tıklanan konum sol panelde seçili duruma getirilerek vurgulandı.
+
+7. **Oyunlar Kotası Mola Süresi Sıfırlama Kaldırma (Sorun #6):**
+   - `games/page.tsx` sayfasındaki, oyun kotasını bypass eden "Süreyi Sıfırla" butonu ve ilgili store metot bağlantısı tamamen kaldırıldı.
+
+8. **Kütüphane Dosya İndirme (Sorun #10):**
+   - `LibraryContent.tsx` içerisindeki dosya kartlarına yeni bir "Dosyayı İndir" (`Download`) butonu eklendi. Butona tıklandığında dosya adıyla indirilmesini sağlayan istemci tarafı Blob indirme tetikleyicisi yazıldı.
+
+9. **Dashboard Çalışma Süresi Paneli & Hedef Ayarları (Sorun #11):**
+   - `useSettingsStore.ts` store'una `workTimeDailyGoal` (dakika) ve `workTimeWeeklyGoal` (saat) ayarları eklendi.
+   - `src/app/components/dashboard/WorkTimePanel.tsx` adında, Pomodoro geçmiş seanslarını okuyup bugün, hafta ve ay bazında çalışma sürelerini gösteren, son 7 günün çalışma sürelerini görsel bar grafiğiyle sunan ve çalışma hedeflerinin güncellenebildiği gelişmiş bir analiz modalı yazıldı.
+   - `QuickStats.tsx` bileşenindeki "Çalışma Süresi" kartı tıklanabilir hale getirilerek bu detaylı çalışma analiz panelinin açılması sağlandı.
+
+10. **Mini Player Seek Bar Düzeltmesi (Sorun #12):**
+    - `LayoutShell.tsx` mini player'ındaki ilerleme çubuğu `<input type="range">` slider yapısına dönüştürülerek tıklanabilir ve sürüklenebilir hale getirildi. `e.stopPropagation()` ile tıklama olayının müzik sayfasına yönlenmesi engellendi ve parça içinde doğrudan seek yapılması sağlandı.
+
+11. **RTL Müzik Barı Düzenlemesi (Sorun #13):**
+    - `LayoutShell.tsx` mini player barının `left-0` ve `md:left` konumlandırma sınıfları logical property karşılıkları olan `start-0` ve `md:start` sınıfları ile güncellendi. Arapça diline geçildiğinde (RTL modunda) mini player barının sağa bitişik kalma sorunu giderildi ve sayfa düzenine tam uyum sağlandı.
+
+12. **TypeScript ve Props İyileştirmeleri:**
+    - `Card.tsx` bileşeni `React.HTMLAttributes<HTMLDivElement>` arayüzünden türetilerek `onClick` ve standard HTML div özelliklerini destekleyecek şekilde güncellendi.
+    - `Input` bileşeninin `onChange: (value: string) => void` özel imzası ve standard input özellik çakışmaları nedeniyle `WorkTimePanel.tsx` içindeki hedef ayarlarında standard HTML5 inputlar kullanıldı.
+
+**Sonraki Adımlar:**
+- Proje yerel olarak derleme testlerinden başarıyla geçmiştir. Vercel deploy kontrolü yapılarak kullanıma sunulabilir.
+
+---
+
+## [2026-07-18] AI Chat - Takvim Entegrasyonu — Tamamlandı
+
+**Durum:** AI Chat asistanı üzerinden doğal dil ile takvime etkinlik ekleme özelliği başarıyla tamamlandı.
+
+**Yapılan İşlemler:**
+
+1. **Gemini Tool/Function Calling Desteği (`src/app/api/chat/route.ts`):**
+   - Gemini API çağrılarına `create_calendar_event` aracı eklendi (`title`, `date`, `time`, `description` parametreleri ile).
+   - Bugünün tarihi yerel saat dilimine göre dinamik olarak hesaplanıp systemInstruction prompt şablonuna ("Bugünün tarihi: YYYY-MM-DD. Kullanıcı 'ayın 15'ine x ekle' dediğinde bu tarihi baz alarak create_calendar_event aracını çağır.") enjekte edildi.
+   - API yanıtında `functionCall` gelip gelmediği kontrol edildi. Eğer geldiyse, Supabase server-side istemcisi ile kullanıcının oturumu doğrulanarak `calendar_events` tablosuna `user_id`, `title`, `description`, `start_time`, `end_time` (başlangıç + 1 saat), `is_all_day` (saat yoksa true) ve `#22c55e` yeşil rengiyle kayıt yapıldı.
+   - Başarılı ekleme sonucunda `{ answer, calendarEvent: { title, date, time } }` formatında JSON yanıt döndürüldü.
+
+2. **useChat Hook Güncellemesi (`src/app/hooks/useChat.ts`):**
+   - `Message` arayüzüne (interface) isteğe bağlı `calendarEvent` alanı eklendi.
+   - `handleSend` fonksiyonunda sunucudan dönen `calendarEvent` bilgisi yakalanıp AI mesaj nesnesine eklendi ve localStorage üzerinde chat geçmişiyle birlikte saklanması sağlandı.
+
+3. **Mesaj Listesinde Takvim Kartı Renderingi (`src/app/components/chat/ChatMessageList.tsx`):**
+   - AI mesajı `calendarEvent` verisi içerdiğinde, mesaj balonunun hemen altında "📅 Takvime Eklendi: [Etkinlik Başlığı] - [Tarih] [Saat]" ibaresini barındıran, yeşil glassmorphism stilinde şık bir bildirim kartı ve yeşil Checkmark ikonu render edilmesi sağlandı.

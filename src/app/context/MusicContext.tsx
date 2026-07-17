@@ -50,6 +50,8 @@ interface MusicContextType {
   duration: number;
   sleepTimerRemaining: number | null;
   seekRequest: { time: number; timestamp: number } | null;
+  isLoadingTrack: boolean;
+  setIsLoadingTrack: (loading: boolean) => void;
 
   handleSelectChannel: (id: string) => void;
   handlePrevTrack: () => void;
@@ -124,7 +126,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [isMuted, setIsMuted]                   = useState(false);
   const [isMusicPanelOpen, setIsMusicPanelOpen] = useState(false);
 
-  // Spotify / Gelişmiş Özellikler States
+  const [isLoadingTrack, setIsLoadingTrack] = useState(false);
   const [shuffleMode, setShuffleMode] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'none' | 'one' | 'all'>('none');
   const [currentSongTitle, setCurrentSongTitle] = useState('');
@@ -228,6 +230,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:');
 
   const handleSelectChannel = (id: string) => {
+    setIsLoadingTrack(true);
     setSelectedChannelId(id);
     setCurrentTrackIndex(0);
     setIsMusicPlaying(true);
@@ -321,6 +324,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       isMusicSynced, volume, isMuted, activeChannel, activeTrack, isMusicPanelOpen,
       favoriteChannelIds, shuffleMode, repeatMode, currentSongTitle, currentSongArtist,
       currentTime, duration, sleepTimerRemaining, seekRequest,
+      isLoadingTrack, setIsLoadingTrack,
       handleSelectChannel, handlePrevTrack, handleNextTrack,
       setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted, setIsMusicPanelOpen,
       addChannel, removeChannel, registerYTPlayer,

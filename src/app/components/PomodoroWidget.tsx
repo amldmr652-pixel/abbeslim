@@ -36,6 +36,7 @@ export default function PomodoroWidget({ onOpenMusicPanel, isDropdown = false }:
     setVolume,
     isMuted,
     setIsMuted,
+    isLoadingTrack,
   } = useMusicContext();
 
   return (
@@ -123,10 +124,15 @@ export default function PomodoroWidget({ onOpenMusicPanel, isDropdown = false }:
             <div style={{ background: '#222', borderRadius: '12px', padding: '8px 12px', display: 'flex', alignItems: 'center' }}>
               <div
                 onClick={onOpenMusicPanel}
-                className={isMusicPlaying ? 'music-cover-spin' : ''}
-                style={{ width: '32px', height: '32px', borderRadius: '50%', background: activeChannel.coverBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', marginRight: '10px', flexShrink: 0, cursor: onOpenMusicPanel ? 'pointer' : 'default' }}
+                className={`relative overflow-hidden flex items-center justify-center flex-shrink-0 ${isMusicPlaying ? 'music-cover-spin' : ''}`}
+                style={{ width: '32px', height: '32px', borderRadius: '50%', background: activeChannel.coverBg, fontSize: '16px', marginRight: '10px', cursor: onOpenMusicPanel ? 'pointer' : 'default' }}
                 title={onOpenMusicPanel ? 'Müzik panelini aç' : ''}
               >
+                {isLoadingTrack && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-full z-10">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent" />
+                  </div>
+                )}
                 {activeChannel.icon}
               </div>
               <div
@@ -144,7 +150,9 @@ export default function PomodoroWidget({ onOpenMusicPanel, isDropdown = false }:
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
                 <button onClick={handlePrevTrack} style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'transparent', border: 'none', color: '#666', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '11px' }}>◀</button>
                 <button onClick={() => setIsMusicPlaying(p => !p)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#22c55e', border: 'none', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px' }}>
-                  {isMusicPlaying ? '⏸' : '▶'}
+                  {isLoadingTrack ? (
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-stone-950 border-t-transparent" />
+                  ) : isMusicPlaying ? '⏸' : '▶'}
                 </button>
                 <button onClick={handleNextTrack} style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'transparent', border: 'none', color: '#666', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '11px' }}>▶</button>
               </div>

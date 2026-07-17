@@ -73,6 +73,10 @@ export default function HiddenYouTubePlayer() {
       ctxRef.current.updateProgress(audio.currentTime, audio.duration || 0);
     });
 
+    audio.addEventListener('playing', () => {
+      ctxRef.current.setIsLoadingTrack(false);
+    });
+
     return () => { audio.pause(); audio.src = ''; audioRef.current = null; };
   }, [mounted]);
 
@@ -90,7 +94,11 @@ export default function HiddenYouTubePlayer() {
   useEffect(() => {
     if (!mounted || ytMode || !audioRef.current) return;
     if (ctx.isMusicPlaying) {
-      audioRef.current.play().catch(e => console.warn('Audio:', e));
+      audioRef.current.play()
+        .then(() => {
+          ctxRef.current.setIsLoadingTrack(false);
+        })
+        .catch(e => console.warn('Audio play failed:', e));
     } else {
       audioRef.current.pause();
     }
@@ -106,107 +114,182 @@ export default function HiddenYouTubePlayer() {
   // YouTube IFrame API: script yükle (bir kez)
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!mounted || !ytMode || window._ytApiQueued) return;
+    if (!mounted || window._ytApiQueued) return;
     window._ytApiQueued = true;
     const tag = document.createElement('script');
     tag.src   = 'https://www.youtube.com/iframe_api';
     tag.async = true;
     document.head.appendChild(tag);
-  }, [mounted, ytMode]);
+  }, [mounted]);
 
-  // ─────────────────────────────────────────────────────────────
-  // YouTube: playlist değişince player oluştur
-  // ─────────────────────────────────────────────────────────────
+  // Cleanup player on unmount
   useEffect(() => {
-    if (!mounted || !ytMode || !currentSrc) return;
-    const pid = getPid(currentSrc);
-    if (pid === prevPidRef.current && ytPlayerRef.current) return;
-    prevPidRef.current = pid;
-    ytReadyRef.current = false;
-
-    const buildPlayer = () => {
-      if (!ytContainerRef.current) return;
-
-      // Önceki player'ı temizle
-      if (ytPlayerRef.current) {
-        try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
-        ytPlayerRef.current = null;
-      }
-
-      if (!ytInnerRef.current) return;
-      ytPlayerRef.current = new window.YT.Player(ytInnerRef.current, {
-        width : 200,
-        height: 113,
-        playerVars: {
-          listType   : 'playlist',
-          list       : pid,
-          autoplay   : 1,
-          controls   : 0,
-          rel        : 0,
-          playsinline: 1,
-          iv_load_policy: 3,
-        },
-        events: {
-          onReady: (e: any) => {
-            ytReadyRef.current = true;
-            ctx.registerYTPlayer(ytPlayerRef.current);
-            try {
-              const iframe = e.target.getIframe() as HTMLElement;
-              if (iframe) {
-                iframe.style.setProperty('pointer-events', 'none', 'important');
-                iframe.style.setProperty('z-index', '-9999', 'important');
-              }
-            } catch { /* ignore */ }
-            const vol = ctxRef.current.isMuted ? 0 : Math.round(ctxRef.current.volume * 100);
-            e.target.setVolume(vol);
-            if (ctxRef.current.isMusicPlaying) e.target.playVideo();
-          },
-          onStateChange: (e: any) => {
-            if (e.data === window.YT.PlayerState.PLAYING) {
-              const videoData = e.target.getVideoData();
-              ctxRef.current.updateSongInfo(videoData.title || '', videoData.author || '');
-            } else if (e.data === window.YT.PlayerState.ENDED) {
-              if (ctxRef.current.repeatMode === 'one') {
-                e.target.seekTo(0, true);
-                e.target.playVideo();
-              } else {
-                ctxRef.current.handleNextTrack();
-              }
-            }
-          },
-          onError: (e: any) => {
-            console.warn('YT Error:', e.data);
-            // Hata durumunda otomatik sonraki parçaya geç
-            ctxRef.current.handleNextTrack();
-          },
-        },
-      });
-    };
-
-    // API hazırsa hemen kur, değilse callback zincirine ekle
-    if (window.YT?.Player) {
-      buildPlayer();
-    } else {
-      const prev = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        prev?.();
-        buildPlayer();
-      };
-    }
-
     return () => {
       if (ytPlayerRef.current) {
         try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
         ytPlayerRef.current = null;
         ytReadyRef.current  = false;
-        ctx.registerYTPlayer(null);
+        ctxRef.current.registerYTPlayer(null);
       }
     };
-  }, [mounted, ytMode, currentSrc]);  // eslint-disable-line
+  }, []);
 
-  // YouTube: oynat / duraklat
+  // ─────────────────────────────────────────────────────────────
+  // YouTube: playlist değişince player'ı güncelle veya oluştur
+  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!mounted || !ytMode || !ytReadyRef.current || !ytPlayerRef.current) return;
+    if (!mounted || !ytMode || !currentSrc) return;
+    const pid = getPid(currentSrc);
+
+    const rebuildPlayer = (playlistId: string) => {
+      if (!ytContainerRef.current) return;
+
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.destroy(); } catch { /* ignore */ }
+        ytPlayerRef.current = null;
+      }
+
+      // Recreate inner target div
+      ytContainerRef.current.innerHTML = '';
+      const newInnerDiv = document.createElement('div');
+      newInnerDiv.style.width = '100%';
+      newInnerDiv.style.height = '100%';
+      ytContainerRef.current.appendChild(newInnerDiv);
+
+      const instantiate = () => {
+        ytPlayerRef.current = new window.YT.Player(newInnerDiv, {
+          width : 200,
+          height: 113,
+          playerVars: {
+            listType   : 'playlist',
+            list       : playlistId,
+            autoplay   : 1,
+            controls   : 0,
+            rel        : 0,
+            playsinline: 1,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: (e: any) => {
+              ytReadyRef.current = true;
+              ctxRef.current.registerYTPlayer(ytPlayerRef.current);
+              try {
+                const iframe = e.target.getIframe() as HTMLElement;
+                if (iframe) {
+                  iframe.style.setProperty('pointer-events', 'none', 'important');
+                  iframe.style.setProperty('z-index', '-9999', 'important');
+                }
+              } catch { /* ignore */ }
+              const vol = ctxRef.current.isMuted ? 0 : Math.round(ctxRef.current.volume * 100);
+              e.target.setVolume(vol);
+              if (ctxRef.current.isMusicPlaying) e.target.playVideo();
+            },
+            onStateChange: (e: any) => {
+              if (e.data === window.YT.PlayerState.PLAYING) {
+                const videoData = e.target.getVideoData();
+                ctxRef.current.updateSongInfo(videoData.title || '', videoData.author || '');
+                ctxRef.current.setIsLoadingTrack(false);
+              } else if (e.data === window.YT.PlayerState.BUFFERING) {
+                ctxRef.current.setIsLoadingTrack(true);
+              } else if (e.data === window.YT.PlayerState.ENDED) {
+                if (ctxRef.current.repeatMode === 'one') {
+                  e.target.seekTo(0, true);
+                  e.target.playVideo();
+                } else {
+                  ctxRef.current.handleNextTrack();
+                }
+              }
+            },
+            onError: (e: any) => {
+              console.warn('YT Error:', e.data);
+              ctxRef.current.setIsLoadingTrack(false);
+              ctxRef.current.handleNextTrack();
+            },
+          },
+        });
+      };
+
+      if (window.YT?.Player) {
+        instantiate();
+      } else {
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = () => {
+          prev?.();
+          instantiate();
+        };
+      }
+    };
+
+    // Re-use existing player instance if it is ready
+    if (ytPlayerRef.current && ytReadyRef.current) {
+      if (pid !== prevPidRef.current) {
+        prevPidRef.current = pid;
+        try {
+          console.log('Reusing YouTube player for playlist ID:', pid);
+          if (ctxRef.current.isMusicPlaying) {
+            ytPlayerRef.current.loadPlaylist({ list: pid, listType: 'playlist' });
+          } else {
+            ytPlayerRef.current.cuePlaylist({ list: pid, listType: 'playlist' });
+          }
+        } catch (err) {
+          console.warn('loadPlaylist/cuePlaylist failed, rebuilding player:', err);
+          rebuildPlayer(pid);
+        }
+      }
+    } else {
+      if (pid !== prevPidRef.current) {
+        prevPidRef.current = pid;
+        ytReadyRef.current = false;
+        rebuildPlayer(pid);
+      }
+    }
+  }, [mounted, ytMode, currentSrc]); // eslint-disable-line
+
+  // Safety Timeout/Retry Guard
+  useEffect(() => {
+    if (!ctx.isLoadingTrack) return;
+
+    const timer = setTimeout(() => {
+      if (ctxRef.current.isLoadingTrack) {
+        console.warn('Track loading state timed out after 7s, running safety recovery...');
+        if (ytMode && ytPlayerRef.current && ytReadyRef.current) {
+          try {
+            const state = ytPlayerRef.current.getPlayerState?.();
+            if (state === 2 || state === 5 || state === -1) {
+              console.log('YT Player is paused/cued/unstarted, attempting to playVideo...');
+              ytPlayerRef.current.playVideo?.();
+              
+              // Give it another 2 seconds to transition to PLAYING before skipping
+              setTimeout(() => {
+                if (ctxRef.current.isLoadingTrack) {
+                  console.warn('Still stuck after playVideo attempt, skipping track...');
+                  ctxRef.current.setIsLoadingTrack(false);
+                  ctxRef.current.handleNextTrack();
+                }
+              }, 2000);
+              return;
+            }
+          } catch (e) {
+            console.warn('Error in safety player check:', e);
+          }
+        }
+        
+        // Default recovery: skip track to prevent getting stuck
+        ctxRef.current.setIsLoadingTrack(false);
+        ctxRef.current.handleNextTrack();
+      }
+    }, 7000);
+
+    return () => clearTimeout(timer);
+  }, [ctx.isLoadingTrack, ytMode]);
+
+  // YouTube: oynat / duraklat (pauses YT if ytMode is false)
+  useEffect(() => {
+    if (!mounted || !ytReadyRef.current || !ytPlayerRef.current) return;
+    if (!ytMode) {
+      try { ytPlayerRef.current.pauseVideo?.(); } catch {}
+      return;
+    }
     ctx.isMusicPlaying
       ? ytPlayerRef.current.playVideo?.()
       : ytPlayerRef.current.pauseVideo?.();
