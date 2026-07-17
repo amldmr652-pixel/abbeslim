@@ -778,7 +778,7 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 5. **Profil Fotoğrafı Kırpma (Avatar Cropper) (Sorun #1):**
    - `src/app/components/ui/AvatarCropModal.tsx` adında Canvas tabanlı, sürükle-bırak ve dairesel kırpma kılavuzuna sahip, sıfır-kütüphane bağımlılıklı şık bir kırpma modalı geliştirildi.
-   - `settings/page.tsx` arayüzündeki profil fotoğrafı seçimi bu kırpma modalına bağlandı. Kırpılan resim Blob olarak alınıp doğrudan Supabase Storage'a yükleniyor ve cache-bust parametresi (`?t=timestamp`) ile sayfada anlık olarak güncelleniyor.
+   - `settings/page.tsx` arayüzündeki profil fotoğrafı seçimi bu kırpma modalına bağlandı. Kırpılan resim Blob olarak alınıp doğrudan Supabase Storage'a yükleniyor ve cache-bust parametresi (`?t=timestamp`) ile sayfada anlık olarak güncelliyor.
 
 6. **Harita İyileştirmeleri (Sorun #8 & #9):**
    - `MapClient.tsx`'teki ArcGIS uydu görünümü tile layer'ının koordinat eksenlerindeki y/x tersliği (`tile/{z}/{x}/{y}` -> `tile/{z}/{y}/{x}`) düzeltilerek uydu haritasının boş/gri ekran kalması sorunu çözüldü.
@@ -828,3 +828,33 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 3. **Mesaj Listesinde Takvim Kartı Renderingi (`src/app/components/chat/ChatMessageList.tsx`):**
    - AI mesajı `calendarEvent` verisi içerdiğinde, mesaj balonunun hemen altında "📅 Takvime Eklendi: [Etkinlik Başlığı] - [Tarih] [Saat]" ibaresini barındıran, yeşil glassmorphism stilinde şık bir bildirim kartı ve yeşil Checkmark ikonu render edilmesi sağlandı.
+
+---
+
+## [2026-07-18] Pomodoro Widget Yüzen Panel Kurtarılması, Çalışma Süresi Analiz Sayfası & YouTube Playlist Düzeltmeleri — Tamamlandı
+
+**Durum:** Çalışma Süresi ve Pomodoro Widget'ının eski davranışına döndürülmesi ile YouTube oynatıcısının uzun çalma listelerindeki loading/atlama sorunlarının çözülmesi başarıyla tamamlanmıştır. `npm run build` ile yerel derleme hatasız şekilde tamamlanmış ve proje Vercel üzerine deploy edilmiştir.
+
+**Yapılan İşlemler:**
+
+1. **Çalışma Süresi Analiz Sayfası (`src/app/study/page.tsx`):**
+   - Süreölçer (Timer) sekmesi, ayarlar modalı ve mini müzik çalar bileşenleri bu sayfadan kaldırıldı.
+   - Sayfa, yalnızca seans geçmişini çeken ve bugün/bu hafta hedeflerini, son 7 günlük çalışma grafiğini, bu ay/tüm zamanlar özetlerini ve hedef ayarlarını gösteren temiz bir **İstatistik ve Hedef Analiz Sayfası** haline getirildi.
+   - Sayfaya girildiğinde seans verileri doğrudan yüklenmektedir.
+
+2. **Yüzen Pomodoro Paneli Restorasyonu (`src/app/LayoutShell.tsx`):**
+   - `LayoutShell` içerisine `PomodoroWidget` bileşeni tekrar yüzen panel olarak eklendi.
+   - Sağdaki radyal menü üzerindeki Pomodoro ikonuna tıklanması ve `togglePomodoro` klavye kısayolu tetiklendiğinde sayfa yönlendirmesi (`/study`) yapmak yerine, sağdan kayarak açılan floating Pomodoro panelinin (`togglePanel('pomodoro')`) tetiklenmesi sağlandı.
+
+3. **YouTube Playlist / Uzun Video Oynatma İyileştirmeleri (`src/app/HiddenYouTubePlayer.tsx`):**
+   - Çok uzun çalma listeleri veya yavaş internet bağlantılarında YouTube oynatıcısının yüklenme aşamasında 7 saniyeyi aşıp takılması durumunda parça atlamasını tetikleyen ve sonsuz bir döngü halinde sürekli video atlatan `Safety Timeout` mekanizması revize edildi.
+   - Zaman aşımı kontrolü **15 saniyeye** çıkarıldı.
+   - Oynatıcı durumu `BUFFERING` (3) olduğunda, yükleme devam ettiği için parça atlama (`handleNextTrack()`) işlemi devre dışı bırakıldı ve ek süre tanındı.
+   - Oynatıcı autoplay engelinden ötürü `UNSTARTED` (-1), `CUED` (5) veya `PAUSED` (2) durumlarında kaldığında `playVideo()` çağrılarak başlatılmaya çalışılıyor; yine başarısız olursa sadece loading spinner kaldırılıyor ve playlist içinde sürekli atlayarak sonsuz döngü yaratması (`handleNextTrack()`) engleniyor.
+
+4. **Derleme ve Dağıtım:**
+   - `npm run build` komutu ile Next.js Turbopack ve TypeScript derleme testleri sıfır hata ile başarılı şekilde gerçekleştirildi.
+   - `npx vercel --prod --yes` ile proje **abbeslim.vercel.app** adresine deploy edildi.
+
+**Sonraki Adımlar:**
+- Planlanan diğer modüller (Takvim, Görev, Not, Harita vb.) stabil durumdadır. Kullanıcının talebine göre yeni widget/özelleştirmelere devam edilebilir.

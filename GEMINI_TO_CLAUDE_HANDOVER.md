@@ -1,31 +1,31 @@
 # AI Asistan (Gemini) Devir Teslim ve Durum Raporu
 *Bu dosya, Gemini tarafından Claude (veya sonraki asistanlar) için güncel durumu ve yapılan son değişiklikleri özetlemek amacıyla oluşturulmuştur.*
 
-## 📅 Tarih: 12 Temmuz 2026
+## 📅 Tarih: 18 Temmuz 2026
 
 ## 🚀 Son Durum (Ne Yapıldı?)
-Kullanıcının bildirdiği **7 adet hata/eksiklik** ve **1 adet UX iyileştirmesi** başarıyla tamamlandı. Kodlar derlendi (`npm run build`) ve **Vercel'e deploy edildi** (`abbeslim.vercel.app`).
+Kullanıcının Pomodoro/Çalışma Süresi ekranı ve YouTube çalma listesi/oynatıcı sistemine dair bildirdiği sorunlar ve UX değişiklik talepleri başarıyla tamamlandı. `npm run build` ile yerel derleme hatasız şekilde doğrulandı ve değişiklikler **Vercel'e deploy edildi** (`abbeslim.vercel.app`).
 
 ### Tamamlanan Görevler:
-1. **Takvim (Calendar) İyileştirmeleri:**
-   - Etkinliklere tıklandığında açılan **Düzenleme/Silme Modalı** eklendi.
-   - `useCalendarStore` içerisindeki `updateEvent` ve `deleteEvent` fonksiyonları UI'a bağlandı.
-   - **Görev-Takvim Entegrasyonu:** `useTaskStore` takvime bağlandı. `due_date` atanan görevler artık takvim grid'inde sarı bir etiket (`bg-yellow-500/20`) ile listeleniyor.
-2. **Notlar (Notes) - Sesli Asistan (Speech-to-Text):**
-   - `MediaRecorder` ile paralel çalışacak şekilde **Web Speech API** entegre edildi.
-   - Ses kaydı yaparken konuşulanlar eşzamanlı olarak metne çevriliyor ve not içeriğine `🎤 [Metin]` formatında ekleniyor.
-3. **Görevler (Tasks) Silme Butonu Fix:**
-   - CSS hatası giderildi. Kart bileşenine `group` sınıfı eklendi. Silme butonu varsayılan olarak düşük opaklıkta, üzerine gelindiğinde (hover) tam görünür hale getirildi.
-4. **Widget (Pomodoro & AI Chat) Yeniden Konumlandırma & Global Erişim:**
-   - **Sorun:** Pomodoro login ekranında çıkıyordu ve AI Chat sadece belirli sayfalarda vardı.
-   - **Çözüm:** İki widget da `LayoutShell.tsx` içerisine taşındı. Sadece yetkilendirilmiş (Auth) sayfalarda (Login, Register vb. hariç) görünmesi sağlandı.
-   - **Yeni UX (Seçenek A):** Widget'lar artık sayfanın **sağ üst köşesinde** iki adet yuvarlak buton (🍅 ve 🤖) olarak duruyor. Tıklandığında aşağı doğru açılan şık bir **Dropdown Panel** şeklinde tasarlandı. Z-index, backdrop overlay ve dışarı tıklayınca kapanma (click-outside) eklendi.
 
-## 🏗️ Sonraki Adımlar (Faz 6 - Claude'a Bırakılanlar)
-Şu anda proje tamamen stabil, hatasız çalışıyor ve canlıda. Sıradaki hedefler için şunlardan biriyle devam edilebilir:
+1. **Çalışma Süresi Analiz Sayfası (`src/app/study/page.tsx`):**
+   - **Değişiklik:** Eski yapıda `/study` sayfasında yer alan Süreölçer (Timer) sekmesi, ayarlar modalı ve mini müzik çalar gibi tüm süreölçer fonksiyonları bu sayfadan kaldırıldı.
+   - **Yeni Tasarım:** Sayfa sadece çalışma analizi ve istatistiklerine odaklanacak şekilde basitleştirildi. Girişte direkt seans verileri yüklenerek bugün/bu hafta hedefleri, son 7 günlük grafik barı, bu ay ve tüm zamanlar özet seans süreleri ile hedef ayarları formu render edildi.
 
-1. **Dashboard (Ana Sayfa) Veri Bağlantıları:** `src/app/page.tsx` içerisindeki Dashboard şu an "Placeholder" (Örnek) verilerle çalışıyor. Bu verilerin (Görevler, Hedefler, Son Dosyalar vb.) Supabase/Store üzerinden gerçek verilerle değiştirilmesi gerekiyor.
-2. **Kütüphane (Library) İyileştirmeleri:** Kütüphane sayfasında yapılması planlanan diğer dosya yönetimi işlemleri.
-3. **Çoklu Dil (i18n):** Arapça (RTL) ve İngilizce entegrasyonlarının tam anlamıyla tamamlanması.
+2. **Yüzen Pomodoro Paneli Restorasyonu (`src/app/LayoutShell.tsx`):**
+   - **Değişiklik:** Radial menüdeki Pomodoro ikonuna tıklanması ve `togglePomodoro` klavye kısayolu tetiklendiğinde sayfa yönlendirmesi (`/study`) yapmak yerine, sağ taraftan kayarak açılan floating Pomodoro panelinin (`togglePanel('pomodoro')`) açılması sağlandı.
+   - **Restorasyon:** `LayoutShell` içerisine `PomodoroWidget` bileşeni tekrar eklenerek, `activePanel === 'pomodoro'` durumunda sağdan açılan şık bir yüzen panel olarak render edilmesi sağlandı.
 
-*Not: Tüm bu adımlar ana `CLAUDE_HANDOVER_REPORT.md` dosyasına da eklenmiştir, ancak bu dosya özel olarak "son işlem döngüsünü" özetlemek için oluşturulmuştur.*
+3. **YouTube Playlist / Uzun Video Oynatma Emniyet Düzeltmeleri (`src/app/HiddenYouTubePlayer.tsx`):**
+   - **Problem:** Uzun çalma listelerinde veya yavaş bağlantılarda YouTube player'ın yükleme süresinin 7 saniyeyi aşması durumunda, eski emniyet zaman aşımının (`Safety Timeout`) tetiklenerek sürekli bir sonraki şarkıya atlaması ve oynatıcıyı sonsuz bir atlama döngüsüne sokması engellendi.
+   - **Çözüm:**
+     - Güvenlik zaman aşımı süresi **15 saniyeye** çıkarıldı.
+     - Oyuncu durumu `BUFFERING` (3) olduğunda, yükleme devam ettiği için otomatik şarkı atlama (`handleNextTrack()`) işlemi devre dışı bırakıldı.
+     - Autoplay engellerinden dolayı `UNSTARTED` (-1), `CUED` (5) veya `PAUSED` (2) durumlarında takılı kalırsa `playVideo()` tetiklendi. Ek 3 saniye sonra hala çalmaya başlamamışsa playlist içindeki diğer videolara atlamak yerine sadece loading spinner kapatıldı ve playlist'in sürekli atlanması engellendi.
+
+## 🏗️ Sonraki Adımlar (Claude'a Bırakılanlar)
+Proje şu an tamamen stabil, hatasız çalışıyor ve canlıda (`abbeslim.vercel.app`). Bir sonraki seanstaki öncelikli görevler şunlar olabilir:
+
+1. **İstatistik Geliştirmeleri:** `/study` sayfasındaki istatistiklerin (Son 7 Günlük grafik vb.) daha geniş filtrelerle (aylık, yıllık) gösterilmesi veya görsel iyileştirmeler yapılması.
+2. **Kütüphane / Dosya Yönetimi:** Dosya kütüphanesindeki diğer dosya işlemleri ve alt klasör yönetimi geliştirilebilir.
+3. **Çoklu Dil (i18n):** RTL uyumluluğu ve çeviri eksiklerinin kapsamlı kontrolü.
