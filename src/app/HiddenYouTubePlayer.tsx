@@ -251,22 +251,36 @@ export default function HiddenYouTubePlayer() {
 
     const timer = setTimeout(() => {
       if (ctxRef.current.isLoadingTrack) {
-        console.warn('Track loading state timed out after 7s, running safety recovery...');
+        console.warn('Track loading state timed out after 15s, running safety recovery...');
         if (ytMode && ytPlayerRef.current && ytReadyRef.current) {
           try {
             const state = ytPlayerRef.current.getPlayerState?.();
+            console.log('YT Player state during timeout check:', state);
+            if (state === 3) {
+              // It is buffering, let's give it more time and NOT skip
+              console.log('YT Player is buffering, keeping loading state...');
+              // Clear loading state after another 10s if still buffering, to hide the spinner
+              setTimeout(() => {
+                if (ctxRef.current.isLoadingTrack && ytPlayerRef.current?.getPlayerState?.() === 3) {
+                  ctxRef.current.setIsLoadingTrack(false);
+                }
+              }, 10000);
+              return;
+            }
             if (state === 2 || state === 5 || state === -1) {
               console.log('YT Player is paused/cued/unstarted, attempting to playVideo...');
               ytPlayerRef.current.playVideo?.();
               
-              // Give it another 2 seconds to transition to PLAYING before skipping
+              // Give it another 3 seconds to transition to PLAYING before giving up
               setTimeout(() => {
                 if (ctxRef.current.isLoadingTrack) {
-                  console.warn('Still stuck after playVideo attempt, skipping track...');
-                  ctxRef.current.setIsLoadingTrack(false);
-                  ctxRef.current.handleNextTrack();
+                  const secondState = ytPlayerRef.current.getPlayerState?.();
+                  if (secondState !== 1) {
+                    console.warn('Still not playing after playVideo attempt, stopping loading state.');
+                    ctxRef.current.setIsLoadingTrack(false);
+                  }
                 }
-              }, 2000);
+              }, 3000);
               return;
             }
           } catch (e) {
@@ -274,11 +288,11 @@ export default function HiddenYouTubePlayer() {
           }
         }
         
-        // Default recovery: skip track to prevent getting stuck
+        // Default recovery: just stop the loading spinner, don't skip track
+        console.log('Stopping loading state due to timeout.');
         ctxRef.current.setIsLoadingTrack(false);
-        ctxRef.current.handleNextTrack();
       }
-    }, 7000);
+    }, 15000);
 
     return () => clearTimeout(timer);
   }, [ctx.isLoadingTrack, ytMode]);

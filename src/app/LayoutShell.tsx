@@ -7,6 +7,7 @@ import {
   Volume2, VolumeX, Heart, Play, Pause
 } from 'lucide-react';
 import AIChatWidget from './components/AIChatWidget';
+import PomodoroWidget from './components/PomodoroWidget';
 import Sidebar from './components/layout/Sidebar';
 import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
@@ -128,7 +129,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               }
               break;
             case 'togglePomodoro':
-              router.push('/study');
+              togglePanel('pomodoro');
               break;
             case 'toggleAIChat':
               togglePanel('ai');
@@ -222,7 +223,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
             {/* Pomodoro Toggle Butonu (Sol - 180 derece) */}
             <button
               onClick={() => {
-                router.push('/study');
+                togglePanel('pomodoro');
                 setIsMenuOpen(false);
               }}
               style={{
@@ -233,7 +234,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               className={`absolute w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 z-20 ${
                 isMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'
               } ${
-                pathname === '/study'
+                activePanel === 'pomodoro'
                   ? 'bg-green-500 text-white shadow-lg shadow-green-500/40 border-transparent'
                   : 'glass text-gray-400 hover:text-green-400 border border-white/10 hover:border-green-500/30'
               }`}
@@ -291,6 +292,17 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
             }`}
           >
             <AIChatWidget isDropdown={true} />
+          </div>
+
+          {/* Pomodoro Panel (Yandan Açılan) */}
+          <div
+            className={`fixed right-[130px] top-1/2 -translate-y-1/2 z-[9998] transition-all duration-300 ease-out origin-right ${
+              activePanel === 'pomodoro'
+                ? 'opacity-100 scale-100 translate-x-0'
+                : 'opacity-0 scale-95 translate-x-4 pointer-events-none'
+            }`}
+          >
+            <PomodoroWidget isDropdown={true} onOpenMusicPanel={() => { router.push('/music'); setIsMenuOpen(false); }} />
           </div>
         </>
       )}
