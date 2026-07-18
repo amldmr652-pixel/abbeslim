@@ -936,3 +936,24 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 ### 4. Doğrulama ve Git
 - **Doğrulama:** Yerel `npm run build` derlemesi sıfır hata ile tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresinde canlıya alındı. Değişiklikler git'e commit edildi.
+
+---
+
+## [2026-07-18] V2.27 — Harita Modülü Konum Arama Paneli ve Entegrasyonu (Antigravity/Gemini)
+
+### 1. Konum Arama ve Otomatik Odaklanma (`MapClient.tsx`)
+- **Sorun:** Kullanıcılar harita üzerinde istedikleri konumu aratarak bulmak ve o konuma kolayca pin eklemek istiyordu.
+- **Çözüm:** 
+  - Haritanın sol üst köşesine, Zoom kontrolleriyle çakışmayacak şekilde (`left-14`) yerleştirilmiş modern ve şık bir konum arama alanı (`glass` stilinde) eklendi.
+  - Açık kaynaklı, ücretsiz OpenStreetMap Nominatim API kullanılarak Türkçe karakterler ve esnek aramaları destekleyen geocoding entegrasyonu sağlandı.
+  - Girdiler 450ms debounce süresiyle API'yi yormadan arka planda aranacak şekilde optimize edildi.
+  - Arama sonuçlarına tıklandığında harita o konuma yumuşak bir animasyonla (`flyTo`) kayıp yakınlaşacak (Zoom 15) şekilde yapılandırıldı.
+
+### 2. Geçici İşaretçi ve Kolay Pin Ekleme Akışı (`MapClient.tsx`)
+- **Çözüm:**
+  - Arama sonuçlarından seçilen konum için harita üzerinde mavi renkli geçici bir işaretçi (`tempSearchPin`) gösterilmesi sağlandı.
+  - Geçici işaretçinin Popup'ı otomatik açılarak (`add` event'i ile `openPopup()`) kullanıcıya "Bu Konumu Kaydet" seçeneği sunuldu.
+  - Bu butona tıklandığında ekleme modu (`isAddMode`) otomatik aktif edilmekte, konum adı formun başlık alanına doldurulmakta ve kullanıcı sadece kategori ile açıklama seçerek tek tıkla pini kalıcı hale getirebilmektedir.
+
+### 3. Derleme & Canlıya Alma
+- **Doğrulama:** `npm run build` yerel derlemesi sıfır hatayla başarıyla tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** üzerinde canlıya alındı. Değişiklikler git'e commit edildi.
