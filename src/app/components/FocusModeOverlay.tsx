@@ -6,7 +6,7 @@ import { usePomodoroTimer, MODE_LABELS } from '@/app/hooks/usePomodoroTimer';
 import { Button } from '@/app/components/ui';
 import { Play, Pause, Square, SkipForward, X, Maximize } from 'lucide-react';
 import { useTaskStore } from '@/stores/useTaskStore';
-import { useMusicContext } from '@/app/context/MusicContext';
+import { useRouter } from 'next/navigation';
 
 export default function FocusModeOverlay() {
   const { isFocusModeActive, setFocusMode } = useFocusStore();
@@ -16,8 +16,7 @@ export default function FocusModeOverlay() {
   } = usePomodoroTimer();
   
   const { tasks } = useTaskStore();
-  const { setIsMusicPanelOpen } = useMusicContext();
-
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -67,7 +66,7 @@ export default function FocusModeOverlay() {
             ))}
           </div>
           <button 
-            onClick={() => setIsMusicPanelOpen(true)}
+            onClick={() => { setFocusMode(false); router.push('/music'); }}
             className="px-4 py-2 rounded-full text-sm font-medium bg-white/5 text-gray-400 hover:text-white transition-colors"
           >
             Odak Müziği

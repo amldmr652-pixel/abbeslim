@@ -27,7 +27,7 @@ import { useFocusStore } from '@/stores/useFocusStore';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const {
-    setIsMusicPanelOpen, isMusicPanelOpen, selectedChannelId, isMusicPlaying,
+    selectedChannelId, isMusicPlaying,
     activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
     duration, volume, isMuted, setIsMusicPlaying, handlePrevTrack, handleNextTrack,
     toggleFavorite, setIsMuted, setVolume, seekTo, isLoadingTrack
@@ -150,7 +150,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [shortcuts, isAuthenticated, isMusicPanelOpen, sidebarCollapsed, toggleFocusMode, setSidebarCollapsed, setIsMusicPanelOpen, router]);
+  }, [shortcuts, isAuthenticated, sidebarCollapsed, toggleFocusMode, setSidebarCollapsed, router]);
 
 
 
@@ -409,7 +409,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                   setVolume(parseFloat(e.target.value));
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-16 h-1 bg-stone-850 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
+                className="w-16 h-1 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
               />
             </div>
           </div>

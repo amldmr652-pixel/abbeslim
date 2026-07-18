@@ -351,7 +351,7 @@ export default function SettingsPage() {
                     <Input 
                       value={user?.email || ''} 
                       disabled 
-                      className="bg-stone-900 border border-stone-850 opacity-70"
+                      className="bg-stone-900 border border-stone-800 opacity-70"
                     />
                     <p className="text-[10px] text-gray-500 mt-2">E-posta adresi şu anda değiştirilemez.</p>
                   </div>
@@ -404,7 +404,7 @@ export default function SettingsPage() {
                       <div className={`w-full h-24 rounded-lg mb-4 ${
                         t === 'dark' ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5' : 
                         t === 'light' ? 'bg-gradient-to-br from-gray-100 to-white border border-gray-300' : 
-                        'bg-black border border-stone-850'
+                        'bg-black border border-stone-800'
                       }`} />
                       <div className="font-bold text-white capitalize">{t === 'amoled' ? 'AMOLED Siyah' : t === 'dark' ? 'Koyu' : 'Açık'}</div>
                     </button>
@@ -533,7 +533,7 @@ export default function SettingsPage() {
                       step="0.05"
                       value={settings.musicDefaultVolume}
                       onChange={(e) => settings.updateSettings({ musicDefaultVolume: parseFloat(e.target.value) })}
-                      className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
 
@@ -610,7 +610,7 @@ export default function SettingsPage() {
                         type="range" min="10" max="60" step="5"
                         value={settings.pomodoroWork}
                         onChange={(e) => settings.updateSettings({ pomodoroWork: parseInt(e.target.value) })}
-                        className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                        className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
 
@@ -623,7 +623,7 @@ export default function SettingsPage() {
                         type="range" min="1" max="20" step="1"
                         value={settings.pomodoroShortBreak}
                         onChange={(e) => settings.updateSettings({ pomodoroShortBreak: parseInt(e.target.value) })}
-                        className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                        className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
 
@@ -636,7 +636,7 @@ export default function SettingsPage() {
                         type="range" min="5" max="45" step="5"
                         value={settings.pomodoroLongBreak}
                         onChange={(e) => settings.updateSettings({ pomodoroLongBreak: parseInt(e.target.value) })}
-                        className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                        className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
                   </div>
@@ -931,7 +931,7 @@ export default function SettingsPage() {
                         type="range" min="5" max="120" step="5"
                         value={settings.notesAutoSaveInterval}
                         onChange={(e) => settings.updateSettings({ notesAutoSaveInterval: parseInt(e.target.value) })}
-                        className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                        className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                       />
                     </div>
                   )}
@@ -1109,7 +1109,7 @@ export default function SettingsPage() {
                       type="range" min="5" max="60" step="5"
                       value={settings.gamesDailyLimit}
                       onChange={(e) => settings.updateSettings({ gamesDailyLimit: parseInt(e.target.value) })}
-                      className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                     />
                     <span className="text-[10px] text-gray-500 flex items-center gap-1 mt-1">
                       <Info size={12} /> Odak kaybını engellemek amacıyla günlük oyun süreniz tamamlandığında oyunlar otomatik kilitlenir.
@@ -1150,7 +1150,7 @@ export default function SettingsPage() {
                       type="range" min="3" max="18" step="1"
                       value={settings.mapDefaultZoom}
                       onChange={(e) => settings.updateSettings({ mapDefaultZoom: parseInt(e.target.value) })}
-                      className="w-full accent-green-500 bg-stone-850 h-1 rounded-lg appearance-none cursor-pointer"
+                      className="w-full accent-green-500 bg-stone-800 h-1 rounded-lg appearance-none cursor-pointer"
                     />
                   </div>
                 </div>

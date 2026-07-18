@@ -37,7 +37,8 @@
     "language": "Dil / Language",
     "expand": "Genişlet",
     "collapse": "Daralt",
-    "tracker": "Medya Takibi"
+    "tracker": "Medya Takibi",
+    "music": "Odak Müzik"
   },
   "calendar": {
     "newEvent": "Yeni Etkinlik",

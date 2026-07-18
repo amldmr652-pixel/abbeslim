@@ -78,7 +78,10 @@ export default function StudyPage() {
   // Calculate daily data for the last 7 days bar chart
   const getLast7DaysData = () => {
     const data = [];
-    const daysName = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+    const daysName = [
+      t('study.days.Paz'), t('study.days.Pzt'), t('study.days.Sal'),
+      t('study.days.Çar'), t('study.days.Per'), t('study.days.Cum'), t('study.days.Cmt')
+    ];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
@@ -94,7 +97,9 @@ export default function StudyPage() {
       data.push({
         dayName: daysName[d.getDay()],
         minutes: dayMins,
-        formatted: dayMins >= 60 ? `${Math.floor(dayMins / 60)}s ${dayMins % 60}d` : `${dayMins}d`
+        formatted: dayMins >= 60 
+          ? `${Math.floor(dayMins / 60)}${t('study.hoursShort')} ${dayMins % 60}${t('study.minutesShort')}` 
+          : `${dayMins}${t('study.minutesShort')}`
       });
     }
     return data;
@@ -115,7 +120,7 @@ export default function StudyPage() {
   const formatHoursAndMinutes = (mins: number) => {
     const hrs = Math.floor(mins / 60);
     const m = mins % 60;
-    return hrs > 0 ? `${hrs}sa ${m}dk` : `${m}dk`;
+    return hrs > 0 ? `${hrs}${t('study.hoursShort')} ${m}${t('study.minutesShort')}` : `${m}${t('study.minutesShort')}`;
   };
 
   return (
@@ -135,8 +140,8 @@ export default function StudyPage() {
               <TimerIcon size={26} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">Çalışma Süresi Analizi</h1>
-              <p className="text-xs text-gray-400">Çalışma sürelerinizi, hedeflerinizi ve seans geçmişinizi buradan takip edin.</p>
+              <h1 className="text-2xl font-bold text-white tracking-wide">{t('study.title')}</h1>
+              <p className="text-xs text-gray-400">{t('study.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -147,7 +152,7 @@ export default function StudyPage() {
           {loadingStats ? (
             <div className="py-20 flex flex-col items-center justify-center gap-3 flex-1">
               <div className="animate-spin rounded-full h-8 w-8 border-t border-green-500"></div>
-              <p className="text-xs text-gray-500">Veriler yükleniyor...</p>
+              <p className="text-xs text-gray-500">{t('study.loading')}</p>
             </div>
           ) : (
             <div className="space-y-6 flex-1 flex flex-col justify-between">
@@ -156,28 +161,28 @@ export default function StudyPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-stone-900/30 border border-white/5 rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Bugünkü Hedef</span>
+                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">{t('study.dailyGoal')}</span>
                       <span className="text-xs text-green-400 font-bold">{Math.floor(todayProgress)}%</span>
                     </div>
                     <div className="text-lg font-bold text-white mb-2">
                       {formatHoursAndMinutes(todayMinutes)}{' '}
                       <span className="text-gray-500 text-xs font-normal">/ {formatHoursAndMinutes(dailyGoal)}</span>
                     </div>
-                    <div className="w-full h-1.5 bg-stone-850 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
                       <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${todayProgress}%` }} />
                     </div>
                   </div>
 
                   <div className="bg-stone-900/30 border border-white/5 rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Haftalık Hedef</span>
+                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">{t('study.weeklyGoal')}</span>
                       <span className="text-xs text-green-400 font-bold">{Math.floor(weeklyProgress)}%</span>
                     </div>
                     <div className="text-lg font-bold text-white mb-2">
-                      {Math.floor(thisWeekMinutes / 60)}sa{' '}
-                      <span className="text-gray-500 text-xs font-normal">/ {weeklyGoal}sa</span>
+                      {Math.floor(thisWeekMinutes / 60)}{t('study.hoursShort')}{' '}
+                      <span className="text-gray-500 text-xs font-normal">/ {weeklyGoal}{t('study.hoursShort')}</span>
                     </div>
-                    <div className="w-full h-1.5 bg-stone-850 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
                       <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${weeklyProgress}%` }} />
                     </div>
                   </div>
@@ -185,7 +190,7 @@ export default function StudyPage() {
 
                 {/* Bar Chart */}
                 <div className="bg-stone-900/30 border border-white/5 rounded-3xl p-5">
-                  <h3 className="text-xs font-bold text-white mb-6 uppercase tracking-wider text-gray-400">Son 7 Günlük Çalışma</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-6">{t('study.last7Days')}</h3>
                   <div className="flex justify-between items-end h-32 px-2">
                     {chartData.map((d, i) => {
                       const heightPercentage = Math.max(5, (d.minutes / maxMinsInChart) * 100);
@@ -212,7 +217,7 @@ export default function StudyPage() {
                   <div className="bg-stone-900/30 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
                     <Calendar className="text-green-500" size={18} />
                     <div>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Bu Ay Toplam</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{t('study.thisMonthTotal')}</p>
                       <p className="text-sm font-bold text-white">{formatHoursAndMinutes(thisMonthMinutes)}</p>
                     </div>
                   </div>
@@ -220,7 +225,7 @@ export default function StudyPage() {
                   <div className="bg-stone-900/30 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
                     <Target className="text-green-500" size={18} />
                     <div>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Tüm Zamanlar</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{t('study.allTime')}</p>
                       <p className="text-sm font-bold text-white">{formatHoursAndMinutes(totalMinutes)}</p>
                     </div>
                   </div>
@@ -229,10 +234,10 @@ export default function StudyPage() {
 
               {/* Goal Settings Form */}
               <div className="space-y-4 pt-6 border-t border-white/5">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider text-gray-400 mb-2">Çalışma Hedeyi Ayarları</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{t('study.goalSettings')}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Günlük Hedef (Dk)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">{t('study.dailyGoalMinutes')}</label>
                     <input
                       type="number"
                       min="15"
@@ -243,7 +248,7 @@ export default function StudyPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">Haftalık Hedef (Sa)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">{t('study.weeklyGoalHours')}</label>
                     <input
                       type="number"
                       min="1"
@@ -258,7 +263,7 @@ export default function StudyPage() {
                   className="w-full flex items-center justify-center gap-2 mt-4"
                   onClick={handleSaveGoals}
                 >
-                  {saveSuccess ? 'Hedefler Güncellendi' : 'Hedefleri Kaydet'}
+                  {saveSuccess ? t('study.settingsSaved') : t('study.saveSettings')}
                 </Button>
               </div>
             </div>

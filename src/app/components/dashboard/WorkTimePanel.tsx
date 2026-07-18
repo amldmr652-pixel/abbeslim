@@ -180,7 +180,7 @@ export default function WorkTimePanel({ onClose }: WorkTimePanelProps) {
                   {formatHoursAndMinutes(todayMinutes)}{' '}
                   <span className="text-gray-500 text-xs font-normal">/ {formatHoursAndMinutes(dailyGoal)}</span>
                 </div>
-                <div className="w-full h-1.5 bg-stone-850 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
                   <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${todayProgress}%` }} />
                 </div>
               </div>
@@ -194,7 +194,7 @@ export default function WorkTimePanel({ onClose }: WorkTimePanelProps) {
                   {Math.floor(thisWeekMinutes / 60)}sa{' '}
                   <span className="text-gray-500 text-xs font-normal">/ {weeklyGoal}sa</span>
                 </div>
-                <div className="w-full h-1.5 bg-stone-850 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
                   <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${weeklyProgress}%` }} />
                 </div>
               </div>

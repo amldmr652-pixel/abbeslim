@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, BookOpen, Music, GripHorizontal } from 'lucide-react';
-import Link from 'next/link';
+import { GripHorizontal } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -49,7 +47,6 @@ function SortableWidgetWrapper({ id, children }: { id: string, children: React.R
 }
 
 function DashboardContent() {
-  const { setIsMusicPanelOpen } = useMusicContext();
   const { tasks, fetchTasks } = useTaskStore();
   const { goals, fetchGoals } = useGoalStore();
   const { dashboardOrder, setDashboardOrder } = useSettingsStore();

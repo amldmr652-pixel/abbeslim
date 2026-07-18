@@ -29,14 +29,12 @@ import {
 
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
-import { useMusicContext } from '@/app/context/MusicContext';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 
 interface NavItem {
   id: string;
   icon: React.ReactNode;
   href?: string;
-  action?: 'music';
   hasBadge?: boolean;
 }
 
@@ -64,7 +62,6 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { t, language, setLanguage } = useTranslation();
-  const { setIsMusicPanelOpen } = useMusicContext();
   const { sidebarCollapsed: collapsed, setSidebarCollapsed: setCollapsed } = useSettingsStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
@@ -98,7 +95,7 @@ export default function Sidebar() {
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
     const hasBadge = item.hasBadge;
-    const label = item.id === 'music' ? 'Odak Müzik' : t(`sidebar.${item.id}`);
+    const label = t(`sidebar.${item.id}`);
     const badgeText = t('common.comingSoon');
 
     const content = (
@@ -138,17 +135,6 @@ export default function Sidebar() {
       }
     `;
 
-    if (item.action === 'music') {
-      return (
-        <button
-          key={item.id}
-          onClick={() => setIsMusicPanelOpen(true)}
-          className={`w-full text-left ${className}`}
-        >
-          {content}
-        </button>
-      );
-    }
 
     return (
       <Link

@@ -239,11 +239,8 @@ export async function POST(req: NextRequest) {
     // Mod bazlı system instruction belirleme
     const titleDirective = '\n\nÖNEMLİ: Cevabının en sonuna mutlaka [TITLE: konu_adi] formatında, Türkçe karakterler içermeyen, boşluk yerine alt çizgi (_) kullanan, dosya ismi olmaya uygun (max 30 karakter) kısa bir konu başlığı ekle (örn: [TITLE: Osmanli_Cokus_Nedenleri]).';
 
-    // Bugünün tarihi
-    const now = new Date();
-    const offset = now.getTimezoneOffset();
-    const localDate = new Date(now.getTime() - (offset * 60 * 1000));
-    const todayDateStr = localDate.toISOString().split('T')[0];
+    // Bugünün tarihi (Yerel Türkiye Saati)
+    const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' });
     const calendarDirective = `\n\nBugünün tarihi: ${todayDateStr}. Kullanıcı 'ayın 15'ine x ekle' dediğinde bu tarihi baz alarak create_calendar_event aracını çağır.`;
 
     let systemInstructionText = '';

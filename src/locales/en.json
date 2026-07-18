@@ -37,7 +37,8 @@
     "language": "Language",
     "expand": "Expand",
     "collapse": "Collapse",
-    "tracker": "Media Tracker"
+    "tracker": "Media Tracker",
+    "music": "Focus Music"
   },
   "calendar": {
     "newEvent": "New Event",

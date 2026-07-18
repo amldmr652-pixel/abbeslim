@@ -171,7 +171,7 @@ export default function MusicPage() {
                     max={duration || 100}
                     value={currentTime}
                     onChange={(e) => seekTo(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-stone-850 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
+                    className="w-full h-1.5 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
                   />
                   <div className="flex justify-between text-xs text-gray-500 font-mono">
                     <span>{formatTime(currentTime)}</span>
@@ -262,7 +262,7 @@ export default function MusicPage() {
                         setIsMuted(false);
                         setVolume(parseFloat(e.target.value));
                       }}
-                      className="w-28 h-1.5 bg-stone-850 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
+                      className="w-28 h-1.5 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-green-500 focus:outline-none"
                     />
                   </div>
 
@@ -390,7 +390,7 @@ export default function MusicPage() {
                   <Plus size={16} /> Yeni Odak Listesi Ekle
                 </Button>
               ) : (
-                <div className="bg-stone-950 border border-stone-850 p-4 rounded-2xl space-y-3">
+                <div className="bg-stone-950 border border-stone-800 p-4 rounded-2xl space-y-3">
                   <div>
                     <h3 className="text-xs font-bold text-white">Yeni Liste Oluştur</h3>
                     <p className="text-[10px] text-gray-500">YouTube playlist linki veya direkt MP3 URL&apos;i yapıştırın.</p>

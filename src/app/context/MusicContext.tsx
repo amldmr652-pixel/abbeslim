@@ -38,7 +38,6 @@ interface MusicContextType {
   isMuted: boolean;
   activeChannel: Channel | null;
   activeTrack: Track | null;
-  isMusicPanelOpen: boolean;
   
   // Spotify / Gelişmiş Özellikler
   favoriteChannelIds: string[];
@@ -60,7 +59,6 @@ interface MusicContextType {
   setIsMusicSynced: React.Dispatch<React.SetStateAction<boolean>>;
   setVolume: (v: number) => void;
   setIsMuted: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsMusicPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
   addChannel: (channel: Channel) => void;
   removeChannel: (id: string) => void;
   registerYTPlayer: (player: any) => void;
@@ -124,7 +122,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   };
 
   const [isMuted, setIsMuted]                   = useState(false);
-  const [isMusicPanelOpen, setIsMusicPanelOpen] = useState(false);
 
   const [isLoadingTrack, setIsLoadingTrack] = useState(false);
   const [shuffleMode, setShuffleMode] = useState(false);
@@ -317,16 +314,15 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       if (sleepTimerIntervalRef.current) clearInterval(sleepTimerIntervalRef.current);
     };
   }, []);
-
   return (
     <MusicContext.Provider value={{
       channels, selectedChannelId, isMusicPlaying, currentTrackIndex,
-      isMusicSynced, volume, isMuted, activeChannel, activeTrack, isMusicPanelOpen,
+      isMusicSynced, volume, isMuted, activeChannel, activeTrack,
       favoriteChannelIds, shuffleMode, repeatMode, currentSongTitle, currentSongArtist,
       currentTime, duration, sleepTimerRemaining, seekRequest,
       isLoadingTrack, setIsLoadingTrack,
       handleSelectChannel, handlePrevTrack, handleNextTrack,
-      setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted, setIsMusicPanelOpen,
+      setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted,
       addChannel, removeChannel, registerYTPlayer,
       toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer, updateSongInfo, updateProgress,
       setShuffleMode, setRepeatMode, clearSeekRequest

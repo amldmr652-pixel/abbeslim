@@ -261,7 +261,12 @@ export default function HiddenYouTubePlayer() {
               console.log('YT Player is buffering, keeping loading state...');
               // Clear loading state after another 10s if still buffering, to hide the spinner
               setTimeout(() => {
-                if (ctxRef.current.isLoadingTrack && ytPlayerRef.current?.getPlayerState?.() === 3) {
+                if (ctxRef.current.isLoadingTrack) {
+                  const currentState = ytPlayerRef.current?.getPlayerState?.();
+                  if (currentState !== 1) {
+                    // Hâlâ çalmıyorsa bir kez daha dene
+                    ytPlayerRef.current?.playVideo?.();
+                  }
                   ctxRef.current.setIsLoadingTrack(false);
                 }
               }, 10000);
