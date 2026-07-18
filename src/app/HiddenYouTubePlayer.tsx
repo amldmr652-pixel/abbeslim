@@ -34,6 +34,7 @@ export default function HiddenYouTubePlayer() {
   const ytPlayerRef    = useRef<any>(null);
   const ytReadyRef     = useRef(false);
   const prevSrcRef     = useRef<string | null>(null);
+  const lastErrorTimeRef = useRef<number>(0);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -200,9 +201,23 @@ export default function HiddenYouTubePlayer() {
           },
           onStateChange: (e: any) => {
             if (e.data === window.YT.PlayerState.PLAYING) {
-              const videoData = e.target.getVideoData();
-              ctxRef.current.updateSongInfo(videoData.title || '', videoData.author || '');
               ctxRef.current.setIsLoadingTrack(false);
+              try {
+                const videoData = e.target.getVideoData();
+                if (videoData?.title) {
+                  ctxRef.current.updateSongInfo(videoData.title, videoData.author || '');
+                }
+              } catch {}
+
+              // 500ms sonra tekrar al (YouTube API'nin eski şarkı adını dönme yarış koşulunu düzeltmek için)
+              setTimeout(() => {
+                try {
+                  const videoData = e.target.getVideoData();
+                  if (videoData?.title) {
+                    ctxRef.current.updateSongInfo(videoData.title, videoData.author || '');
+                  }
+                } catch { /* ignore */ }
+              }, 500);
             } else if (e.data === window.YT.PlayerState.BUFFERING) {
               ctxRef.current.setIsLoadingTrack(true);
             } else if (e.data === window.YT.PlayerState.ENDED) {
@@ -217,6 +232,14 @@ export default function HiddenYouTubePlayer() {
           onError: (e: any) => {
             console.warn('YT Error:', e.data);
             ctxRef.current.setIsLoadingTrack(false);
+            
+            const now = Date.now();
+            if (now - lastErrorTimeRef.current < 4000) {
+              console.warn('YT Error loop detected, stopping.');
+              alert('Bu oynatma listesi veya video dış sitelerde oynatılamıyor (YouTube kısıtlaması nedeniyle).');
+              return;
+            }
+            lastErrorTimeRef.current = now;
             ctxRef.current.handleNextTrack();
           },
         },
@@ -376,13 +399,19 @@ export default function HiddenYouTubePlayer() {
           if (!ctxRef.current.seekRequest) {
             ctxRef.current.updateProgress(current, total);
           }
+
+          // Polling ile şarkı adını kontrol et (Playlist otomatik şarkı geçişlerinde güncel ismi yakalamak için)
+          const videoData = ytPlayerRef.current.getVideoData?.();
+          if (videoData?.title && videoData.title !== ctxRef.current.currentSongTitle) {
+            ctxRef.current.updateSongInfo(videoData.title, videoData.author || '');
+          }
         } catch (e) {
           console.warn(e);
         }
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [mounted, ytMode, ctx.isMusicPlaying, ctx.selectedChannelId, ctx.currentTrackIndex]);
+  }, [mounted, ytMode, ctx.isMusicPlaying, ctx.selectedChannelId, ctx.currentTrackIndex, ctx.currentSongTitle]);
 
   if (!mounted) return null;
 

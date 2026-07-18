@@ -83,7 +83,9 @@ export default function MusicPage() {
       return;
     }
     const newId = 'custom-' + Date.now();
-    let audioSrc = newChannelUrl.trim();
+    let audioSrc = newChannelUrl.trim()
+      .replace(/[\u200B-\u200D\uFEFF\u200E\u200F]/g, '')
+      .replace(/[&?]si=[^&\s]*/g, '');
     let artist = 'Özel Liste';
     
     if (audioSrc.includes('list=')) {
@@ -441,13 +443,15 @@ export default function MusicPage() {
 
                     {newChannelUrl.trim() && (
                       <div className={`text-[10px] p-2 rounded-lg border ${
-                        newChannelUrl.includes('list=')
+                        (newChannelUrl.includes('list=') || newChannelUrl.includes('v=') || newChannelUrl.includes('youtu.be/'))
                           ? 'bg-green-950/20 text-green-400 border-green-500/20'
                           : 'bg-stone-900/50 text-gray-400 border-stone-800/30'
                       }`}>
                         {newChannelUrl.includes('list=')
                           ? '✓ YouTube Playlist algılandı'
-                          : '✓ Direkt ses URL\'i algılandı'}
+                          : (newChannelUrl.includes('v=') || newChannelUrl.includes('youtu.be/'))
+                            ? '✓ YouTube Videosu algılandı'
+                            : '✓ Direkt ses URL\'i algılandı'}
                       </div>
                     )}
 
