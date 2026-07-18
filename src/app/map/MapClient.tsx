@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useMapStore, MapPin, PinCategory, PinStatus } from '@/stores/useMapStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
-import { Trash2, Edit2, Plus, Settings } from 'lucide-react';
+import { Trash2, Edit2, Plus, Settings, Search, X } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 // Leaflet default icon fix for Next.js compatibility
@@ -49,6 +49,16 @@ const createPinIcon = (status: PinStatus) => {
   });
 };
 
+const createSearchPinIcon = () => {
+  return L.divIcon({
+    className: 'custom-search-pin-icon',
+    html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#3b82f6;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.4);transform:rotate(-45deg);"></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
+  });
+};
+
 function ClickHandler({ onMapClick }: { onMapClick: (e: L.LeafletMouseEvent) => void }) {
   useMapEvents({ click: (e) => onMapClick(e) });
   return null;
@@ -68,6 +78,13 @@ export default function MapClient() {
   const { pins, isLoading, fetchPins, addPin, updatePin, removePin } = useMapStore();
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<PinCategory | 'all'>('all');
+
+  // Arama Durumları
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [tempSearchPin, setTempSearchPin] = useState<{ lat: number; lng: number; title: string } | null>(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   // Add Position
   const [isAddMode, setIsAddMode] = useState(false);
@@ -97,6 +114,49 @@ export default function MapClient() {
     setSelectedPinId(pin.id);
     setMapCenter([pin.lat, pin.lng]);
     setCurrentZoom(15);
+    setTempSearchPin(null); // Kalıcı pinden birini tıklayınca arama pini kalksın
+  };
+
+  // Debounce ile Konum Arama
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleSearch(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSearch = async (query: string) => {
+    setIsSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}&limit=5&addressdetails=1`
+      );
+      const data = await res.json();
+      setSearchResults(data);
+      setShowSearchResults(true);
+    } catch (err) {
+      console.error('Harita arama hatası:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectSearchResult = (result: any) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const title = result.display_name.split(',')[0] || 'Aranan Konum';
+    
+    setTempSearchPin({ lat, lng, title });
+    setMapCenter([lat, lng]);
+    setCurrentZoom(15);
+    setShowSearchResults(false);
   };
 
   useEffect(() => {
@@ -110,6 +170,7 @@ export default function MapClient() {
   const handleMapClick = (e: L.LeafletMouseEvent) => {
     if (!isAddMode) return;
     setPendingLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
+    setTempSearchPin(null); // Haritaya yeni tıklayınca geçici arama pini kalksın
   };
 
   const handleAddConfirm = async () => {
@@ -277,6 +338,61 @@ export default function MapClient() {
 
       {/* Harita Alanı */}
       <div className="flex-1 rounded-3xl overflow-hidden border border-green-900/10 shadow-2xl z-0 isolate relative">
+        
+        {/* Konum Arama Paneli */}
+        <div className="absolute top-4 left-14 z-[500] w-64 md:w-80">
+          <div className="glass flex items-center gap-2 p-2.5 px-4 rounded-2xl border border-white/10 shadow-lg backdrop-blur-md">
+            <Search size={16} className="text-green-500 shrink-0" />
+            <input
+              type="text"
+              placeholder="Konum ara... (Örn: Eyüp Sultan)"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onFocus={() => setShowSearchResults(true)}
+              className="flex-1 bg-transparent border-none text-white text-xs outline-none placeholder:text-gray-500"
+            />
+            {isSearching ? (
+              <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
+            ) : searchQuery ? (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchResults([]);
+                  setShowSearchResults(false);
+                  setTempSearchPin(null);
+                }}
+                className="text-gray-400 hover:text-white p-0.5 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            ) : null}
+          </div>
+
+          {/* Dışarı tıklama algılayıcı ve Sonuç Listesi */}
+          {showSearchResults && searchResults.length > 0 && (
+            <>
+              <div 
+                className="fixed inset-0 z-[499]" 
+                onClick={() => setShowSearchResults(false)}
+              />
+              <div className="absolute top-13 left-0 right-0 glass mt-1.5 rounded-2xl border border-white/10 shadow-2xl max-h-60 overflow-y-auto z-[500] p-1.5 space-y-1 backdrop-blur-md">
+                {searchResults.map((result, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSelectSearchResult(result)}
+                    className="w-full text-left p-2.5 px-3 rounded-xl hover:bg-white/5 transition-all text-xs text-gray-300 hover:text-white truncate"
+                  >
+                    {result.display_name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
         <MapContainer
           center={[39.0, 35.0]}
           zoom={mapZoom}
@@ -289,6 +405,37 @@ export default function MapClient() {
           />
           <ClickHandler onMapClick={handleMapClick} />
           <MapViewUpdater center={mapCenter} zoom={currentZoom} />
+
+          {/* Geçici Arama İşaretçisi */}
+          {tempSearchPin && (
+            <Marker
+              position={[tempSearchPin.lat, tempSearchPin.lng]}
+              icon={createSearchPinIcon()}
+              eventHandlers={{
+                add: (e) => {
+                  e.target.openPopup();
+                }
+              }}
+            >
+              <Popup>
+                <div className="min-w-[200px] text-gray-800 p-1">
+                  <h3 className="font-bold text-sm mb-1">{tempSearchPin.title}</h3>
+                  <p className="text-[10px] text-gray-500 mb-2">Aranan Konum (Geçici İşaretçi)</p>
+                  <button
+                    onClick={() => {
+                      setNewTitle(tempSearchPin.title);
+                      setPendingLatLng({ lat: tempSearchPin.lat, lng: tempSearchPin.lng });
+                      setIsAddMode(true);
+                      setTempSearchPin(null);
+                    }}
+                    className="w-full bg-green-500 hover:bg-green-600 text-stone-950 font-bold py-1.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Plus size={12} /> Bu Konumu Kaydet
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          )}
 
           {filteredPins.map((pin) => (
             <Marker
