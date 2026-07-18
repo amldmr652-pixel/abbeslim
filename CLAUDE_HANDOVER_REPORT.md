@@ -914,3 +914,25 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Çözüm:** `HiddenYouTubePlayer.tsx` üzerinde state takibi ve dependency array `currentSrc` ve `selectedChannelId` değişimlerini izleyecek şekilde düzeltildi. `prevSrcRef` kullanılarak tüm kaynak değişimleri yakalandı. Rebuild olmadan player'ın `loadPlaylist` / `cuePlaylist` ile playlist değiştirmesi ve `loadVideoById` / `cueVideoById` ile tekil videoları oynatması kararlı hale getirildi.
 - **Tasarım:** Kanal satırlarında (`renderChannelRow`) YouTube videoları için "YouTube Videosu" ibaresi ve stil entegrasyonu sağlandı.
 - **Doğrulama:** `npm run build` ile yerel derleme sıfır hatayla başarıyla tamamlandı.
+
+---
+
+## [2026-07-18] V2.26 — Müzik Çalar Şarkı Adı Gecikmesi, Playlist URL Sanitization ve Hata Koruma Güncellemesi (Antigravity/Gemini)
+
+### 1. Şarkı Adı Senkronizasyon Sorunları ve Yarış Koşulu Çözümü
+- **Sorun:** Kanal değiştiğinde YouTube player'ın gecikmeli olarak yansıttığı eski şarkı bilgisi yeni kanalın adının üzerine yazılıyor veya eski şarkı adı çakılı kalıyordu.
+- **Çözüm:** 
+  - `MusicContext.tsx` dosyasına `channelSwitchTimestampRef` referansı eklenerek kanal geçişinden sonraki 1.5 saniye boyunca gelen meta veri güncellemeleri debounced penceresinde filtrelendi.
+  - `HiddenYouTubePlayer.tsx` üzerinde `onStateChange(PLAYING)` callback'ine anlık bilginin yanı sıra 500ms sonra veriyi tekrar doğrulayan asenkron bir `setTimeout` eklendi.
+  - Progress polling loop'una (1 saniyelik interval) `currentSongTitle` takibi eklenerek playlist otomatik parça değişimlerinde dahi ismin anında güncellenmesi garanti altına alındı.
+
+### 2. Görünmez Karakterler ve `&si=` URL Sanitization (`music/page.tsx`)
+- **Sorun:** Paylaşılan veya kopyalanan bazı playlist URL'lerindeki görünmez Unicode boşluk karakterleri (`\u200B` vb.) ya da YouTube'un otomatik eklediği `&si=` takip parametresi regex algılamasını bozuyor veya API tarafında playlistin bulunamamasına neden oluyordu.
+- **Çözüm:** `handleAddChannelSubmit` fonksiyonunun başında, URL'deki görünmez karakterler ve `&si=` takip parametresi temizlendi. Ekleme ekranındaki ipucu/önizleme kutusu tekli videolar için de yeşil bildirim gösterecek şekilde geliştirildi.
+
+### 3. Oynatılmayan Playlistlerde Sonsuz Atlama Döngüsü Engeli (`HiddenYouTubePlayer.tsx`)
+- **Sorun:** Üzerinde dış sitelerde oynatma kısıtlaması (embed disabled) olan oynatma listeleri/videolar yüklendiğinde, player sürekli hata fırlatıyor ve playlist tek parçalık ise sistem sonsuz bir atlama/yüklenme döngüsüne giriyordu.
+- **Çözüm:** `HiddenYouTubePlayer.tsx` içerisindeki `onError` event'ine `lastErrorTimeRef` kontrolü eklenerek, 4 saniye içinde art arda oluşan hatalar yakalandı, sonsuz döngü kesildi ve kullanıcıya tarayıcı üzerinden bilgilendirme uyarısı gösterildi.
+
+### 4. Doğrulama ve Git
+- **Doğrulama:** Yerel `npm run build` derlemesi sıfır hata ile tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** adresinde canlıya alındı. Değişiklikler git'e commit edildi.
