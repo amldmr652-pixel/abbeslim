@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { Document, Page } from 'react-pdf';
 import { Loader2, MapPin } from 'lucide-react';
 import { useTranslation } from '@/app/hooks/useTranslation';
@@ -17,6 +18,68 @@ interface PDFDocumentWrapperProps {
   onDocumentLoadSuccess: ({ numPages }: { numPages: number }) => void;
   onTextLayerRender: () => void;
   textRenderer: (textItem: any) => string;
+}
+
+interface LazyPageProps {
+  pageNumber: number;
+  scale: number;
+  onRenderTextLayerSuccess: () => void;
+  customTextRenderer: (textItem: any) => string;
+  loading: React.ReactNode;
+  className?: string;
+}
+
+function LazyPage({
+  pageNumber,
+  scale,
+  onRenderTextLayerSuccess,
+  customTextRenderer,
+  loading,
+  className
+}: LazyPageProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '800px 0px 800px 0px', // Sayfaya 1 sayfa kala yüklemeye başla
+      }
+    );
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={elementRef}
+      className="w-full flex justify-center items-center"
+      style={{ minHeight: `${scale * 800}px` }}
+    >
+      {isVisible ? (
+        <Page
+          pageNumber={pageNumber}
+          scale={scale}
+          onRenderTextLayerSuccess={onRenderTextLayerSuccess}
+          customTextRenderer={customTextRenderer}
+          loading={loading}
+          className={className}
+        />
+      ) : (
+        loading
+      )}
+    </div>
+  );
 }
 
 export default function PDFDocumentWrapper({
@@ -57,7 +120,7 @@ export default function PDFDocumentWrapper({
               key={index}
               className="glass p-3 rounded-3xl relative shadow-[0_0_30px_rgba(0,0,0,0.5)] flex justify-center overflow-hidden mb-6"
             >
-              <Page
+              <LazyPage
                 pageNumber={index + 1}
                 scale={scale}
                 onRenderTextLayerSuccess={onTextLayerRender}
