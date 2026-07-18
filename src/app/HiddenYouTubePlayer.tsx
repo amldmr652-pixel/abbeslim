@@ -264,36 +264,12 @@ export default function HiddenYouTubePlayer() {
       }
     };
 
-    // Re-use existing player instance if it is ready
-    if (ytPlayerRef.current && ytReadyRef.current) {
-      if (currentSrc !== prevSrcRef.current) {
-        prevSrcRef.current = currentSrc;
-        try {
-          console.log('Reusing YouTube player for:', params.type, params.id);
-          if (params.type === 'playlist') {
-            if (ctxRef.current.isMusicPlaying) {
-              ytPlayerRef.current.loadPlaylist({ list: params.id, listType: 'playlist' });
-            } else {
-              ytPlayerRef.current.cuePlaylist({ list: params.id, listType: 'playlist' });
-            }
-          } else {
-            if (ctxRef.current.isMusicPlaying) {
-              ytPlayerRef.current.loadVideoById(params.id);
-            } else {
-              ytPlayerRef.current.cueVideoById(params.id);
-            }
-          }
-        } catch (err) {
-          console.warn('load/cue failed, rebuilding player:', err);
-          rebuildPlayer(params.type, params.id);
-        }
-      }
-    } else {
-      if (currentSrc !== prevSrcRef.current) {
-        prevSrcRef.current = currentSrc;
-        ytReadyRef.current = false;
-        rebuildPlayer(params.type, params.id);
-      }
+    // Kaynak değiştiyse player'ı her zaman sıfırdan oluştur
+    // (loadPlaylist reuse bazı playlistlerde sessizce başarısız oluyor)
+    if (currentSrc !== prevSrcRef.current) {
+      prevSrcRef.current = currentSrc;
+      ytReadyRef.current = false;
+      rebuildPlayer(params.type, params.id);
     }
   }, [mounted, ytMode, currentSrc, ctx.selectedChannelId]);
 

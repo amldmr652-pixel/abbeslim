@@ -138,7 +138,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // YouTube player referansı
   const ytPlayerRef = useRef<any>(null);
   const lastActiveTrackIdRef = useRef<string | null>(null);
-  const channelSwitchTimestampRef = useRef<number>(0);
   // Supabase kaydetme için debounce timer
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -228,7 +227,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:') || !!src?.startsWith('yt-video:');
 
   const handleSelectChannel = (id: string) => {
-    channelSwitchTimestampRef.current = Date.now();
     setIsLoadingTrack(true);
     setSelectedChannelId(id);
     setCurrentTrackIndex(0);
@@ -301,9 +299,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSongInfo = (title: string, artist: string) => {
-    if (Date.now() - channelSwitchTimestampRef.current < 1500) {
-      return;
-    }
     setCurrentSongTitle(title);
     setCurrentSongArtist(artist);
   };
