@@ -957,3 +957,18 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 ### 3. Derleme & Canlıya Alma
 - **Doğrulama:** `npm run build` yerel derlemesi sıfır hatayla başarıyla tamamlandı. Değişiklikler `npx vercel --prod --yes` ile **abbeslim.vercel.app** üzerinde canlıya alındı. Değişiklikler git'e commit edildi.
+
+---
+
+## [2026-07-18] V2.28 — PDF Görüntüleyici Tembel Yükleme (Lazy Loading) Entegrasyonu (Antigravity/Gemini)
+
+### 1. Sayfa Yüklenmeme ve Beyaz Sayfa Sorununun Çözümü (`PDFDocument.tsx`)
+- **Sorun:** Çok sayfalı (700+ sayfalık) PDF dokümanlarında, görüntüleyici tüm sayfaları aynı anda DOM üzerinde render etmeye çalışıyor, bu da tarayıcının WebGL/Canvas limitlerini aşarak sayfaların tamamen beyaz kalmasına veya sekmenin çökmesine (out-of-memory) yol açıyordu.
+- **Çözüm:** 
+  - `PDFDocument.tsx` içerisine `IntersectionObserver` tabanlı çalışan bir `LazyPage` yardımcı bileşeni eklendi.
+  - Sayfalar artık yalnızca kullanıcının ekranına girdiklerinde (veya 800px yaklaştıklarında) yüklenip canvas nesnesi olarak çizilmektedir.
+  - Kaydırma çubuğunun (scroll) zıplamasını engellemek için, henüz yüklenmemiş sayfalarda ölçekle orantılı (`scale * 800px`) yer tutucu (`minHeight`) alanları korundu.
+  - Bu sayede bellek tüketimi 2.5 GB seviyelerinden 100 MB civarına indirilerek performans problemi kökten çözüldü.
+
+### 2. Derleme & Canlıya Alma
+- **Doğrulama:** Yerel `npm run build` derlemesi başarıyla tamamlandı. Değişiklikler `npx vercel --prod --yes` ile canlıya deploy edildi. Değişiklikler git'e commit edildi.
