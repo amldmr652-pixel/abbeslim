@@ -858,3 +858,59 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 **Sonraki Adımlar:**
 - Planlanan diğer modüller (Takvim, Görev, Not, Harita vb.) stabil durumdadır. Kullanıcının talebine göre yeni widget/özelleştirmelere devam edilebilir.
+
+---
+
+## [2026-07-18] Gemini Sonrası 12 Hata ve Eksiklik Düzeltmeleri — Tamamlandı
+
+**Durum:** Hazırlanan fix planı kapsamında 12 hata ve eksiklik başarıyla düzeltildi, `npm run build` ile yerel derleme hatasız doğrulandı ve değişiklikler deploy edildi.
+
+**Yapılan İşlemler:**
+
+1. **Geçersiz Tailwind Sınıflarının Düzeltilmesi (Sorun #1):**
+   - Tailwind CSS v4'te yer almayan `bg-stone-850` ve `border-stone-850` sınıfları seek barların, volume slider'ların ve progress barların görünmez olmasına yol açıyordu. Bu sınıflar `bg-stone-800` ve `border-stone-800` olarak değiştirilerek görünürlük sorunu çözüldü. (`study/page.tsx`, `LayoutShell.tsx`, `WorkTimePanel.tsx`, `music/page.tsx`, `settings/page.tsx` dosyalarında).
+
+2. **Çalışma Süresi Analiz Sayfası i18n Entegrasyonu & Hata Düzeltmeleri (Sorun #2, #4, #5):**
+   - `/study` sayfasındaki tüm hardcoded Türkçe stringler (`Çalışma Süresi Analizi`, `Bugünkü Hedef`, `Haftalık Hedef` vb.) ve grafik gün adları i18n çeviri sistemine (`t('study.dailyGoal')` vb.) bağlandı.
+   - Sayfadaki `"Çalışma Hedeyi Ayarları"` yazım hatası düzeltildi.
+   - Sayfada başlık elemanlarında yer alan `text-white text-gray-400` gibi çakışan renk sınıfları temizlendi.
+
+3. **FocusModeOverlay Müzik Butonu (Sorun #3):**
+   - Odak modunda (Focus Mode) "Odak Müziği" butonunun tetiklediği ve artık silinmiş olan modalı açmaya çalışan `setIsMusicPanelOpen(true)` çağrısı, odak modunu kapatıp doğrudan `/music` sayfasına yönlendirecek şekilde güncellendi: `onClick={() => { setFocusMode(false); router.push('/music'); }}`.
+
+4. **Sidebar Müzik Etiketi i18n & Eksik Çeviriler (Sorun #6):**
+   - `Sidebar.tsx` dosyasındaki hardcoded `'Odak Müzik'` etiketi `t('sidebar.music')` olarak güncellendi.
+   - `tr.json`, `en.json` ve `ar.json` dosyalarındaki `sidebar` objesine eksik olan `music` çeviri anahtarı eklendi.
+
+5. **YouTube Buffering Recovery İyileştirmesi (Sorun #7):**
+   - Oynatıcının buffering (yükleniyor) durumunda 10 saniye bekledikten sonra hala çalmaya başlamaması durumunda `playVideo()` çağrısı yapılarak oynatıcının başlaması için ekstra tetikleyici eklendi.
+
+6. **Chat API UTC Tarih Sorunu (Sorun #9):**
+   - AI Chat üzerinden takvime doğal dille etkinlik eklenirken bugünün tarihini UTC formatında alan `new Date().toISOString().split('T')[0]` çağrısı, Türkiye saatiyle (Europe/Istanbul) yerel tarihi verecek şekilde `new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' })` olarak güncellendi.
+
+7. **Ölü Kod Temizliği (Sorun #10, #11, #12):**
+   - Artık kullanılmayan `isMusicPanelOpen` state'i `MusicContext.tsx` dosyasından, interface'lerden ve `LayoutShell.tsx` / `Sidebar.tsx` dosyalarındaki tüm referans ve hook bağımlılıklarından temizlendi.
+   - Dashboard (`page.tsx`) üzerindeki kullanılmayan Lucide-React importları (`Search`, `BookOpen`, `Music`) ve `Link` importu silindi.
+   - `Sidebar.tsx` içindeki ölü `action === 'music'` kod bloğu tamamen temizlendi.
+
+8. **Dağıtım (Deploy):**
+   - Yerel `npm run build` derlemesi Turbopack ve TypeScript tipleriyle sıfır hata ile başarıyla tamamlandı.
+   - Değişiklikler Vercel üzerine deploy edildi.
+
+---
+
+## [2026-07-18] V2.25 — Müzik Çalar Tekli Video Desteği, Otomatik Oynatma ve Kanal Değişim Optimizasyonu (Antigravity/Gemini)
+
+### 1. Yeni Kanal Ekleme Sonrası Otomatik Seçim ve Oynatma (`music/page.tsx`)
+- **Sorun:** Kullanıcı yeni bir kanal eklediğinde, kanal listeye giriyor fakat seçilmediği için oynatma kendiliğinden başlamıyordu.
+- **Çözüm:** `handleAddChannelSubmit` fonksiyonunun sonuna `handleSelectChannel(newId)` eklendi; böylece yeni eklenen kanal anında seçilip çalmaya başlar.
+
+### 2. Tek YouTube Video URL Desteği (`music/page.tsx` & `MusicContext.tsx`)
+- **Sorun:** Kullanıcılar sadece oynatma listesi (playlist) değil, tek bir YouTube videosu da eklemek istiyordu. Ancak `list=` parametresi bulunamadığında HTML5 Audio player çalışmaya zorlanıyor ve YouTube video linki olduğu için ses çalmıyordu.
+- **Çözüm:** Ekleme esnasında `v=` veya `youtu.be/` formatındaki linklerden video ID'si çıkarılarak `yt-video:VIDEO_ID` formatında kaydedilmesi sağlandı. `isYTPlaylist` ve `isYT` yardımcı fonksiyonları `yt-video:` prefix'ini de tanıyacak şekilde güncellendi.
+
+### 3. Dinamik Kanal/Video Değişimi ve YouTube Player Caching (`HiddenYouTubePlayer.tsx`)
+- **Sorun:** YouTube oynatıcısı aynı playlist ID'sine sahip kanallar arası geçişte veya kanal ekleme sonrası ilk seçimde player'ı güncellemiyordu. Ayrıca tekli videoları çalmak için YouTube Player standard API'si `loadVideoById` ve `cueVideoById` çağrıları eksikti.
+- **Çözüm:** `HiddenYouTubePlayer.tsx` üzerinde state takibi ve dependency array `currentSrc` ve `selectedChannelId` değişimlerini izleyecek şekilde düzeltildi. `prevSrcRef` kullanılarak tüm kaynak değişimleri yakalandı. Rebuild olmadan player'ın `loadPlaylist` / `cuePlaylist` ile playlist değiştirmesi ve `loadVideoById` / `cueVideoById` ile tekil videoları oynatması kararlı hale getirildi.
+- **Tasarım:** Kanal satırlarında (`renderChannelRow`) YouTube videoları için "YouTube Videosu" ibaresi ve stil entegrasyonu sağlandı.
+- **Doğrulama:** `npm run build` ile yerel derleme sıfır hatayla başarıyla tamamlandı.

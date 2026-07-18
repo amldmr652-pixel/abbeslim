@@ -224,7 +224,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [activeTrack, activeChannel]);
 
-  const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:');
+  const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:') || !!src?.startsWith('yt-video:');
 
   const handleSelectChannel = (id: string) => {
     setIsLoadingTrack(true);

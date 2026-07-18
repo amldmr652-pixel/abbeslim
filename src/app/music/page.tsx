@@ -85,20 +85,39 @@ export default function MusicPage() {
     const newId = 'custom-' + Date.now();
     let audioSrc = newChannelUrl.trim();
     let artist = 'Özel Liste';
+    
     if (audioSrc.includes('list=')) {
       const match = audioSrc.match(/[?&]list=([^&\s]+)/);
       if (match) {
         audioSrc = 'yt-playlist:' + match[1];
         artist = 'YouTube Playlist';
       }
+    } else if (audioSrc.includes('v=') || audioSrc.includes('youtu.be/')) {
+      let videoId = '';
+      if (audioSrc.includes('v=')) {
+        const match = audioSrc.match(/[?&]v=([^&\s]+)/);
+        if (match) videoId = match[1];
+      } else {
+        const match = audioSrc.match(/youtu\.be\/([^&\s]+)/);
+        if (match) videoId = match[1];
+      }
+      if (videoId) {
+        audioSrc = 'yt-video:' + videoId;
+        artist = 'YouTube Video';
+      }
     }
+
     addChannel({
       id: newId,
       name: newChannelName.trim(),
       icon: newChannelIcon || '🎵',
-      coverBg: audioSrc.startsWith('yt-playlist:') ? 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)' : 'linear-gradient(135deg, #1c1917 0%, #44403c 100%)',
+      coverBg: (audioSrc.startsWith('yt-playlist:') || audioSrc.startsWith('yt-video:'))
+        ? 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)' 
+        : 'linear-gradient(135deg, #1c1917 0%, #44403c 100%)',
       tracks: [{ title: newChannelName.trim(), artist, audioSrc }]
     });
+    
+    handleSelectChannel(newId);
     setIsAddingChannel(false);
     setNewChannelName('');
     setNewChannelUrl('');
@@ -464,7 +483,9 @@ export default function MusicPage() {
 
   function renderChannelRow(channel: any) {
     const isSelected = selectedChannelId === channel.id;
-    const isYT = channel.tracks[0]?.audioSrc?.startsWith('yt-playlist:');
+    const isYTPlaylist = channel.tracks[0]?.audioSrc?.startsWith('yt-playlist:');
+    const isYTVideo = channel.tracks[0]?.audioSrc?.startsWith('yt-video:');
+    const isYT = isYTPlaylist || isYTVideo;
 
     return (
       <div
@@ -495,7 +516,7 @@ export default function MusicPage() {
               {channel.name}
             </div>
             <div className="text-xs text-gray-500 truncate mt-1">
-              {isYT ? 'YouTube Oynatma Listesi' : 'Direkt Ses Yayını'}
+              {isYTPlaylist ? 'YouTube Oynatma Listesi' : isYTVideo ? 'YouTube Videosu' : 'Direkt Ses Yayını'}
             </div>
           </div>
         </div>

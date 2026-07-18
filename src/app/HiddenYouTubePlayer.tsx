@@ -33,14 +33,23 @@ export default function HiddenYouTubePlayer() {
   const ytInnerRef     = useRef<HTMLDivElement>(null); // YouTube bu div'i iframe ile değiştirir
   const ytPlayerRef    = useRef<any>(null);
   const ytReadyRef     = useRef(false);
-  const prevPidRef     = useRef<string | null>(null);
+  const prevSrcRef     = useRef<string | null>(null);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
   // Yardımcılar
-  const isYT  = (s?: string | null) => !!s?.startsWith('yt-playlist:');
-  const getPid = (s?: string | null) => s?.replace('yt-playlist:', '') ?? '';
+  const isYT  = (s?: string | null) => !!s?.startsWith('yt-playlist:') || !!s?.startsWith('yt-video:');
+  const getYTParams = (s?: string | null) => {
+    if (!s) return null;
+    if (s.startsWith('yt-playlist:')) {
+      return { type: 'playlist', id: s.replace('yt-playlist:', '') };
+    }
+    if (s.startsWith('yt-video:')) {
+      return { type: 'video', id: s.replace('yt-video:', '') };
+    }
+    return null;
+  };
 
   const currentSrc = ctx.activeTrack?.audioSrc ?? null;
   const ytMode     = isYT(currentSrc);
@@ -139,9 +148,10 @@ export default function HiddenYouTubePlayer() {
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mounted || !ytMode || !currentSrc) return;
-    const pid = getPid(currentSrc);
+    const params = getYTParams(currentSrc);
+    if (!params) return;
 
-    const rebuildPlayer = (playlistId: string) => {
+    const rebuildPlayer = (pType: string, pId: string) => {
       if (!ytContainerRef.current) return;
 
       if (ytPlayerRef.current) {
@@ -156,57 +166,68 @@ export default function HiddenYouTubePlayer() {
       newInnerDiv.style.height = '100%';
       ytContainerRef.current.appendChild(newInnerDiv);
 
-      const instantiate = () => {
-        ytPlayerRef.current = new window.YT.Player(newInnerDiv, {
-          width : 200,
-          height: 113,
-          playerVars: {
-            listType   : 'playlist',
-            list       : playlistId,
-            autoplay   : 1,
-            controls   : 0,
-            rel        : 0,
-            playsinline: 1,
-            iv_load_policy: 3,
-          },
-          events: {
-            onReady: (e: any) => {
-              ytReadyRef.current = true;
-              ctxRef.current.registerYTPlayer(ytPlayerRef.current);
-              try {
-                const iframe = e.target.getIframe() as HTMLElement;
-                if (iframe) {
-                  iframe.style.setProperty('pointer-events', 'none', 'important');
-                  iframe.style.setProperty('z-index', '-9999', 'important');
-                }
-              } catch { /* ignore */ }
-              const vol = ctxRef.current.isMuted ? 0 : Math.round(ctxRef.current.volume * 100);
-              e.target.setVolume(vol);
-              if (ctxRef.current.isMusicPlaying) e.target.playVideo();
-            },
-            onStateChange: (e: any) => {
-              if (e.data === window.YT.PlayerState.PLAYING) {
-                const videoData = e.target.getVideoData();
-                ctxRef.current.updateSongInfo(videoData.title || '', videoData.author || '');
-                ctxRef.current.setIsLoadingTrack(false);
-              } else if (e.data === window.YT.PlayerState.BUFFERING) {
-                ctxRef.current.setIsLoadingTrack(true);
-              } else if (e.data === window.YT.PlayerState.ENDED) {
-                if (ctxRef.current.repeatMode === 'one') {
-                  e.target.seekTo(0, true);
-                  e.target.playVideo();
-                } else {
-                  ctxRef.current.handleNextTrack();
-                }
+      const playerVars: any = {
+        autoplay   : 1,
+        controls   : 0,
+        rel        : 0,
+        playsinline: 1,
+        iv_load_policy: 3,
+      };
+
+      if (pType === 'playlist') {
+        playerVars.listType = 'playlist';
+        playerVars.list = pId;
+      }
+
+      const playerConfig: any = {
+        width : 200,
+        height: 113,
+        playerVars,
+        events: {
+          onReady: (e: any) => {
+            ytReadyRef.current = true;
+            ctxRef.current.registerYTPlayer(ytPlayerRef.current);
+            try {
+              const iframe = e.target.getIframe() as HTMLElement;
+              if (iframe) {
+                iframe.style.setProperty('pointer-events', 'none', 'important');
+                iframe.style.setProperty('z-index', '-9999', 'important');
               }
-            },
-            onError: (e: any) => {
-              console.warn('YT Error:', e.data);
-              ctxRef.current.setIsLoadingTrack(false);
-              ctxRef.current.handleNextTrack();
-            },
+            } catch { /* ignore */ }
+            const vol = ctxRef.current.isMuted ? 0 : Math.round(ctxRef.current.volume * 100);
+            e.target.setVolume(vol);
+            if (ctxRef.current.isMusicPlaying) e.target.playVideo();
           },
-        });
+          onStateChange: (e: any) => {
+            if (e.data === window.YT.PlayerState.PLAYING) {
+              const videoData = e.target.getVideoData();
+              ctxRef.current.updateSongInfo(videoData.title || '', videoData.author || '');
+              ctxRef.current.setIsLoadingTrack(false);
+            } else if (e.data === window.YT.PlayerState.BUFFERING) {
+              ctxRef.current.setIsLoadingTrack(true);
+            } else if (e.data === window.YT.PlayerState.ENDED) {
+              if (ctxRef.current.repeatMode === 'one') {
+                e.target.seekTo(0, true);
+                e.target.playVideo();
+              } else {
+                ctxRef.current.handleNextTrack();
+              }
+            }
+          },
+          onError: (e: any) => {
+            console.warn('YT Error:', e.data);
+            ctxRef.current.setIsLoadingTrack(false);
+            ctxRef.current.handleNextTrack();
+          },
+        },
+      };
+
+      if (pType === 'video') {
+        playerConfig.videoId = pId;
+      }
+
+      const instantiate = () => {
+        ytPlayerRef.current = new window.YT.Player(newInnerDiv, playerConfig);
       };
 
       if (window.YT?.Player) {
@@ -222,28 +243,36 @@ export default function HiddenYouTubePlayer() {
 
     // Re-use existing player instance if it is ready
     if (ytPlayerRef.current && ytReadyRef.current) {
-      if (pid !== prevPidRef.current) {
-        prevPidRef.current = pid;
+      if (currentSrc !== prevSrcRef.current) {
+        prevSrcRef.current = currentSrc;
         try {
-          console.log('Reusing YouTube player for playlist ID:', pid);
-          if (ctxRef.current.isMusicPlaying) {
-            ytPlayerRef.current.loadPlaylist({ list: pid, listType: 'playlist' });
+          console.log('Reusing YouTube player for:', params.type, params.id);
+          if (params.type === 'playlist') {
+            if (ctxRef.current.isMusicPlaying) {
+              ytPlayerRef.current.loadPlaylist({ list: params.id, listType: 'playlist' });
+            } else {
+              ytPlayerRef.current.cuePlaylist({ list: params.id, listType: 'playlist' });
+            }
           } else {
-            ytPlayerRef.current.cuePlaylist({ list: pid, listType: 'playlist' });
+            if (ctxRef.current.isMusicPlaying) {
+              ytPlayerRef.current.loadVideoById(params.id);
+            } else {
+              ytPlayerRef.current.cueVideoById(params.id);
+            }
           }
         } catch (err) {
-          console.warn('loadPlaylist/cuePlaylist failed, rebuilding player:', err);
-          rebuildPlayer(pid);
+          console.warn('load/cue failed, rebuilding player:', err);
+          rebuildPlayer(params.type, params.id);
         }
       }
     } else {
-      if (pid !== prevPidRef.current) {
-        prevPidRef.current = pid;
+      if (currentSrc !== prevSrcRef.current) {
+        prevSrcRef.current = currentSrc;
         ytReadyRef.current = false;
-        rebuildPlayer(pid);
+        rebuildPlayer(params.type, params.id);
       }
     }
-  }, [mounted, ytMode, currentSrc]); // eslint-disable-line
+  }, [mounted, ytMode, currentSrc, ctx.selectedChannelId]);
 
   // Safety Timeout/Retry Guard
   useEffect(() => {
