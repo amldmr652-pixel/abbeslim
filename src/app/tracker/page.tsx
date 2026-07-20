@@ -70,30 +70,11 @@ export default function TrackerPage() {
       
       setIsSearching(true);
       try {
-        if (mediaType === 'book') {
-          // OpenLibrary API
-          const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(title)}&limit=5`);
-          const data = await res.json();
-          const formattedResults = (data.docs || []).map((item: any) => {
-            let poster = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : null;
-            return {
-              id: item.key,
-              title: item.title,
-              name: item.title,
-              release_date: item.first_publish_year ? item.first_publish_year.toString() : '',
-              vote_average: 0,
-              poster_path: poster,
-              is_google_book: true
-            };
-          });
-          setTmdbResults(formattedResults);
-        } else {
-          // TMDB search
-          const res = await fetch(`/api/tracker/search?type=${mediaType}&query=${encodeURIComponent(title)}`);
-          if (!res.ok) throw new Error('Search failed');
-          const data = await res.json();
-          setTmdbResults(data.results?.slice(0, 5) || []);
-        }
+        // Backend proxy üzerinden arama (film/dizi için TMDB, kitap için Google Books + OpenLibrary)
+        const res = await fetch(`/api/tracker/search?type=${mediaType}&query=${encodeURIComponent(title)}`);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        setTmdbResults(data.results?.slice(0, 10) || []);
       } catch (err) {
         console.error("Search Error:", err);
       } finally {
@@ -485,6 +466,7 @@ export default function TrackerPage() {
                     <div className="flex-1 overflow-hidden">
                       <div className="text-sm text-white font-medium truncate">{res.title || res.name}</div>
                       <div className="text-xs text-gray-400 truncate">
+                        {res.authors && <span>{res.authors} • </span>}
                         {(res.release_date || res.first_air_date)?.split('-')[0] || ''}
                         {res.vote_average ? ` • ⭐ ${res.vote_average.toFixed(1)}` : ''}
                       </div>

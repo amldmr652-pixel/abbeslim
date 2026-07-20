@@ -2,11 +2,16 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useGamesStore } from '@/stores/useGamesStore';
-import { Gamepad2, BrainCircuit, Grid3x3, Hash, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Gamepad2, BrainCircuit, Grid3x3, Hash, Lock, ChevronLeft, ChevronRight, Keyboard, Type, Bomb, Calculator, LayoutGrid } from 'lucide-react';
 import SnakeGame from '../components/games/SnakeGame';
 import MemoryGame from '../components/games/MemoryGame';
 import TicTacToeGame from '../components/games/TicTacToeGame';
 import Game2048 from '../components/games/Game2048';
+import SudokuGame from '../components/games/SudokuGame';
+import TypingRaceGame from '../components/games/TypingRaceGame';
+import WordleGame from '../components/games/WordleGame';
+import MinesweeperGame from '../components/games/MinesweeperGame';
+import MathRaceGame from '../components/games/MathRaceGame';
 
 import { useSettingsStore } from '@/stores/useSettingsStore';
 
@@ -59,6 +64,11 @@ export default function GamesPage() {
         case 'memory': return <MemoryGame />;
         case 'tictactoe': return <TicTacToeGame />;
         case 'game2048': return <Game2048 />;
+        case 'sudoku': return <SudokuGame />;
+        case 'typing': return <TypingRaceGame />;
+        case 'wordle': return <WordleGame />;
+        case 'minesweeper': return <MinesweeperGame />;
+        case 'mathrace': return <MathRaceGame />;
         default: return null;
       }
     };
@@ -104,10 +114,15 @@ export default function GamesPage() {
     { id: 'memory', icon: <BrainCircuit size={32} />, name: t('games.memory') || 'Hafıza Kartları', desc: t('games.memoryDesc') || 'Kart eşleştirmece. Hafızanızı test edin.', color: 'from-blue-600/20 to-indigo-900/20' },
     { id: 'tictactoe', icon: <Grid3x3 size={32} />, name: t('games.tictactoe') || 'XOX Oyunu', desc: t('games.tictactoeDesc') || '3x3 grid üzerinde X ve O eşleştirmesi.', color: 'from-purple-600/20 to-fuchsia-900/20' },
     { id: 'game2048', icon: <Hash size={32} />, name: t('games.game2048') || '2048 Bulmacası', desc: t('games.game2048Desc') || 'Sayıları toplayarak 2048 karosuna ulaşmaya çalışın.', color: 'from-yellow-600/20 to-orange-900/20' },
+    { id: 'sudoku', icon: <LayoutGrid size={32} />, name: t('games.sudoku') || 'Sudoku', desc: t('games.sudokuDesc') || 'Klasik 9x9 Sudoku bulmacası. 3 zorluk seviyesi.', color: 'from-teal-600/20 to-cyan-900/20' },
+    { id: 'typing', icon: <Keyboard size={32} />, name: t('games.typing') || 'Hızlı Yazma', desc: t('games.typingDesc') || 'Kelime yazma yarışı. WPM skorunuzu test edin.', color: 'from-sky-600/20 to-blue-900/20' },
+    { id: 'wordle', icon: <Type size={32} />, name: t('games.wordle') || 'Kelime Tahmin', desc: t('games.wordleDesc') || '5 harfli kelimeyi 6 denemede tahmin edin.', color: 'from-lime-600/20 to-green-900/20' },
+    { id: 'minesweeper', icon: <Bomb size={32} />, name: t('games.minesweeper') || 'Mayın Tarlası', desc: t('games.minesweeperDesc') || 'Klasik mayın tarlası. Mayınlara basmadan tüm kareleri açın.', color: 'from-red-600/20 to-rose-900/20' },
+    { id: 'mathrace', icon: <Calculator size={32} />, name: t('games.mathrace') || 'Matematik Yarışı', desc: t('games.mathraceDesc') || 'Zamanlı aritmetik sorular. Ne kadar hızlısınız?', color: 'from-amber-600/20 to-orange-900/20' },
   ];
 
   return (
-    <div className="flex-1 flex flex-col p-8 max-w-5xl mx-auto w-full">
+    <div className="flex-1 flex flex-col p-8 max-w-6xl mx-auto w-full">
       <div className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">{t('games.title') || 'Oyunlar'}</h1>
@@ -136,7 +151,7 @@ export default function GamesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {gamesList.map(game => {
           const gameTime = gameStats[game.id] || 0;
           const gameMins = Math.floor(gameTime / 60);

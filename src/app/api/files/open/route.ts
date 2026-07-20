@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       .from('files')
       .update({ last_opened_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('userId', user.id); 
+      .eq('user_id', user.id); 
 
     if (error) {
       console.error('Error updating last_opened_at:', error);

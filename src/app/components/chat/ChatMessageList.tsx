@@ -155,6 +155,78 @@ export function ChatMessageList({
             </div>
           )}
 
+          {msg.role === 'ai' && msg.financeTransaction && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs max-w-[90%] font-medium transition-all"
+              style={{
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: '#34d399',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Check size={14} className="shrink-0 text-emerald-400 stroke-[3]" />
+              <span>
+                💰 Finans İşlemi Eklendi: {msg.financeTransaction.amount} ₺ - {msg.financeTransaction.category}
+              </span>
+            </div>
+          )}
+
+          {msg.role === 'ai' && msg.task && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs max-w-[90%] font-medium transition-all"
+              style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                color: '#60a5fa',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Check size={14} className="shrink-0 text-blue-400 stroke-[3]" />
+              <span>
+                ✅ Görev Oluşturuldu: {msg.task.title}
+              </span>
+            </div>
+          )}
+
+          {msg.role === 'ai' && msg.note && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs max-w-[90%] font-medium transition-all"
+              style={{
+                background: 'rgba(168, 85, 247, 0.08)',
+                border: '1px solid rgba(168, 85, 247, 0.25)',
+                color: '#c084fc',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Check size={14} className="shrink-0 text-purple-400 stroke-[3]" />
+              <span>
+                📝 Not Kaydedildi: {msg.note.title}
+              </span>
+            </div>
+          )}
+
+          {msg.role === 'ai' && msg.goal && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs max-w-[90%] font-medium transition-all"
+              style={{
+                background: 'rgba(234, 179, 8, 0.08)',
+                border: '1px solid rgba(234, 179, 8, 0.25)',
+                color: '#facc15',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Check size={14} className="shrink-0 text-yellow-400 stroke-[3]" />
+              <span>
+                🎯 {msg.goal.type === 'habit' ? 'Alışkanlık' : 'Hedef'} Eklendi: {msg.goal.title}
+              </span>
+            </div>
+          )}
+
           {msg.role === 'ai' && (
             <div className="flex items-center gap-2 mt-1">
               <button

@@ -105,7 +105,11 @@ export default function PDFDocumentWrapper({
       }
       error={
         <div className="text-red-400 p-8 glass rounded-3xl text-center max-w-md">
-          {t('viewer.loadError') || 'PDF yüklenirken hata oluştu. Dosya bulunamamış veya bozuk olabilir.'}
+          <div className="text-4xl mb-4">📄</div>
+          <h3 className="text-lg font-bold text-red-300 mb-2">{t('viewer.loadError') || 'PDF Yüklenemedi'}</h3>
+          <p className="text-sm text-gray-400">
+            {t('viewer.loadErrorDetail') || 'Bu dosyaya erişim yetkiniz olmayabilir veya dosya silinmiş olabilir. Lütfen kütüphaneden tekrar açmayı deneyin.'}
+          </p>
         </div>
       }
     >

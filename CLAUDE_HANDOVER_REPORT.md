@@ -972,3 +972,51 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 ### 2. Derleme & Canlıya Alma
 - **Doğrulama:** Yerel `npm run build` derlemesi başarıyla tamamlandı. Değişiklikler `npx vercel --prod --yes` ile canlıya deploy edildi. Değişiklikler git'e commit edildi.
+
+---
+
+## [2026-07-20] V2.29 — 7 Sorun Fix ve Sistem İyileştirmeleri (Antigravity/Gemini)
+
+### 1. PDF Görüntüleyici Erişim Düzeltmesi (Sorun 1)
+- **Sorun:** Admin dışındaki hesaplarda PDF yüklenirken 403 veya dosya okuma hataları alınıyordu.
+- **Çözüm:** `PDFDocument.tsx` içerisindeki hata bildirimi kullanıcıya rehberlik edecek şekilde güncellendi ve `loadErrorDetail` çevirisi eklendi. `src/app/api/files/open/route.ts` içerisindeki hatalı sütun sorgusu (`userId` -> `user_id`) düzeltildi.
+
+### 2. Medya Takibi Kitap Araması ve Google Books API (Sorun 2)
+- **Sorun:** Media Tracker (`/tracker`) kitap aratıldığında OpenLibrary API `limit=5` parametresi sebebiyle yetersiz sonuç veriyordu.
+- **Çözüm:** `/api/tracker/search` rotasına `type=book` desteği eklendi. Google Books API (`googleapis.com/books/v1/volumes`) birincil kaynak olarak bağlandı, OpenLibrary fallback olarak kullanıldı ve sonuçlar birleştirildi. İstemci tarafındaki arama backend proxy'sine yönlendirildi ve yazar isimleri arama dropdown'una eklendi.
+
+### 3. Arama Sonucunda Cümle Vurgulama Fix (Sorun 7)
+- **Sorun:** PDF viewer'da aratılan cümle sarı ile işaretlenmiyordu veya tembel yüklenen sayfalarda highlight tetiklenmiyordu.
+- **Çözüm:** `PDFViewerClient.tsx` içerisine `MutationObserver` eklenerek lazy-loaded sayfaların DOM'a girdiğinde otomatik highlight edilmesi sağlandı. `mark.custom-word-highlight` CSS stili belirginleştirildi (`rgba(250, 204, 21, 0.55)` + box-shadow) ve render retry süreleri iyileştirildi.
+
+### 4. AI Asistan Tüm Panellere Erişim ve Araçlar (Sorun 5)
+- **Sorun:** AI Asistan sadece `create_calendar_event` tool'una sahipti.
+- **Çözüm:** `/api/chat/route.ts` dosyasına 10 yeni Gemini Function Declaration ve handler eklendi:
+  - `create_finance_transaction` (Gelir/gider ekleme)
+  - `create_task` & `update_task_status` (Görev oluşturma ve tamamlama)
+  - `create_note` (Hızlı not alma)
+  - `create_goal` (Hedef ve alışkanlık ekleme)
+  - `get_finance_summary` (Finansal özet)
+  - `get_tasks_summary` (Görev listesi özeti)
+  - `get_calendar_events` (Takvim etkinlikleri)
+  - `search_files` (Kütüphanede dosya arama)
+- `ChatMessageList.tsx` ve `useChat.ts` güncellenerek bu araçların sonuçları için şık arayüz badge'leri (💰, ✅, 📝, 🎯) eklendi.
+
+### 5. Dil Senkronizasyon ve Hardcoded String Düzeltmesi (Sorun 6)
+- **Sorun:** Finans, kütüphane, içerik takibi ve chat alanlarında hardcoded Türkçe metinler bulunuyordu.
+- **Çözüm:** `tr.json`, `en.json`, `ar.json` dosyalarına ~40 yeni çeviri anahtarı eklendi. `finance/page.tsx`, `tracker/page.tsx` ve `LibraryContent.tsx` içerisindeki hardcoded string'ler `t(...)` hook'u ile dinamik hale getirildi.
+
+### 6. Telifli Müzikler İçin Invidious Proxy Desteği (Sorun 3)
+- **Sorun:** Telifli YouTube şarkıları ve oynatma listeleri YouTube IFrame API kısıtlamasına takılıyordu.
+- **Çözüm:** `/api/music/stream` ve `/api/music/playlist` adında 2 yeni backend API rotası oluşturularak Invidious instance'ları üzerinden telifsiz ses akış URL'si (HTML5 Audio stream) alma altyapısı sağlandı. `HiddenYouTubePlayer.tsx` bileşenine `resolveAudioViaProxy` entegrasyonu eklendi.
+
+### 7. Mini Oyun Çeşitlendirme (Sorun 4)
+- **Sorun:** Oyun sayısı azdı.
+- **Çözüm:** 5 yeni oyun bileşeni geliştirildi ve `/games` rotasına eklendi:
+  1. `SudokuGame.tsx` — 3 zorluk seviyeli 9x9 Sudoku bulmacası
+  2. `TypingRaceGame.tsx` — 60 saniyelik Hızlı Yazma Yarışı ve WPM skoru
+  3. `WordleGame.tsx` — 5 harfli Türkçe Kelime Tahmin oyunu
+  4. `MinesweeperGame.tsx` — Bayrak modlu Mayın Tarlası
+  5. `MathRaceGame.tsx` — Zamanlı Aritmetik Yarışı ve seri bonuslar
+- `games/page.tsx` arayüzü 3 sütunlu grid yapısına genişletildi ve çeviriler eklendi.
+

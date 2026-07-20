@@ -11,6 +11,18 @@ declare global {
   }
 }
 
+// Invidious üzerinden ses URL'si al (Telif engeli aşımı için)
+async function resolveAudioViaProxy(videoId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/music/stream?videoId=${videoId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.audioUrl || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Çift modlu ses oynatıcı:
  * 1. HTML5 Audio  → http(s):// ile başlayan MP3/stream URL'leri

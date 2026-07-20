@@ -232,7 +232,7 @@ export default function FinancePage() {
                 dateFilter === 'thisMonth' ? 'bg-green-500 text-stone-950 shadow-sm font-bold' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Bu Ay
+              {t('finance.thisMonth') || 'Bu Ay'}
             </button>
             <button
               onClick={() => setDateFilter('last3Months')}
@@ -240,7 +240,7 @@ export default function FinancePage() {
                 dateFilter === 'last3Months' ? 'bg-green-500 text-stone-950 shadow-sm font-bold' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Son 3 Ay
+              {t('finance.last3Months') || 'Son 3 Ay'}
             </button>
             <button
               onClick={() => setDateFilter('all')}
@@ -248,7 +248,7 @@ export default function FinancePage() {
                 dateFilter === 'all' ? 'bg-green-500 text-stone-950 shadow-sm font-bold' : 'text-gray-400 hover:text-white'
               }`}
             >
-              Tümü
+              {t('common.all') || 'Tümü'}
             </button>
           </div>
         </div>
@@ -341,7 +341,7 @@ export default function FinancePage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Tarih</label>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('finance.date') || 'Tarih'}</label>
               <Input 
                 type="date"
                 value={date}
@@ -359,7 +359,7 @@ export default function FinancePage() {
               className="bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 outline-none w-full text-sm"
               required
             >
-              <option value="">Kategori Seçin</option>
+              <option value="">{t('finance.selectCategory') || 'Kategori Seçin'}</option>
               {settings.financeCategories.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
@@ -387,7 +387,7 @@ export default function FinancePage() {
       </Modal>
 
       {/* Edit Transaction Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedTx(null); }} title="İşlemi Düzenle" maxWidth="md">
+      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedTx(null); }} title={t('finance.editTransaction') || 'İşlemi Düzenle'} maxWidth="md">
         <form onSubmit={handleUpdateTransaction} className="space-y-4">
           <div className="flex gap-2 p-1 bg-black/50 rounded-xl border border-white/5 mb-4">
             <button
@@ -422,7 +422,7 @@ export default function FinancePage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Tarih</label>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('finance.date') || 'Tarih'}</label>
               <Input 
                 type="date"
                 value={editDate}
@@ -440,7 +440,7 @@ export default function FinancePage() {
               className="bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 outline-none w-full text-sm"
               required
             >
-              <option value="">Kategori Seçin</option>
+              <option value="">{t('finance.selectCategory') || 'Kategori Seçin'}</option>
               {settings.financeCategories.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
@@ -461,7 +461,7 @@ export default function FinancePage() {
               {t('common.cancel') || 'İptal'}
             </Button>
             <Button type="submit" className={editType === 'income' ? 'bg-green-500 text-stone-950 font-bold hover:bg-green-400' : 'bg-red-500 text-stone-950 font-bold hover:bg-red-400'}>
-              Güncelle
+              {t('common.update') || 'Güncelle'}
             </Button>
           </div>
         </form>

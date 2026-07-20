@@ -354,12 +354,14 @@ function PDFViewerContent() {
         el.innerHTML = html;
       });
     });
-  }, [query, mode, directionParam]);
+  }, [query, mode, directionParam, dynamicFontMap]);
 
   const onTextLayerRender = useCallback(() => {
     doHighlight();
     setTimeout(doHighlight, 0);
     setTimeout(doHighlight, 100);
+    setTimeout(doHighlight, 300);
+    setTimeout(doHighlight, 800);
   }, [doHighlight]);
 
   // Sıfır gecikmeli (Zero-Lag) metin vurgulama renderersı
@@ -476,6 +478,28 @@ function PDFViewerContent() {
     return () => window.removeEventListener('resize', doHighlight);
   }, [doHighlight]);
 
+  // MutationObserver: Lazy-loaded sayfalar DOM'a eklendiğinde highlight'ı tetikle
+  useEffect(() => {
+    if (!query || !containerRef.current) return;
+    
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          setTimeout(doHighlight, 200);
+          setTimeout(doHighlight, 600);
+          break;
+        }
+      }
+    });
+
+    observer.observe(containerRef.current, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, [query, doHighlight]);
+
   if (!url) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
@@ -521,8 +545,10 @@ function PDFViewerContent() {
         }
         .react-pdf__Page__textContent mark.custom-word-highlight {
           color: transparent !important;
-          background-color: rgba(234, 179, 8, 0.4) !important;
-          border-radius: 4px !important;
+          background-color: rgba(250, 204, 21, 0.55) !important;
+          border-radius: 3px !important;
+          box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.25) !important;
+          padding: 2px 0 !important;
         }
         .react-pdf__Page__annotations {
           position: absolute !important;

@@ -16,6 +16,11 @@ export interface Message {
   sources?: Source[];
   hasConflict?: boolean;
   calendarEvent?: { title: string; date: string; time?: string };
+  financeTransaction?: { type: string; amount: number; category: string; date: string };
+  task?: { title: string; due_date?: string; priority?: string };
+  taskUpdate?: { title: string; completed: boolean };
+  note?: { title: string };
+  goal?: { title: string; type: string };
 }
 
 export function useChat(currentFileId?: string) {
@@ -259,6 +264,11 @@ export function useChat(currentFileId?: string) {
         sources: data.sources ?? [],
         hasConflict: data.hasConflict ?? false,
         calendarEvent: data.calendarEvent ?? undefined,
+        financeTransaction: data.financeTransaction ?? undefined,
+        task: data.task ?? undefined,
+        taskUpdate: data.taskUpdate ?? undefined,
+        note: data.note ?? undefined,
+        goal: data.goal ?? undefined,
       };
 
       setMessages(prev => [...prev, aiMsg]);

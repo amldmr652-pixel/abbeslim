@@ -50,7 +50,11 @@
     "monthView": "Ay",
     "weekView": "Hafta",
     "description": "Açıklama",
-    "color": "Renk Seçimi"
+    "color": "Renk Seçimi",
+    "editEvent": "Etkinliği Düzenle",
+    "eventPlaceholder": "Toplantı, ders vb.",
+    "descPlaceholder": "Etkinlik açıklaması...",
+    "loginRequired": "Takviminizi görmek için lütfen giriş yapın."
   },
   "tasks": {
     "newTask": "Yeni Görev",
@@ -58,6 +62,37 @@
     "completed": "Tamamlananlar",
     "noTasks": "Hiç görev bulunamadı.",
     "pendingCount": "tamamlanmamış görev var."
+  },
+  "chat": {
+    "title": "AI Asistan",
+    "subtitle": "Yüklü PDF'lerinize sorun veya genel sohbet edin",
+    "thinking": "AI düşünüyor...",
+    "savedToLibrary": "Kütüphaneme Kaydedildi ✓",
+    "savingNote": "Not Kaydediliyor...",
+    "saveAsNote": "Çalışma Notu Olarak Kaydet",
+    "sourcesOnly": "📄 Sadece Belge",
+    "hybrid": "✨ Hibrit",
+    "general": "🧠 Genel Bilgi",
+    "askAboutNotes": "Notlarınız hakkında soru sorun!",
+    "conflictWarning": "Farklı kaynaklarda çelişen bilgiler tespit edildi",
+    "calendarAdded": "Takvime Eklendi",
+    "financeAdded": "Finans İşlemi Eklendi",
+    "taskCreated": "Görev Oluşturuldu",
+    "noteSaved": "Not Kaydedildi",
+    "goalAdded": "Hedef Eklendi"
+  },
+  "library": {
+    "searchPlaceholder": "Dosya adı ile kütüphanede ara...",
+    "folders": "Klasörler",
+    "subFolders": "Alt Klasörler",
+    "newFolder": "Yeni Klasör",
+    "newSubFolder": "Yeni Alt Klasör",
+    "create": "Oluştur",
+    "folderName": "Klasör adı...",
+    "files": "Dosyalar",
+    "noFiles": "Dosya bulunamadı",
+    "openFile": "İçeriği görmek için tıklayın",
+    "rootDirectory": "Kök Dizini (Tümü)"
   },
   "notes": {
     "title": "Notlarım",
@@ -202,7 +237,11 @@
     "category": "Kategori",
     "description": "Açıklama",
     "date": "Tarih",
-    "noTransactions": "Henüz işlem bulunmuyor."
+    "noTransactions": "Henüz işlem bulunmuyor.",
+    "thisMonth": "Bu Ay",
+    "last3Months": "Son 3 Ay",
+    "selectCategory": "Kategori Seçin",
+    "editTransaction": "İşlemi Düzenle"
   },
   "tracker": {
     "title": "İçerik Takibi",
@@ -220,7 +259,13 @@
     "active": "Devam Ediyor",
     "completed": "Tamamlandı",
     "rating": "Puan (0-5)",
-    "noItems": "Bu kategoride henüz kayıt yok."
+    "noItems": "Bu kategoride henüz kayıt yok.",
+    "sortBy": "Sırala",
+    "byDate": "Tarihe Göre",
+    "byRating": "Puana Göre",
+    "byName": "İsme Göre",
+    "editItem": "Öğeyi Düzenle",
+    "noImage": "Görsel Yok"
   },
   "games": {
     "title": "Odak Molası",
@@ -327,7 +372,8 @@
     "noMatchesFound": "Bu PDF'de eşleşme bulunamadı.",
     "queryNotPresent": "\"{query}\" konusu bu belgede geçmiyor",
     "noUrl": "Geçerli bir PDF URL'si belirtilmedi.",
-    "loadError": "PDF yüklenirken hata oluştu. Dosya bulunamamış veya bozuk olabilir."
+    "loadError": "PDF Yüklenemedi",
+    "loadErrorDetail": "Bu dosyaya erişim yetkiniz olmayabilir veya dosya silinmiş olabilir. Lütfen kütüphaneden tekrar açmayı deneyin."
   },
   "study": {
     "title": "Çalışma Süresi",

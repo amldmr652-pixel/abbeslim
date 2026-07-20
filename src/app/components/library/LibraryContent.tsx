@@ -2,6 +2,7 @@
 
 import { Search, ChevronRight, Folder, Home, Plus, Edit2, FolderUp, Trash2, FileText, Loader2, Download } from 'lucide-react';
 import { LibraryState } from '@/app/hooks/useLibrary';
+import { useTranslation } from '@/app/hooks/useTranslation';
 import { getFileIcon } from './utils';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function LibraryContent({ libraryState }: Props) {
+  const { t } = useTranslation();
   const {
     searchQuery, setSearchQuery,
     selectedCategory, setSelectedCategory,
@@ -30,7 +32,7 @@ export function LibraryContent({ libraryState }: Props) {
         <Search className="text-green-500" size={24} />
         <input
           type="text"
-          placeholder="Dosya adı ile kütüphanede ara..."
+          placeholder={t('library.searchPlaceholder') || 'Dosya adı ile kütüphanede ara...'}
           className="bg-transparent border-none outline-none flex-1 text-white placeholder-gray-500 text-lg"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -46,7 +48,7 @@ export function LibraryContent({ libraryState }: Props) {
           }`}
         >
           <Home size={22} className={selectedCategory === '' ? 'text-green-500' : ''} />
-          <span>Kök Dizini (Tümü)</span>
+          <span>{t('library.rootDirectory') || 'Kök Dizini (Tümü)'}</span>
         </button>
         
         {breadcrumbs.map((b) => (
@@ -69,7 +71,7 @@ export function LibraryContent({ libraryState }: Props) {
       <div className="w-full mb-12">
         <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
           <Folder className="text-green-500" size={28} />
-          <span>{selectedCategory ? 'Alt Klasörler' : 'Klasörler'}</span>
+          <span>{selectedCategory ? (t('library.subFolders') || 'Alt Klasörler') : (t('library.folders') || 'Klasörler')}</span>
         </h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -78,20 +80,20 @@ export function LibraryContent({ libraryState }: Props) {
             <div className="glass p-6 rounded-3xl border border-green-500/50 bg-black/80 flex flex-col justify-between shadow-xl animate-in fade-in zoom-in duration-200 min-h-[160px]">
               <div>
                 <div className="flex items-center gap-2 text-green-400 font-bold text-base mb-4">
-                  <Plus size={20} /> {selectedCategory ? 'Yeni Alt Klasör' : 'Yeni Klasör'}
+                  <Plus size={20} /> {selectedCategory ? (t('library.newSubFolder') || 'Yeni Alt Klasör') : (t('library.newFolder') || 'Yeni Klasör')}
                 </div>
                 <input
                   autoFocus
                   className="w-full px-4 py-3 rounded-2xl bg-black/50 border border-green-900/50 text-white text-base outline-none focus:border-green-500 transition-colors mb-4"
-                  placeholder="Klasör adı..."
+                  placeholder={t('library.folderName') || 'Klasör adı...'}
                   value={newCategoryName}
                   onChange={e => setNewCategoryName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); if (e.key === 'Escape') setShowAddCategory(false); }}
                 />
               </div>
               <div className="flex gap-3">
-                <button onClick={handleAddCategory} className="flex-1 py-3 bg-green-700 hover:bg-green-600 text-white rounded-2xl text-sm font-bold transition-colors shadow-lg">Oluştur</button>
-                <button onClick={() => setShowAddCategory(false)} className="px-5 py-3 glass text-gray-400 hover:text-white rounded-2xl text-sm font-medium transition-colors">İptal</button>
+                <button onClick={handleAddCategory} className="flex-1 py-3 bg-green-700 hover:bg-green-600 text-white rounded-2xl text-sm font-bold transition-colors shadow-lg">{t('library.create') || 'Oluştur'}</button>
+                <button onClick={() => setShowAddCategory(false)} className="px-5 py-3 glass text-gray-400 hover:text-white rounded-2xl text-sm font-medium transition-colors">{t('common.cancel') || 'İptal'}</button>
               </div>
             </div>
           ) : (

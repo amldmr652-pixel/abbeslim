@@ -241,7 +241,19 @@ export async function POST(req: NextRequest) {
 
     // Bugünün tarihi (Yerel Türkiye Saati)
     const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' });
-    const calendarDirective = `\n\nBugünün tarihi: ${todayDateStr}. Kullanıcı 'ayın 15'ine x ekle' dediğinde bu tarihi baz alarak create_calendar_event aracını çağır.`;
+    const calendarDirective = `\n\nBugünün tarihi: ${todayDateStr}. Kullanıcı bir tarih belirttiğinde veya ekle/oluştur/getir/listele dediğinde uygun aracı çağır.
+
+Erişebildiğin araçlar:
+- create_calendar_event: Takvime yeni bir etkinlik ekler.
+- create_finance_transaction: Finans modülüne gelir veya gider ekler.
+- create_task: Görev listesine yeni bir görev ekler.
+- update_task_status: Görevi tamamlandı olarak işaretler veya günceller.
+- create_note: Notlar modülüne yeni bir hızlı not oluşturur.
+- create_goal: Hedefler modülüne yeni hedef veya alışkanlık ekler.
+- get_finance_summary: Finansal özet (gelir, gider, bakiye) getirir.
+- get_tasks_summary: Görev listesi özetini getirir.
+- get_calendar_events: Takvimdeki etkinlikleri getirir.
+- search_files: Kütüphanedeki dosyalarda arama yapar.`;
 
     let systemInstructionText = '';
     if (mode === 'independent') {
@@ -302,24 +314,120 @@ DAVRANIŞIN:
                       parameters: {
                         type: 'OBJECT',
                         properties: {
-                          title: {
-                            type: 'STRING',
-                            description: 'Etkinlik başlığı.'
-                          },
-                          date: {
-                            type: 'STRING',
-                            description: 'Etkinlik tarihi (YYYY-MM-DD formatında).'
-                          },
-                          time: {
-                            type: 'STRING',
-                            description: 'Etkinlik saati (HH:MM formatında, isteğe bağlı).'
-                          },
-                          description: {
-                            type: 'STRING',
-                            description: 'Etkinlik açıklaması (isteğe bağlı).'
-                          }
+                          title: { type: 'STRING', description: 'Etkinlik başlığı.' },
+                          date: { type: 'STRING', description: 'Etkinlik tarihi (YYYY-MM-DD formatında).' },
+                          time: { type: 'STRING', description: 'Etkinlik saati (HH:MM formatında, isteğe bağlı).' },
+                          description: { type: 'STRING', description: 'Etkinlik açıklaması (isteğe bağlı).' }
                         },
                         required: ['title', 'date']
+                      }
+                    },
+                    {
+                      name: 'create_finance_transaction',
+                      description: 'Finans modülüne yeni bir gelir veya gider işlemi ekler.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          type: { type: 'STRING', description: 'İşlem türü: "income" (gelir) veya "expense" (gider).' },
+                          amount: { type: 'NUMBER', description: 'İşlem tutarı (pozitif sayı).' },
+                          category: { type: 'STRING', description: 'Kategori (örn: Yemek, Ulaşım, Maaş, Kira, Market, Diğer).' },
+                          description: { type: 'STRING', description: 'İşlem açıklaması (isteğe bağlı).' },
+                          date: { type: 'STRING', description: 'İşlem tarihi (YYYY-MM-DD formatında).' }
+                        },
+                        required: ['type', 'amount', 'category']
+                      }
+                    },
+                    {
+                      name: 'create_task',
+                      description: 'Görev listesine yeni bir görev ekler.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          title: { type: 'STRING', description: 'Görev başlığı.' },
+                          due_date: { type: 'STRING', description: 'Son tarih (YYYY-MM-DD formatında).' },
+                          priority: { type: 'STRING', description: 'Öncelik: "low", "medium" veya "high".' }
+                        },
+                        required: ['title']
+                      }
+                    },
+                    {
+                      name: 'update_task_status',
+                      description: 'Mevcut bir görevi tamamlandı olarak işaretler veya günceller.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          title: { type: 'STRING', description: 'Görevin başlığı.' },
+                          completed: { type: 'BOOLEAN', description: 'true = tamamlandı, false = tamamlanmadı.' }
+                        },
+                        required: ['title', 'completed']
+                      }
+                    },
+                    {
+                      name: 'create_note',
+                      description: 'Notlar modülüne yeni bir hızlı not oluşturur.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          title: { type: 'STRING', description: 'Not başlığı.' },
+                          content: { type: 'STRING', description: 'Not içeriği.' }
+                        },
+                        required: ['title', 'content']
+                      }
+                    },
+                    {
+                      name: 'create_goal',
+                      description: 'Hedefler modülüne yeni bir hedef veya alışkanlık ekler.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          title: { type: 'STRING', description: 'Hedef veya alışkanlık adı.' },
+                          type: { type: 'STRING', description: '"goal" (hedef) veya "habit" (alışkanlık).' },
+                          target_value: { type: 'NUMBER', description: 'Hedef değeri.' },
+                          frequency: { type: 'STRING', description: 'Alışkanlık sıklığı: "daily" veya "weekly".' }
+                        },
+                        required: ['title', 'type']
+                      }
+                    },
+                    {
+                      name: 'get_finance_summary',
+                      description: 'Kullanıcının finansal özetini (toplam gelir, gider, bakiye) getirir.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          period: { type: 'STRING', description: '"this_month", "last_month" veya "all".' }
+                        }
+                      }
+                    },
+                    {
+                      name: 'get_tasks_summary',
+                      description: 'Kullanıcının görev listesinin özetini getirir.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          status: { type: 'STRING', description: '"pending", "completed" veya "all".' }
+                        }
+                      }
+                    },
+                    {
+                      name: 'get_calendar_events',
+                      description: 'Takvimden belirli bir tarih aralığındaki etkinlikleri getirir.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          start_date: { type: 'STRING', description: 'Başlangıç tarihi (YYYY-MM-DD).' },
+                          end_date: { type: 'STRING', description: 'Bitiş tarihi (YYYY-MM-DD).' }
+                        }
+                      }
+                    },
+                    {
+                      name: 'search_files',
+                      description: 'Kullanıcının kütüphanesindeki dosyalarda arama yapar.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          query: { type: 'STRING', description: 'Aranacak kelime veya cümle.' }
+                        },
+                        required: ['query']
                       }
                     }
                   ]
@@ -412,6 +520,270 @@ DAVRANIŞIN:
         console.error('Failed to insert calendar event:', err);
         return NextResponse.json({ error: 'Etkinlik takvime eklenirken sunucu hatası oluştu.' }, { status: 500 });
       }
+    }
+
+    if (functionCall && functionCall.name === 'create_finance_transaction') {
+      const args = functionCall.args as {
+        type: string;
+        amount: number;
+        category: string;
+        description?: string;
+        date?: string;
+      };
+
+      const txDate = args.date || new Date().toISOString().split('T')[0];
+
+      const { error: insertError } = await supabase
+        .from('transactions')
+        .insert([{
+          user_id: user.id,
+          type: args.type,
+          amount: args.amount,
+          category: args.category,
+          description: args.description || '',
+          date: txDate,
+        }]);
+
+      if (insertError) {
+        console.error('Finance insert error:', insertError);
+        return NextResponse.json({ error: 'Finans işlemi eklenirken hata oluştu.' }, { status: 500 });
+      }
+
+      const typeLabel = args.type === 'income' ? 'Gelir' : 'Gider';
+      return NextResponse.json({
+        answer: `💰 ${typeLabel} başarıyla eklendi: ${args.amount} ₺ - ${args.category}${args.description ? ' (' + args.description + ')' : ''} [${txDate}]`,
+        financeTransaction: {
+          type: args.type,
+          amount: args.amount,
+          category: args.category,
+          date: txDate,
+        },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'create_task') {
+      const args = functionCall.args as {
+        title: string;
+        due_date?: string;
+        priority?: string;
+      };
+
+      const { error: insertError } = await supabase
+        .from('tasks')
+        .insert([{
+          user_id: user.id,
+          title: args.title,
+          due_date: args.due_date || null,
+          priority: args.priority || 'medium',
+          is_completed: false,
+        }]);
+
+      if (insertError) {
+        console.error('Task insert error:', insertError);
+        return NextResponse.json({ error: 'Görev eklenirken hata oluştu.' }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        answer: `✅ Görev oluşturuldu: "${args.title}"${args.due_date ? ' (Son tarih: ' + args.due_date + ')' : ''}`,
+        task: { title: args.title, due_date: args.due_date, priority: args.priority || 'medium' },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'update_task_status') {
+      const args = functionCall.args as {
+        title: string;
+        completed: boolean;
+      };
+
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .ilike('title', `%${args.title}%`)
+        .limit(1);
+
+      if (!tasks || tasks.length === 0) {
+        return NextResponse.json({
+          answer: `❌ "${args.title}" adında bir görev bulunamadı.`,
+        });
+      }
+
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update({ is_completed: args.completed })
+        .eq('id', tasks[0].id);
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Görev güncellenirken hata oluştu.' }, { status: 500 });
+      }
+
+      const statusText = args.completed ? 'tamamlandı ✅' : 'tekrar açıldı';
+      return NextResponse.json({
+        answer: `Görev "${tasks[0].title}" ${statusText}.`,
+        taskUpdate: { title: tasks[0].title, completed: args.completed },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'create_note') {
+      const args = functionCall.args as {
+        title: string;
+        content: string;
+      };
+
+      const { error: insertError } = await supabase
+        .from('notes')
+        .insert([{
+          user_id: user.id,
+          title: args.title,
+          content: args.content,
+          type: 'text',
+        }]);
+
+      if (insertError) {
+        console.error('Note insert error:', insertError);
+        return NextResponse.json({ error: 'Not eklenirken hata oluştu.' }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        answer: `📝 Not kaydedildi: "${args.title}"`,
+        note: { title: args.title },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'create_goal') {
+      const args = functionCall.args as {
+        title: string;
+        type: string;
+        target_value?: number;
+        frequency?: string;
+      };
+
+      const table = args.type === 'habit' ? 'habits' : 'goals';
+      const insertData: any = {
+        user_id: user.id,
+        title: args.title,
+      };
+
+      if (args.type === 'goal') {
+        insertData.target_value = args.target_value || 100;
+        insertData.current_value = 0;
+      } else {
+        insertData.frequency = args.frequency || 'daily';
+        insertData.streak = 0;
+      }
+
+      const { error: insertError } = await supabase.from(table).insert([insertData]);
+
+      if (insertError) {
+        console.error('Goal/Habit insert error:', insertError);
+        return NextResponse.json({ error: 'Hedef/alışkanlık eklenirken hata oluştu.' }, { status: 500 });
+      }
+
+      const emoji = args.type === 'habit' ? '🔄' : '🎯';
+      return NextResponse.json({
+        answer: `${emoji} ${args.type === 'habit' ? 'Alışkanlık' : 'Hedef'} eklendi: "${args.title}"`,
+        goal: { title: args.title, type: args.type },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'get_finance_summary') {
+      const args = (functionCall.args as { period?: string }) || {};
+      
+      let query = supabase.from('transactions').select('*').eq('user_id', user.id);
+      
+      const now = new Date();
+      if (args.period === 'this_month' || !args.period) {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        query = query.gte('date', firstDay);
+      } else if (args.period === 'last_month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+        const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+        query = query.gte('date', firstDay).lte('date', lastDay);
+      }
+
+      const { data: transactions } = await query.order('date', { ascending: false });
+      const txList = transactions || [];
+      const totalIncome = txList.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+      const totalExpense = txList.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+      const balance = totalIncome - totalExpense;
+
+      const last5 = txList.slice(0, 5).map(t => `${t.type === 'income' ? '📈' : '📉'} ${t.category}: ${t.amount}₺ (${t.date})`).join('\n');
+
+      return NextResponse.json({
+        answer: `📊 **Finansal Özet**\n\n💰 Toplam Gelir: **${totalIncome.toLocaleString('tr-TR')} ₺**\n💸 Toplam Gider: **${totalExpense.toLocaleString('tr-TR')} ₺**\n📈 Bakiye: **${balance.toLocaleString('tr-TR')} ₺**\n\n${last5 ? '**Son İşlemler:**\n' + last5 : 'Henüz işlem yok.'}`,
+        financeSummary: { totalIncome, totalExpense, balance, count: txList.length },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'get_tasks_summary') {
+      const args = (functionCall.args as { status?: string }) || {};
+
+      let query = supabase.from('tasks').select('*').eq('user_id', user.id);
+      if (args.status === 'pending' || !args.status) {
+        query = query.eq('is_completed', false);
+      } else if (args.status === 'completed') {
+        query = query.eq('is_completed', true);
+      }
+
+      const { data: tasks } = await query.order('created_at', { ascending: false });
+      const taskList = tasks || [];
+
+      const taskLines = taskList.slice(0, 10).map(t => {
+        const checkbox = t.is_completed ? '✅' : '⬜';
+        const priority = t.priority === 'high' ? '🔴' : t.priority === 'medium' ? '🟡' : '🟢';
+        return `${checkbox} ${priority} ${t.title}${t.due_date ? ' (📅 ' + t.due_date + ')' : ''}`;
+      }).join('\n');
+
+      return NextResponse.json({
+        answer: `📋 **Görev Listesi** (${taskList.length} görev)\n\n${taskLines || 'Görev bulunamadı.'}`,
+        tasksSummary: { count: taskList.length, tasks: taskList.slice(0, 10) },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'get_calendar_events') {
+      const args = (functionCall.args as { start_date?: string; end_date?: string }) || {};
+
+      const startDate = args.start_date || new Date().toISOString().split('T')[0];
+      const endDate = args.end_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const { data: events } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('start_time', `${startDate}T00:00:00`)
+        .lte('start_time', `${endDate}T23:59:59`)
+        .order('start_time', { ascending: true });
+
+      const eventList = events || [];
+      const eventLines = eventList.map(e => {
+        const time = e.is_all_day ? 'Tüm gün' : new Date(e.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        return `📌 ${e.title} — ${new Date(e.start_time).toLocaleDateString('tr-TR')} ${time}`;
+      }).join('\n');
+
+      return NextResponse.json({
+        answer: `📅 **Takvim** (${startDate} - ${endDate})\n\n${eventLines || 'Bu tarih aralığında etkinlik yok.'}`,
+        calendarSummary: { count: eventList.length },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'search_files') {
+      const args = functionCall.args as { query: string };
+
+      const { data: files } = await supabase
+        .from('files')
+        .select('id, name, url, type')
+        .eq('user_id', user.id)
+        .eq('isDeleted', false)
+        .ilike('name', `%${args.query}%`)
+        .limit(10);
+
+      const fileList = files || [];
+      const fileLines = fileList.map(f => `📄 ${f.name}`).join('\n');
+
+      return NextResponse.json({
+        answer: `🔍 **Dosya Arama Sonuçları** ("${args.query}")\n\n${fileLines || 'Eşleşen dosya bulunamadı.'}`,
+        searchResults: { count: fileList.length, files: fileList },
+      });
     }
 
     const rawAnswer: string =
