@@ -24,6 +24,8 @@ export interface Message {
 }
 
 export function useChat(currentFileId?: string) {
+  const storageKey = currentFileId ? `lifeos-chat-file-${currentFileId}` : 'lifeos-chat-general';
+
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(storageKey);
@@ -41,8 +43,6 @@ export function useChat(currentFileId?: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'sources' | 'independent' | 'hybrid'>('hybrid');
   const [noteStates, setNoteStates] = useState<{ [msgId: string]: 'idle' | 'saving' | 'saved' }>({});
-
-  const storageKey = currentFileId ? `lifeos-chat-file-${currentFileId}` : 'lifeos-chat-general';
 
   // Save chat history to localStorage
   const saveToStorage = (newMsgs: Message[]) => {
