@@ -241,17 +241,38 @@ export default function HiddenYouTubePlayer() {
               }
             }
           },
-          onError: (e: any) => {
+          onError: async (e: any) => {
             console.warn('YT Error:', e.data);
             ctxRef.current.setIsLoadingTrack(false);
             
             const now = Date.now();
             if (now - lastErrorTimeRef.current < 4000) {
               console.warn('YT Error loop detected, stopping.');
-              alert('Bu oynatma listesi veya video dış sitelerde oynatılamıyor (YouTube kısıtlaması nedeniyle).');
               return;
             }
             lastErrorTimeRef.current = now;
+
+            // Telif/embed hatalarında (150, 101) Invidious proxy ile dene
+            if (e.data === 150 || e.data === 101) {
+              try {
+                const videoId = e.target?.getVideoData?.()?.video_id;
+                if (videoId) {
+                  console.log('Trying Invidious proxy for:', videoId);
+                  const audioUrl = await resolveAudioViaProxy(videoId);
+                  if (audioUrl && audioRef.current) {
+                    try { e.target.stopVideo(); } catch {}
+                    audioRef.current.src = audioUrl;
+                    audioRef.current.load();
+                    audioRef.current.play().catch(() => {});
+                    ctxRef.current.setIsLoadingTrack(false);
+                    return;
+                  }
+                }
+              } catch (proxyErr) {
+                console.warn('Invidious proxy failed:', proxyErr);
+              }
+            }
+
             ctxRef.current.handleNextTrack();
           },
         },

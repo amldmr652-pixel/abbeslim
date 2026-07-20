@@ -5,9 +5,12 @@ import { RefreshCw, Trophy } from 'lucide-react';
 import { useTranslation } from '@/app/hooks/useTranslation';
 
 const WORDLE_WORDS = [
-  "KALEM", "KİTAP", "NOTLAR", "DERSİ", "DOSYA", "METİN", "EKRAN", "SİSTEM",
-  "YAZAR", "BİLGİ", "AKILL", "BEYİN", "HAFTA", "RUTİN", "BAŞAR", "ODAKL",
-  "TAKİP", "TARİH", "HEDEF", "SÜREÇ", "KURAL", "VERİM", "TABLO", "KODLA"
+  "KALEM", "KİTAP", "DERSİ", "DOSYA", "METİN", "EKRAN",
+  "YAZAR", "BİLGİ", "BEYİN", "HAFTA", "RUTİN", "SÜREÇ",
+  "TAKİP", "TARİH", "HEDEF", "KURAL", "VERİM", "TABLO",
+  "KODLA", "GÜNEŞ", "DÜNYA", "GÖLGE", "ŞEKER", "ÇOBAN",
+  "KÖPRÜ", "SEVDA", "BULUT", "GURUR", "SINAV", "PROJE",
+  "MÜDÜR", "RESİM", "MÜZİK", "SAHNE", "ÇIÇEK", "ÖDEVI"
 ];
 
 export default function WordleGame() {
@@ -74,17 +77,36 @@ export default function WordleGame() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentGuess, isGameOver, targetWord, guesses]);
 
-  const getCharColor = (word: string, idx: number) => {
-    const char = word[idx];
-    if (targetWord[idx] === char) return 'bg-green-600 text-white border-green-500';
-    if (targetWord.includes(char)) return 'bg-yellow-600 text-white border-yellow-500';
-    return 'bg-stone-800 text-gray-400 border-stone-700';
+  const getCharColors = (word: string): string[] => {
+    const result = Array(5).fill('bg-stone-800 text-gray-400 border-stone-700');
+    const targetChars = targetWord.split('');
+    const used = Array(5).fill(false);
+
+    // 1. Geçiş: Yeşilleri bul
+    for (let i = 0; i < 5; i++) {
+      if (word[i] === targetChars[i]) {
+        result[i] = 'bg-green-600 text-white border-green-500';
+        used[i] = true;
+      }
+    }
+
+    // 2. Geçiş: Sarıları bul (kalan harflerden)
+    for (let i = 0; i < 5; i++) {
+      if (result[i].includes('green')) continue;
+      const targetIdx = targetChars.findIndex((ch, j) => ch === word[i] && !used[j]);
+      if (targetIdx !== -1) {
+        result[i] = 'bg-yellow-600 text-white border-yellow-500';
+        used[targetIdx] = true;
+      }
+    }
+
+    return result;
   };
 
   const KEYBOARD_ROWS = [
-    ['E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'Ğ', 'Ü'],
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'Ğ', 'Ü'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'Ş', 'İ'],
-    ['ENTER', 'Z', 'C', 'V', 'B', 'N', 'M', 'Ö', 'Ç', 'BACK']
+    ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Ö', 'Ç', 'BACK']
   ];
 
   return (
@@ -115,13 +137,14 @@ export default function WordleGame() {
         {Array.from({ length: 6 }).map((_, rIdx) => {
           const guess = guesses[rIdx] || (rIdx === guesses.length ? currentGuess : '');
           const isSubmitted = rIdx < guesses.length;
+          const colors = isSubmitted ? getCharColors(guess) : [];
 
           return (
             <div key={rIdx} className="grid grid-cols-5 gap-2">
               {Array.from({ length: 5 }).map((_, cIdx) => {
                 const char = guess[cIdx] || '';
                 const styleClass = isSubmitted
-                  ? getCharColor(guess, cIdx)
+                  ? colors[cIdx]
                   : char
                   ? 'border-green-500/80 bg-stone-900 text-white font-bold'
                   : 'border-white/10 bg-black/40 text-white';

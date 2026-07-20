@@ -95,7 +95,7 @@ export default function TrackerPage() {
     setTitle(item.title || item.name);
     setTmdbId(item.id.toString());
     
-    if (item.is_google_book) {
+    if (item.is_book) {
       setPosterUrl(item.poster_path || '');
     } else {
       if (item.poster_path) {
@@ -454,7 +454,7 @@ export default function TrackerPage() {
                     {res.poster_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img 
-                        src={res.is_google_book ? res.poster_path : `https://image.tmdb.org/t/p/w92${res.poster_path}`} 
+                        src={res.is_book ? res.poster_path : `https://image.tmdb.org/t/p/w92${res.poster_path}`} 
                         alt="" 
                         className="w-8 h-12 object-cover rounded" 
                       />

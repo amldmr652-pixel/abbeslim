@@ -227,6 +227,24 @@ export function ChatMessageList({
             </div>
           )}
 
+          {msg.role === 'ai' && msg.taskUpdate && (
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs max-w-[90%] font-medium transition-all"
+              style={{
+                background: msg.taskUpdate.completed ? 'rgba(34, 197, 94, 0.08)' : 'rgba(234, 179, 8, 0.08)',
+                border: `1px solid ${msg.taskUpdate.completed ? 'rgba(34, 197, 94, 0.25)' : 'rgba(234, 179, 8, 0.25)'}`,
+                color: msg.taskUpdate.completed ? '#4ade80' : '#facc15',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <Check size={14} className={`shrink-0 stroke-[3] ${msg.taskUpdate.completed ? 'text-green-400' : 'text-yellow-400'}`} />
+              <span>
+                {msg.taskUpdate.completed ? '✅' : '🔄'} Görev Güncellendi: {msg.taskUpdate.title} — {msg.taskUpdate.completed ? 'Tamamlandı' : 'Yeniden Açıldı'}
+              </span>
+            </div>
+          )}
+
           {msg.role === 'ai' && (
             <div className="flex items-center gap-2 mt-1">
               <button

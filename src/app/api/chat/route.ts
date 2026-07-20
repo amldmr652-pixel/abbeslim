@@ -636,7 +636,6 @@ DAVRANIŞIN:
           user_id: user.id,
           title: args.title,
           content: args.content,
-          type: 'text',
         }]);
 
       if (insertError) {
@@ -665,11 +664,12 @@ DAVRANIŞIN:
       };
 
       if (args.type === 'goal') {
-        insertData.target_value = args.target_value || 100;
-        insertData.current_value = 0;
+        insertData.progress = 0;
+        insertData.color = '#22c55e';
       } else {
         insertData.frequency = args.frequency || 'daily';
         insertData.streak = 0;
+        insertData.color = '#22c55e';
       }
 
       const { error: insertError } = await supabase.from(table).insert([insertData]);

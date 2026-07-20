@@ -203,7 +203,10 @@ export default function MinesweeperGame() {
       )}
 
       {/* Grid */}
-      <div className="grid grid-cols-9 gap-1 bg-black/60 p-3 rounded-2xl border border-white/10 shadow-2xl mb-4">
+      <div 
+        className="grid gap-1 bg-black/60 p-3 rounded-2xl border border-white/10 shadow-2xl mb-4"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      >
         {board.map((row, r) =>
           row.map((cell, c) => (
             <button

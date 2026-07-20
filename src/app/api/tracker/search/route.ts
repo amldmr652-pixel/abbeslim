@@ -28,7 +28,7 @@ export async function GET(request: Request) {
             release_date: item.volumeInfo?.publishedDate || '',
             vote_average: item.volumeInfo?.averageRating || 0,
             poster_path: item.volumeInfo?.imageLinks?.thumbnail?.replace('http:', 'https:') || null,
-            is_google_book: true,
+            is_book: true,
             authors: item.volumeInfo?.authors?.join(', ') || '',
           }));
           allResults.push(...googleResults);
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
             poster_path: item.cover_i
               ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`
               : null,
-            is_google_book: true,
+            is_book: true,
             authors: item.author_name?.join(', ') || '',
           }));
           allResults.push(...olResults);

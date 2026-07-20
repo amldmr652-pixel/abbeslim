@@ -24,29 +24,25 @@ export interface Message {
 }
 
 export function useChat(currentFileId?: string) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.warn("Sohbet geçmişi okunamadı:", e);
+        }
+      }
+    }
+    return [];
+  });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'sources' | 'independent' | 'hybrid'>('hybrid');
   const [noteStates, setNoteStates] = useState<{ [msgId: string]: 'idle' | 'saving' | 'saved' }>({});
 
   const storageKey = currentFileId ? `lifeos-chat-file-${currentFileId}` : 'lifeos-chat-general';
-
-  // Load chat history from localStorage
-  useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          // Set initial messages directly in state hook
-          messages.push(...parsed);
-        } catch (e) {
-          console.warn("Sohbet geçmişi okunamadı:", e);
-        }
-      }
-    }
-  });
 
   // Save chat history to localStorage
   const saveToStorage = (newMsgs: Message[]) => {

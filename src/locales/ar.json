@@ -238,7 +238,11 @@
     "category": "الفئة",
     "description": "الوصف",
     "date": "التاريخ",
-    "noTransactions": "لا توجد معاملات بعد."
+    "noTransactions": "لا توجد معاملات بعد.",
+    "thisMonth": "هذا الشهر",
+    "last3Months": "آخر 3 أشهر",
+    "selectCategory": "اختر الفئة",
+    "editTransaction": "تعديل المعاملة"
   },
   "tracker": {
     "title": "متتبع المحتوى",
@@ -256,7 +260,13 @@
     "active": "نشط حالياً",
     "completed": "مكتمل",
     "rating": "التقييم (0-5)",
-    "noItems": "لم يتم العثور على عناصر في هذه الفئة."
+    "noItems": "لم يتم العثور على عناصر في هذه الفئة.",
+    "sortBy": "ترتيب حسب",
+    "byDate": "حسب التاريخ",
+    "byRating": "حسب التقييم",
+    "byName": "حسب الاسم",
+    "editItem": "تعديل العنصر",
+    "noImage": "لا توجد صورة"
   },
   "games": {
     "title": "استراحة التركيز",
