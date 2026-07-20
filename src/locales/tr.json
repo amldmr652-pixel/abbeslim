@@ -287,7 +287,17 @@
     "youWin": "Kazandınız!",
     "restart": "Tekrar Oyna",
     "back": "Geri Dön",
-    "resetTime": "Süreyi Sıfırla"
+    "resetTime": "Süreyi Sıfırla",
+    "sudoku": "Sudoku",
+    "sudokuDesc": "Klasik 9x9 Sudoku bulmacası. 3 zorluk seviyesi.",
+    "typing": "Hızlı Yazma Yarışı",
+    "typingDesc": "Kelime yazma yarışı. WPM skorunuzu test edin.",
+    "wordle": "Kelime Tahmin (Wordle)",
+    "wordleDesc": "5 harfli kelimeyi 6 denemede tahmin edin.",
+    "minesweeper": "Mayın Tarlası",
+    "minesweeperDesc": "Klasik mayın tarlası. Mayınlara basmadan tüm kareleri açın.",
+    "mathrace": "Matematik Yarışı",
+    "mathraceDesc": "Zamanlı aritmetik sorular. Ne kadar hızlısınız?"
   },
   "settings": {
     "title": "Ayarlar",

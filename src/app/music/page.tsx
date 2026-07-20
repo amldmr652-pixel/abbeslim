@@ -89,7 +89,7 @@ export default function MusicPage() {
     let artist = 'Özel Liste';
     
     if (audioSrc.includes('list=')) {
-      const match = audioSrc.match(/[?&]list=([^&\s]+)/);
+      const match = audioSrc.match(/[?&]list=([a-zA-Z0-9_-]+)/);
       if (match) {
         audioSrc = 'yt-playlist:' + match[1];
         artist = 'YouTube Playlist';
@@ -97,10 +97,10 @@ export default function MusicPage() {
     } else if (audioSrc.includes('v=') || audioSrc.includes('youtu.be/')) {
       let videoId = '';
       if (audioSrc.includes('v=')) {
-        const match = audioSrc.match(/[?&]v=([^&\s]+)/);
+        const match = audioSrc.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
         if (match) videoId = match[1];
       } else {
-        const match = audioSrc.match(/youtu\.be\/([^&\s]+)/);
+        const match = audioSrc.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
         if (match) videoId = match[1];
       }
       if (videoId) {
@@ -442,16 +442,23 @@ export default function MusicPage() {
                     </div>
 
                     {newChannelUrl.trim() && (
-                      <div className={`text-[10px] p-2 rounded-lg border ${
-                        (newChannelUrl.includes('list=') || newChannelUrl.includes('v=') || newChannelUrl.includes('youtu.be/'))
-                          ? 'bg-green-950/20 text-green-400 border-green-500/20'
-                          : 'bg-stone-900/50 text-gray-400 border-stone-800/30'
-                      }`}>
-                        {newChannelUrl.includes('list=')
-                          ? '✓ YouTube Playlist algılandı'
-                          : (newChannelUrl.includes('v=') || newChannelUrl.includes('youtu.be/'))
-                            ? '✓ YouTube Videosu algılandı'
-                            : '✓ Direkt ses URL\'i algılandı'}
+                      <div className="space-y-1.5">
+                        <div className={`text-[10px] p-2 rounded-lg border ${
+                          (newChannelUrl.includes('list=') || newChannelUrl.includes('v=') || newChannelUrl.includes('youtu.be/'))
+                            ? 'bg-green-950/20 text-green-400 border-green-500/20'
+                            : 'bg-stone-900/50 text-gray-400 border-stone-800/30'
+                        }`}>
+                          {newChannelUrl.includes('list=')
+                            ? '✓ YouTube Playlist algılandı'
+                            : (newChannelUrl.includes('v=') || newChannelUrl.includes('youtu.be/'))
+                              ? '✓ YouTube Videosu algılandı'
+                              : '✓ Direkt ses URL\'i algılandı'}
+                        </div>
+                        {newChannelUrl.includes('list=') && (
+                          <p className="text-[9px] text-yellow-500/80 leading-relaxed px-1">
+                            ⚠️ YouTube Mix (RD...) ve Beğenilen Videolar (LL) gibi kişisel/dinamik listeler veya gizli oynatma listeleri YouTube API tarafından engellendiği için oynatılamaz. Listenin gizliliği &quot;Herkese Açık&quot; veya &quot;Liste Dışı&quot; olmalıdır.
+                          </p>
+                        )}
                       </div>
                     )}
 

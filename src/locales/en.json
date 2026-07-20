@@ -287,7 +287,17 @@
     "youWin": "You Win!",
     "restart": "Play Again",
     "back": "Go Back",
-    "resetTime": "Reset Timer"
+    "resetTime": "Reset Timer",
+    "sudoku": "Sudoku",
+    "sudokuDesc": "Classic 9x9 Sudoku puzzle. 3 difficulty levels.",
+    "typing": "Typing Race",
+    "typingDesc": "Word typing race. Test your WPM score.",
+    "wordle": "Word Guessing (Wordle)",
+    "wordleDesc": "Guess the 5-letter word in 6 attempts.",
+    "minesweeper": "Minesweeper",
+    "minesweeperDesc": "Classic minesweeper. Open all squares without hitting mines.",
+    "mathrace": "Math Race",
+    "mathraceDesc": "Timed arithmetic questions. How fast are you?"
   },
   "settings": {
     "title": "Settings",
