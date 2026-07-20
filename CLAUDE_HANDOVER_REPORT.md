@@ -1020,3 +1020,41 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   5. `MathRaceGame.tsx` — Zamanlı Aritmetik Yarışı ve seri bonuslar
 - `games/page.tsx` arayüzü 3 sütunlu grid yapısına genişletildi ve çeviriler eklendi.
 
+---
+
+## [2026-07-20] V2.29-Fix — 18 Hata Düzeltmesi ve Kod İyileştirmeleri (Antigravity/Gemini)
+
+### 1. AI Chat Sütun Düzeltmeleri (`api/chat/route.ts`)
+- **Düzeltme:** `create_note` içerisinden `notes` tablosunda bulunmayan `type` sütunu kaldırıldı. `create_goal` handler'ında `goals` tablosunda olmayan `target_value`/`current_value` sütunları yerine Supabase şemasına uygun `progress` ve `color` sütunları kullanıldı.
+
+### 2. Wordle Oyunu Mantık ve İçerik Revizyonu (`WordleGame.tsx`)
+- **Düzeltme:** Kelime listesindeki 6 harfli (`NOTLAR`, `SİSTEM`) ve kesik (`AKILL`, `BAŞAR`) kelimeler temizlendi; hepsi tam 5 harfli geçerli Türkçe kelimelerle değiştirildi. Harf frekansı duyarlı iki aşamalı standart Wordle sarı/yeşil renklendirme algoritması (`getCharColors`) uygulandı. Sanal klavyeye Q/W tuşları eklendi.
+
+### 3. Chat State Initialization İyileştirmesi (`useChat.ts`)
+- **Düzeltme:** `useState` içinde doğrudan `messages.push()` yapılması ve ikinci `useState` çağrısı kullanımı düzeltildi; `messages` varsayılan değeri `useState` lazy initializer fonksiyonu ile `localStorage`'dan temiz bir şekilde okundu.
+
+### 4. Chat Güncelleme Badge Entegrasyonu (`ChatMessageList.tsx`)
+- **Düzeltme:** AI tarafından yapılan görev durum güncellemeleri için `msg.taskUpdate` kontrolü ve onay rozeti eklendi.
+
+### 5. Arapça Yerelleştirme Eksikleri (`locales/ar.json`)
+- **Düzeltme:** `ar.json` dosyasına finans ve içerik takibi alanlarında eksik olan `thisMonth`, `last3Months`, `selectCategory`, `editTransaction`, `sortBy`, `byDate`, `byRating`, `byName`, `editItem`, `noImage` çeviri anahtarları eklendi.
+
+### 6. Sudoku Bulmaca Çeşitliliği (`SudokuGame.tsx`)
+- **Düzeltme:** Her zorluk seviyesi (`easy`, `medium`, `hard`) için 3'er adet geçerli Sudoku bulmacası eklendi ve yeni oyunda rastgele seçim sağlandı.
+
+### 7. Telifli Müzik Invidious Proxy Fallback Entegrasyonu (`HiddenYouTubePlayer.tsx`)
+- **Düzeltme:** YouTube IFrame player'ının telif kısıtlaması (150/101) hatası vermesi durumunda `resolveAudioViaProxy` fonksiyonu çağrılarak sesin Invidious HTML5 Audio stream üzerinden kesintisiz çalması sağlandı.
+
+### 8. Medya Takibi `is_book` Semantik İyileştirmesi (`api/tracker/search/route.ts` & `tracker/page.tsx`)
+- **Düzeltme:** OpenLibrary ve Google Books kitap sonuçları `is_book` bayrağı altında birleştirildi, arayüzdeki kapak görseli işleme mantığı güncellendi.
+
+### 9. Mayıs Tarlası Grid Sütun Esnekliği (`MinesweeperGame.tsx`)
+- **Düzeltme:** Mayın tarlası grid sütun sayısı hardcoded `grid-cols-9` sınıfı yerine `gridTemplateColumns` dinamik stiline bağlandı.
+
+### 10. Paylaşımlı Invidious Yapılandırması (`lib/invidious.ts`)
+- **Düzeltme:** `stream/route.ts` ve `playlist/route.ts` içinde yinelenen Invidious sunucu dizisi `src/lib/invidious.ts` modülüne taşınarak merkezi hale getirildi.
+
+### 11. Derleme ve Canlıya Alma
+- **Doğrulama:** `npm run build` ile yerel derleme sıfır hatayla doğrulandı. Değişiklikler git'e commit edildi ve Vercel üretimine deploy tetiklendi.
+
+
