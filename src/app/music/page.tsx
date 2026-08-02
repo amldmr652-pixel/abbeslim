@@ -159,16 +159,16 @@ export default function MusicPage() {
         {/* Sol Sütun: Player Area */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           <Card padding="lg" glow={isMusicPlaying}>
-            {selectedChannelId && activeChannel && activeTrack ? (
+            {activeTrack ? (
               <div className="flex flex-col items-center py-6">
                 {/* Visual Cover Art */}
                 <div 
                   className={`w-64 h-64 rounded-full flex items-center justify-center text-8xl shadow-2xl relative mb-8 transition-transform duration-500 border border-white/10 ${
                     isMusicPlaying ? 'animate-spin [animation-duration:15s]' : 'scale-95'
                   }`}
-                  style={{ background: activeChannel.coverBg }}
+                  style={{ background: activeChannel?.coverBg || 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)' }}
                 >
-                  {activeChannel.icon}
+                  {activeChannel?.icon || '🎵'}
                   {/* Inner vinyl record hole */}
                   <div className="absolute w-16 h-16 rounded-full bg-stone-950 border border-white/10 shadow-inner flex items-center justify-center">
                     {isLoadingTrack ? (

@@ -223,7 +223,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen overflow-hidden relative">
       <Sidebar />
-      <main className={`flex-1 overflow-y-auto pb-20 md:pb-0 ${selectedChannelId ? 'pb-40 md:pb-24' : ''}`}>
+      <main className={`flex-1 overflow-y-auto pb-20 md:pb-0 ${activeTrack ? 'pb-40 md:pb-24' : ''}`}>
         {children}
       </main>
 
@@ -347,7 +347,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       )}
 
       {/* Bottom Mini Player Bar */}
-      {isAuthenticated && selectedChannelId && activeChannel && activeTrack && (
+      {isAuthenticated && activeTrack && (
         <div 
           onClick={() => router.push('/music')}
           className={`fixed bottom-16 md:bottom-0 end-0 h-20 bg-stone-950/95 backdrop-blur-md border-t border-green-900/30 z-[9900] flex items-center justify-between px-4 md:px-6 cursor-pointer hover:bg-stone-900/80 transition-colors start-0 ${
@@ -360,14 +360,14 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0 relative overflow-hidden ${
                 isMusicPlaying ? 'animate-spin [animation-duration:12s]' : ''
               }`}
-              style={{ background: activeChannel.coverBg }}
+              style={{ background: activeChannel?.coverBg || 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)' }}
             >
               {isLoadingTrack && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent" />
                 </div>
               )}
-              {activeChannel.icon}
+              {activeChannel?.icon || '🎵'}
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-white truncate">{currentSongTitle}</div>
