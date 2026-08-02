@@ -4,6 +4,7 @@ import { Search, ChevronRight, Folder, Home, Plus, Edit2, FolderUp, Trash2, File
 import { LibraryState } from '@/app/hooks/useLibrary';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { getFileIcon } from './utils';
+import { apiClient } from '@/lib/apiClient';
 
 interface Props {
   libraryState: LibraryState;
@@ -206,7 +207,7 @@ export function LibraryContent({ libraryState }: Props) {
 
               const handleFileClick = async () => {
                 try {
-                  await fetch('/api/files/open', {
+                  await apiClient('/api/files/open', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: file.id }),

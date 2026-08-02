@@ -1058,3 +1058,120 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - **Doğrulama:** `npm run build` ile yerel derleme sıfır hatayla doğrulandı. Değişiklikler git'e commit edildi ve Vercel üretimine deploy tetiklendi.
 
 
+## [2026-07-21] V2.30 — Capacitor Mobil Entegrasyonu & Dual Build Sistemi (Antigravity/Gemini)
+
+### 1. Capacitor Entegrasyonu ve Native Android Kurulumu
+- **Sorun:** Mevcut Next.js 16/React 19 tabanlı projenin tek bir kod tabanı (codebase) üzerinden Android mobil uygulaması olarak paketlenebilmesi gerekiyordu.
+- **Çözüm:**
+  - `@capacitor/core`, `@capacitor/cli` ve `@capacitor/android` paketleri kuruldu.
+  - `@capacitor/splash-screen`, `@capacitor/status-bar`, `@capacitor/keyboard` ve `@capacitor/app` native eklentileri (plugins) kuruldu.
+  - `capacitor.config.ts` dosyası oluşturularak Android yapılandırması, splash screen gecikmeleri ve klavye boyutlandırma ayarları girildi.
+  - `npx cap add android` ile native Android projesi başarıyla oluşturuldu.
+
+### 2. Dual Build & Static Export Engellerinin Aşılması (`scripts/build-mobile.js`)
+- **Sorun:** Capacitor WebView'da sunucu (Node.js) çalışmadığı için projenin statik export (`output: 'export'`) yapılması gerekiyordu. Ancak projede 14 dynamic API rotası bulunuyordu. Bunlar static export esnasında `prerender-error` fırlatarak derlemenin çökmesine neden oluyordu.
+- **Çözüm:**
+  - `scripts/build-mobile.js` adında akıllı bir derleme betiği yazıldı. Bu betik:
+    1. `src/app/api` klasörünü geçici olarak `src/app/_api` olarak yeniden adlandırır. Next.js App Router, alt çizgiyle başlayan klasörleri private folder saydığı için derleme dışı bırakır.
+    2. `.next/` cache klasörünü temizler.
+    3. `BUILD_TARGET=mobile` ortam değişkeniyle statik Next.js derlemesini (`out/` klasörüne) hatasız üretir.
+    4. İşlem bitiminde API klasörünü güvenli bir şekilde `src/app/api` olarak eski haline getirir.
+  - `package.json` dosyasına `build:mobile`, `cap:sync` ve `cap:build` script'leri entegre edildi.
+
+### 3. İstemci-Sunucu Ayrıştırması & `apiClient` (`apiClient.ts` & Sayfa/Hook Değişiklikleri)
+- **Sorun:** Statik mobil uygulama içinden backend işlevi gören API rotalarına erişilmesi gerekiyordu.
+- **Çözüm:**
+  - `src/lib/apiClient.ts` dosyası oluşturuldu. Bu istemci mobil ortamda (`NEXT_PUBLIC_IS_MOBILE=true` olduğunda) API çağrılarını `https://abbeslim.vercel.app` production sunucusuna yönlendirir. Web ortamında ise relative `/api/...` path'ini kullanır.
+  - Projedeki tüm sayfa ve custom hook'lardaki (yaklaşık 30 dosya) ham `fetch('/api/...')` çağrıları `apiClient` ile güncellendi.
+  - Mobil API çağrılarına otomatik olarak Supabase Auth JWT token'ı (`Bearer <token>`) başlığı enjekte edildi.
+
+### 4. Supabase Auth & Session Yönetimi (`server.ts` & `client.ts`)
+- **Sorun:** Mobil uygulamada tarayıcı çerezleri (cookies) yerine localStorage tabanlı oturum yönetimi ve API yetkilendirmesi gerekiyordu.
+- **Çözüm:**
+  - `src/utils/supabase/server.ts` dosyası güncellenerek API route'larının hem web çerezlerini hem de mobil Bearer token'larını şeffaf bir şekilde doğrulayabilmesi sağlandı.
+  - `src/utils/supabase/client.ts` dosyası güncellenerek mobil ortamda oturum saklama alanı olarak `localStorage` kullanılması sağlandı.
+  - Sunucu taraflı çerez okuyan `/admin/page.tsx` sayfası tamamen istemci taraflı çalışan bir Client Component haline getirildi ve `apiClient` yetki sorgusu bağlandı.
+
+### 5. Mobil UI Uyumlaştırması & Safe Area (`globals.css` & `capacitor-init.ts`)
+- **Çözüm:**
+  - `src/lib/capacitor-init.ts` oluşturuldu; cihaz notch safe area'ları, durum çubuğu renkleri, Android donanım geri tuşu desteği ve klavye açıldığında body yeniden boyutlandırma dinamikleri tanımlandı.
+  - `src/app/ClientProviders.tsx` ve `src/app/globals.css` dosyalarına bu sınıflar ve CSS kuralları dahil edildi.
+
+### 6. App İkonu & Splash Screen Üretimi (`@capacitor/assets`)
+- **Çözüm:**
+  - Koyu temalı modern "abbeslim." logosunu içeren app ikonu (`icon.png`) ve açılış ekranı (`splash.png`) üretilerek `resources/` dizinine yerleştirildi.
+  - `npx @capacitor/assets generate` komutu çalıştırılarak tüm Android çözünürlükleri için adaptive launcher simgeleri ve night-mode splash resimleri otomatik oluşturuldu.
+
+### 7. Derleme & Doğrulama
+- **Doğrulama:** Web regresyon testi (`npm run build`) ve mobil statik export derlemesi (`npm run build:mobile`) sıfır hata ile tamamlandı. `npx cap sync` ile varlıklar Android klasörüne başarıyla aktarıldı. Yerel terminalde Java 8 yüklü olduğundan donanım derlemesi için Android Studio (`android/` klasörü) açılmıştır.
+
+
+## [2026-07-21] V2.31 — Mobil Hataların Düzeltilmesi (İzinler, Oturum ve Viewport) (Gemini)
+
+### 1. Viewport Meta Etiketi ve Responsive Tasarım (`src/app/layout.tsx`)
+- **Sorun:** Android WebView üzerinde uygulamanın masaüstü genişliğinde (980px) render edilmesi ve Tailwind responsive sınıflarının çalışmaması.
+- **Çözüm:** `layout.tsx` içerisine Next.js 16 standartlarına uygun dinamik `viewport` metadata nesnesi export edildi. Mobil ekranlar için `width: 'device-width'` ve `viewportFit: 'cover'` aktif edildi.
+
+### 2. Android Sistem İzinleri (`android/app/src/main/AndroidManifest.xml`)
+- **Sorun:** Ses kaydı ve harita konum izinlerinin istenmemesi.
+- **Çözüm:** `AndroidManifest.xml` dosyasına mikrofon (`RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS`), konum (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`), kamera (`CAMERA`) ve harici bellek okuma/yazma izinleri eklendi.
+
+### 3. Oturum Açma Koruması (Auth Guard) (`src/app/LayoutShell.tsx`)
+- **Sorun:** Giriş yapmamış kullanıcıların doğrudan uygulamayı açık bulması veya yönlendirilmemesi.
+- **Çözüm:** `LayoutShell` bileşeninde `authChecked` durumu ve `supabase.auth.onAuthStateChange` aboneliği oluşturuldu. Giriş yapmamış ve auth yollarında olmayan kullanıcılar otomatik olarak `/login` rotasına yönlendirildi. Kontrol sırasında şık bir yükleme ekranı gösterilmesi sağlandı.
+
+### 4. Mobil Arayüz ve Bottom Navigation Bar (`Sidebar.tsx`, `LayoutShell.tsx`, `globals.css` ve Çeviriler)
+- **Çözüm:**
+  - Mobil ekranlarda sol hamburger menü yerine alt kısma sabitlenmiş 5 butonlu (Dashboard, Arama, Kütüphane, Takvim, Daha Fazla) bir **Bottom Navigation Bar** eklendi.
+  - "Daha Fazla" butonu mobil hamburger menü tetikleyicisi olarak bağlandı.
+  - Mini player müzik çubuğu mobilde alt navigasyon çubuğuyla çakışmayacak şekilde (`bottom-16 md:bottom-0`) yukarı kaydırıldı.
+  - Yüzen radyal odak menüsü mobilde gizlendi (`hidden md:flex`).
+  - Çeviri dosyalarına (`tr.json`, `en.json`, `ar.json`) "Daha Fazla" (`more`) anahtarı eklendi.
+  - `globals.css` dosyasına mobil kaydırma payları ve güvenli bölge boşlukları (`safe-area-bottom`) entegre edildi.
+
+### 5. Doğrulama ve Dağıtım
+- **Doğrulama:** `npm run build:mobile` statik mobil çıktıyı hatasız bir şekilde oluşturdu. `npx cap sync` ile tüm değişen web varlıkları ve izinler Android platformuna aktarıldı.
+
+
+## [2026-08-03] V2.32 — Şarkı Favorileme, Alışkanlık Saat Desteği ve Hatırlatıcı Motoru (Gemini)
+
+### 1. Şarkı Bazlı Favorileme Sistemi (`MusicContext.tsx`, `page.tsx`, `LayoutShell.tsx` & `liked_songs` Tablosu)
+- **Sorun:** Müzik oynatıcısındaki kalp butonu çalmakta olan şarkıyı değil, tüm çalma listesini/radyo kanalını beğeniyordu.
+- **Çözüm:**
+  - Supabase üzerinde şarkı bazlı `liked_songs` tablosu oluşturuldu (RLS etkinleştirildi).
+  - `MusicContext.tsx` güncellenerek `likedSongs` state'i, `isCurrentSongLiked` durumu, `fetchLikedSongs` ve `toggleLikeSong` fonksiyonları eklendi.
+  - `getCurrentVideoId` fonksiyonu ile çalan YouTube video ID'si yakalanarak `liked_songs` tablosunda benzersiz kayıt olarak saklandı.
+  - Ana oynatıcı ve persistent bottom mini oynatıcıdaki kalp butonları çalan şarkıyı favorileyecek şekilde güncellendi.
+  - Radyo listesindeki kalp butonları ise kanal favorileme işlevini sürdürdü (her iki favorileme türü de korunmuş oldu).
+  - Oynatıcı sayfasında en son beğenilen 10 şarkıyı listeleyen ve doğrudan beğeniyi kaldırmaya izin veren **Beğenilen Şarkılar** bölümü eklendi.
+
+### 2. Alışkanlık Ekleme Hatası & Hata Yönetimi (`goals/page.tsx`, `useHabitStore.ts`)
+- **Sorun:** Alışkanlık ekleme kısmı Supabase hata bildirimleri eksikliğinden veya tablo yokluğundan sessizce başarısız oluyordu.
+- **Çözüm:**
+  - Alışkanlık/Hedef ekleme ve düzenleme handler'larına (`handleAddHabit`, `handleUpdateHabit`, `handleAddGoal`, `handleUpdateGoal`) `try-catch` blokları entegre edildi.
+  - Form modallarının en üstüne hata oluşması durumunda kullanıcıya görsel uyarı veren kırmızı error kutuları (`habitError`, `goalError`) yerleştirildi.
+  - Form başarılı şekilde kaydedildiğinde durumların temizlenmesi ve modalların kapanması akışı stabil hale getirildi.
+
+### 3. Günlük Rutin & Alışkanlıklara Saat Desteği (`useHabitStore.ts`, `goals/page.tsx`, `HabitsWidget.tsx`)
+- **Sorun:** Alışkanlıklara belirli bir saat atanamıyordu ve günlük rutin olarak kronolojik takip edilemiyordu.
+- **Çözüm:**
+  - `public.habits` tablosuna `scheduled_time` (TIME), `description` (TEXT) ve `sort_order` (INTEGER) sütunları eklendi.
+  - Alışkanlık ekleme ve düzenleme modallarına saat seçici (`input[type="time"]`) ve kısa açıklama alanları entegre edildi.
+  - Alışkanlık listesinde ve kartlarında atanan saatler saat simgesi (`Clock`) ile görselleştirildi.
+  - `useHabitStore.ts` içindeki `fetchHabits` fonksiyonunun getirme sırası `scheduled_time` artan (kronolojik) ve `created_at` azalan olacak şekilde güncellendi.
+  - Dashboard ana ekranına sadece günlük rutinleri listeleyen, saatine göre sıralayan, tamamlanma oranını gösteren ve anlık check-in yapmaya imkan tanıyan yeni **Günlük Rutinler (HabitsWidget)** eklendi.
+
+### 4. Günlük Hatırlatıcı / Alarm Sistemi (`useReminderStore.ts`, `useReminderEngine.ts`, `reminders/page.tsx`, `LayoutShell.tsx`)
+- **Sorun:** Kullanıcıya günlük rutinleri veya alarmları için tarayıcı bildirimleri gönderen bir hatırlatıcı sistemi yoktu.
+- **Çözüm:**
+  - Supabase üzerinde haftanın belirli günlerinde tekrarlanabilen, aktif/pasif edilebilen `reminders` tablosu kuruldu.
+  - Alarmların CRUD işlemlerini yönetmek için Zustand tabanlı `useReminderStore.ts` store'u yazıldı.
+  - Arka planda çalışan ve her 30 saniyede bir eşleşen alarmları kontrol eden `useReminderEngine.ts` hook'u geliştirildi. Alarm anında:
+    1. Web Audio API ile sentezlenen 3 kısa **bip sesi** çalınır.
+    2. Tarayıcının yerel **Notification API**'si kullanılarak bildirim penceresi tetiklenir (çift tetiklemeyi önleyen `triggeredRef` ile kontrol edilir).
+  - `LayoutShell` içerisinde bu motor arka planda sürekli dinlemede kalacak şekilde mount edildi.
+  - Sidebar ve bottom navigation bar'a **Hatırlatıcılar** simgesi (Bell) ve `/reminders` sayfası eklendi. Sayfada alarmlar listelenir, düzenlenir, anlık açılıp kapatılabilir.
+
+### 5. Derleme Hatasının Çözülmesi (ReferenceError: activeTrack before initialization)
+- **Sorun:** Üretim derlemesi (production build) sırasında static sayfa oluşturucusu (prerendering) `activeTrack` değişkeninin bildirilmeden önce `isCurrentSongLiked` içerisinde çağrılması nedeniyle çöküyordu.
+- **Çözüm:** `MusicContext.tsx` içindeki `activeChannel` ve `activeTrack` bildirimleri hook'un en üstüne (liked_songs state'inin üzerine) taşınarak, IIFE kullanan computed alanların henüz tanımlanmamış değişkenlere erişmesi engellendi. `isCurrentSongLiked` ifadesi IIFE yerine daha kararlı standart reaktif değişkene çevrildi. Proje başarıyla derlendi.

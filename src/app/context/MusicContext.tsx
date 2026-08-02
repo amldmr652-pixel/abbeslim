@@ -18,6 +18,16 @@ export interface Channel {
   isFavorite?: boolean;
 }
 
+export interface LikedSong {
+  id: string;
+  video_id: string;
+  title: string;
+  artist: string;
+  channel_id: string | null;
+  thumbnail_url: string | null;
+  created_at: string;
+}
+
 export const DEFAULT_CHANNELS: Channel[] = [
   { id: 'lofi-default', name: 'Lofi Hip Hop', icon: '🎵', coverBg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', tracks: [{ title: 'Lofi Hip Hop Radio', artist: 'ChilledCow', audioSrc: 'yt-playlist:PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo' }] },
   { id: 'jazz-default', name: 'Jazz Chill', icon: '🎷', coverBg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', tracks: [{ title: 'Jazz Radio', artist: 'Cafe Music BGM', audioSrc: 'yt-playlist:PLOzDu-MXXLlhEpXLsKv-zYgMFssl8qjBI' }] },
@@ -73,6 +83,12 @@ interface MusicContextType {
   setShuffleMode: React.Dispatch<React.SetStateAction<boolean>>;
   setRepeatMode: React.Dispatch<React.SetStateAction<'none' | 'one' | 'all'>>;
   clearSeekRequest: () => void;
+
+  // Şarkı favori sistemi
+  likedSongs: LikedSong[];
+  isCurrentSongLiked: boolean;
+  toggleLikeSong: () => Promise<void>;
+  fetchLikedSongs: () => Promise<void>;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -102,6 +118,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [isMusicPlaying, setIsMusicPlaying]     = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isMusicSynced, setIsMusicSynced]       = useState(true);
+
+  const activeChannel = channels.find(c => c.id === selectedChannelId) ?? null;
+  const activeTrack   = activeChannel ? activeChannel.tracks[currentTrackIndex] : null;
   
   // Persisted volume state
   const [volume, setVolumeState] = useState<number>(() => {
@@ -133,6 +152,85 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
   const [seekRequest, setSeekRequest] = useState<{ time: number; timestamp: number } | null>(null);
 
+  const [likedSongs, setLikedSongs] = useState<LikedSong[]>([]);
+
+  const getCurrentVideoId = (): string | null => {
+    try {
+      const player = ytPlayerRef.current;
+      if (player && typeof player.getVideoUrl === 'function') {
+        const url = player.getVideoUrl();
+        const match = url?.match(/[?&]v=([^&]+)/);
+        if (match) return match[1];
+      }
+    } catch {}
+    
+    if (activeTrack?.audioSrc && activeTrack.audioSrc.startsWith('yt-video:')) {
+      return activeTrack.audioSrc.replace('yt-video:', '');
+    }
+    
+    return null;
+  };
+
+  const currentVideoId = getCurrentVideoId();
+  const isCurrentSongLiked = currentVideoId ? likedSongs.some(s => s.video_id === currentVideoId) : false;
+
+  const fetchLikedSongs = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('liked_songs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setLikedSongs(data);
+      }
+    } catch (e) {
+      console.warn('Beğenilen şarkılar yüklenemedi:', e);
+    }
+  };
+
+  const toggleLikeSong = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const videoId = getCurrentVideoId();
+      if (!videoId) return;
+
+      const existing = likedSongs.find(s => s.video_id === videoId);
+
+      if (existing) {
+        await supabase.from('liked_songs').delete().eq('id', existing.id);
+        setLikedSongs(prev => prev.filter(s => s.id !== existing.id));
+      } else {
+        const { data, error } = await supabase
+          .from('liked_songs')
+          .insert({
+            user_id: user.id,
+            video_id: videoId,
+            title: currentSongTitle || activeTrack?.title || 'Bilinmeyen Şarkı',
+            artist: currentSongArtist || activeChannel?.name || '',
+            channel_id: activeChannel?.id || null,
+            thumbnail_url: null,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setLikedSongs(prev => [data, ...prev]);
+        }
+      }
+    } catch (e) {
+      console.warn('Şarkı beğenme hatası:', e);
+    }
+  };
+
   const favoriteChannelIds = channels.filter(c => c.isFavorite).map(c => c.id);
 
   // YouTube player referansı
@@ -145,9 +243,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const supabaseLoadedRef = useRef(false);
   // İlk render geçti mi (mount sonrası save'i engelle)
   const initialLoadDoneRef = useRef(false);
-
-  const activeChannel = channels.find(c => c.id === selectedChannelId) ?? null;
-  const activeTrack   = activeChannel ? activeChannel.tracks[currentTrackIndex] : null;
 
   // ── Supabase: sayfa açılınca kullanıcının kanallarını yükle ──
   useEffect(() => {
@@ -178,6 +273,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
 
     loadFromCloud();
+    fetchLikedSongs();
   }, []);
 
   // ── Supabase + localStorage: kanallar değişince kaydet (debounced) ──
@@ -325,7 +421,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted,
       addChannel, removeChannel, registerYTPlayer,
       toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer, updateSongInfo, updateProgress,
-      setShuffleMode, setRepeatMode, clearSeekRequest
+      setShuffleMode, setRepeatMode, clearSeekRequest,
+      likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs
     }}>
       {children}
     </MusicContext.Provider>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Target, Flame, Plus, CheckCircle2, AlertCircle, Edit, Trash2 } from 'lucide-react';
+import { Target, Flame, Plus, CheckCircle2, AlertCircle, Edit, Trash2, Clock } from 'lucide-react';
 import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useGoalStore, Goal } from '@/stores/useGoalStore';
@@ -39,6 +39,16 @@ export default function GoalsPage() {
   // New Habit Form
   const [habitTitle, setHabitTitle] = useState('');
   const [habitFreq, setHabitFreq] = useState<'daily' | 'weekly'>('daily');
+  const [habitTime, setHabitTime] = useState('');
+  const [habitDescription, setHabitDescription] = useState('');
+  
+  // Edit Habit Form Extra
+  const [editHabitTime, setEditHabitTime] = useState('');
+  const [editHabitDescription, setEditHabitDescription] = useState('');
+
+  // Error States
+  const [habitError, setHabitError] = useState<string | null>(null);
+  const [goalError, setGoalError] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -57,75 +67,103 @@ export default function GoalsPage() {
   const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !goalTitle.trim()) return;
+    setGoalError(null);
     
-    await addGoal({
-      user_id: userId,
-      title: goalTitle.trim(),
-      progress: goalProgress,
-      color: 'bg-green-500'
-    });
-    
-    setIsGoalModalOpen(false);
-    setGoalTitle('');
-    setGoalProgress(0);
+    try {
+      await addGoal({
+        user_id: userId,
+        title: goalTitle.trim(),
+        progress: goalProgress,
+        color: 'bg-green-500'
+      });
+      setIsGoalModalOpen(false);
+      setGoalTitle('');
+      setGoalProgress(0);
+    } catch (err: any) {
+      setGoalError(err.message || 'Hedef eklenirken hata oluştu.');
+    }
   };
 
   const handleOpenEditGoal = (goal: Goal) => {
     setSelectedGoal(goal);
     setEditGoalTitle(goal.title);
     setEditGoalProgress(goal.progress);
+    setGoalError(null);
     setIsEditGoalModalOpen(true);
   };
 
   const handleUpdateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGoal || !editGoalTitle.trim()) return;
+    setGoalError(null);
 
-    await updateGoal(selectedGoal.id, {
-      title: editGoalTitle.trim(),
-      progress: editGoalProgress
-    });
-
-    setIsEditGoalModalOpen(false);
-    setSelectedGoal(null);
+    try {
+      await updateGoal(selectedGoal.id, {
+        title: editGoalTitle.trim(),
+        progress: editGoalProgress
+      });
+      setIsEditGoalModalOpen(false);
+      setSelectedGoal(null);
+    } catch (err: any) {
+      setGoalError(err.message || 'Hedef güncellenirken hata oluştu.');
+    }
   };
 
   const handleAddHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !habitTitle.trim()) return;
+    setHabitError(null);
 
-    await addHabit({
-      user_id: userId,
-      title: habitTitle.trim(),
-      frequency: habitFreq,
-      streak: 0,
-      color: 'bg-blue-500',
-      last_completed: null
-    });
+    try {
+      await addHabit({
+        user_id: userId,
+        title: habitTitle.trim(),
+        frequency: habitFreq,
+        streak: 0,
+        color: 'bg-blue-500',
+        last_completed: null,
+        scheduled_time: habitTime || null,
+        description: habitDescription
+      });
 
-    setIsHabitModalOpen(false);
-    setHabitTitle('');
-    setHabitFreq('daily');
+      setIsHabitModalOpen(false);
+      setHabitTitle('');
+      setHabitFreq('daily');
+      setHabitTime('');
+      setHabitDescription('');
+    } catch (err: any) {
+      setHabitError(err.message || 'Alışkanlık eklenirken hata oluştu.');
+    }
   };
 
   const handleOpenEditHabit = (habit: Habit) => {
     setSelectedHabit(habit);
     setEditHabitTitle(habit.title);
     setEditHabitFreq(habit.frequency);
+    setEditHabitTime(habit.scheduled_time ? habit.scheduled_time.slice(0, 5) : '');
+    setEditHabitDescription(habit.description || '');
+    setHabitError(null);
     setIsEditHabitModalOpen(true);
   };
 
   const handleUpdateHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedHabit || !editHabitTitle.trim()) return;
+    setHabitError(null);
 
-    await updateHabit(selectedHabit.id, {
-      title: editHabitTitle.trim(),
-      frequency: editHabitFreq
-    });
+    try {
+      await updateHabit(selectedHabit.id, {
+        title: editHabitTitle.trim(),
+        frequency: editHabitFreq,
+        scheduled_time: editHabitTime || null,
+        description: editHabitDescription
+      });
 
-    setIsEditHabitModalOpen(false);
-    setSelectedHabit(null);
+      setIsEditHabitModalOpen(false);
+      setSelectedHabit(null);
+    } catch (err: any) {
+      setHabitError(err.message || 'Alışkanlık güncellenirken hata oluştu.');
+    }
   };
 
   const isHabitCompletedToday = (habit: Habit) => {
@@ -301,14 +339,26 @@ export default function GoalsPage() {
                       </button>
                       
                       <div>
-                        <h3 className={`font-semibold text-base transition-colors ${completedToday ? 'text-blue-300' : 'text-white'}`}>
+                        <h3 className={`font-semibold text-base transition-colors ${completedToday ? 'text-blue-300 font-bold' : 'text-white'}`}>
                           {habit.title}
                         </h3>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          {habit.frequency === 'daily' ? (t('goals.daily') || 'Günlük') : (t('goals.weekly') || 'Haftalık')} 
-                          <span className="mx-1">•</span> 
-                          {completedToday ? (t('goals.alreadyCompleted') || 'Bugün tamamlandı') : (t('goals.markCompleted') || 'Tamamlandı olarak işaretle')}
+                        <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                          {habit.scheduled_time && (
+                            <>
+                              <Clock size={12} className="text-blue-400 shrink-0" />
+                              <span className="text-blue-400 font-medium">{habit.scheduled_time.slice(0, 5)}</span>
+                              <span className="text-gray-600">•</span>
+                            </>
+                          )}
+                          <span>{habit.frequency === 'daily' ? (t('goals.daily') || 'Günlük') : (t('goals.weekly') || 'Haftalık')}</span>
+                          <span className="text-gray-600">•</span>
+                          <span>{completedToday ? (t('goals.alreadyCompleted') || 'Bugün tamamlandı') : (t('goals.markCompleted') || 'Tamamlandı olarak işaretle')}</span>
                         </p>
+                        {habit.description && (
+                          <p className="text-xs text-gray-400 mt-1 italic max-w-md truncate">
+                            {habit.description}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -348,6 +398,11 @@ export default function GoalsPage() {
       {/* Goal Add Modal */}
       <Modal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} title={t('goals.newGoal') || 'Yeni Hedef'} maxWidth="sm">
         <form onSubmit={handleAddGoal} className="space-y-4">
+          {goalError && (
+            <div className="bg-red-900/50 text-red-200 border border-red-500/30 rounded-xl p-3 text-sm">
+              {goalError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('goals.goalName') || 'Hedef Adı'}</label>
             <Input 
@@ -378,6 +433,11 @@ export default function GoalsPage() {
       {/* Goal Edit Modal */}
       <Modal isOpen={isEditGoalModalOpen} onClose={() => { setIsEditGoalModalOpen(false); setSelectedGoal(null); }} title="Hedefi Düzenle" maxWidth="sm">
         <form onSubmit={handleUpdateGoal} className="space-y-4">
+          {goalError && (
+            <div className="bg-red-900/50 text-red-200 border border-red-500/30 rounded-xl p-3 text-sm">
+              {goalError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('goals.goalName') || 'Hedef Adı'}</label>
             <Input 
@@ -408,6 +468,11 @@ export default function GoalsPage() {
       {/* Habit Add Modal */}
       <Modal isOpen={isHabitModalOpen} onClose={() => setIsHabitModalOpen(false)} title={t('goals.newHabit') || 'Yeni Alışkanlık'} maxWidth="sm">
         <form onSubmit={handleAddHabit} className="space-y-4">
+          {habitError && (
+            <div className="bg-red-900/50 text-red-200 border border-red-500/30 rounded-xl p-3 text-sm">
+              {habitError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('goals.habitName') || 'Alışkanlık Adı'}</label>
             <Input 
@@ -436,6 +501,25 @@ export default function GoalsPage() {
               </button>
             </div>
           </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Saat (Opsiyonel)</label>
+            <input
+              type="time"
+              value={habitTime}
+              onChange={(e) => setHabitTime(e.target.value)}
+              className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Açıklama (Opsiyonel)</label>
+            <input
+              type="text"
+              value={habitDescription}
+              onChange={(e) => setHabitDescription(e.target.value)}
+              placeholder="Kısa bir açıklama..."
+              className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white placeholder-gray-600 focus:border-green-500 focus:outline-none transition-colors"
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-green-900/30">
             <Button variant="ghost" type="button" onClick={() => setIsHabitModalOpen(false)}>
               {t('common.cancel') || 'İptal'}
@@ -448,6 +532,11 @@ export default function GoalsPage() {
       {/* Habit Edit Modal */}
       <Modal isOpen={isEditHabitModalOpen} onClose={() => { setIsEditHabitModalOpen(false); setSelectedHabit(null); }} title="Alışkanlığı Düzenle" maxWidth="sm">
         <form onSubmit={handleUpdateHabit} className="space-y-4">
+          {habitError && (
+            <div className="bg-red-900/50 text-red-200 border border-red-500/30 rounded-xl p-3 text-sm">
+              {habitError}
+            </div>
+          )}
           <div>
             <label className="text-xs text-gray-400 block mb-1.5 font-semibold">{t('goals.habitName') || 'Alışkanlık Adı'}</label>
             <Input 
@@ -475,6 +564,25 @@ export default function GoalsPage() {
                 {t('goals.weekly') || 'Haftalık'}
               </button>
             </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Saat (Opsiyonel)</label>
+            <input
+              type="time"
+              value={editHabitTime}
+              onChange={(e) => setEditHabitTime(e.target.value)}
+              className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Açıklama (Opsiyonel)</label>
+            <input
+              type="text"
+              value={editHabitDescription}
+              onChange={(e) => setEditHabitDescription(e.target.value)}
+              placeholder="Kısa bir açıklama..."
+              className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white placeholder-gray-600 focus:border-green-500 focus:outline-none transition-colors"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-green-900/30">
             <Button variant="ghost" type="button" onClick={() => { setIsEditHabitModalOpen(false); setSelectedHabit(null); }}>

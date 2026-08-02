@@ -2,6 +2,10 @@
 
 /* Theme Custom Properties */
 :root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
   --bg-primary: radial-gradient(ellipse at top, #001a0d 0%, #000000 60%);
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
@@ -144,3 +148,37 @@ body.theme-light {
 .music-fade-in {
   animation: musicFadeIn 0.2s ease-out;
 }
+
+/* Mobil (Capacitor) ortamına özel stiller */
+body.capacitor {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+  overscroll-behavior-y: contain;
+}
+
+body.capacitor * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.capacitor input,
+body.capacitor textarea,
+body.capacitor [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Mobil Bottom Navigation Safe Area desteği */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobil bottom bar varken sayfa içeriğinin altına boşluk bırak */
+@media (max-width: 767px) {
+  main {
+    padding-bottom: 80px;
+  }
+}
+

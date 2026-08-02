@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
+import { apiClient } from '@/lib/apiClient';
 
 export interface Source {
   fileName: string;
@@ -174,7 +175,7 @@ export function useChat(currentFileId?: string) {
       
       let catId = '';
       try {
-        const catRes = await fetch('/api/categories');
+        const catRes = await apiClient('/api/categories');
         const catData = await catRes.json();
         const categoriesList = catData.categories || [];
         
@@ -185,7 +186,7 @@ export function useChat(currentFileId?: string) {
         if (existingCat) {
           catId = existingCat.id;
         } else {
-          const createRes = await fetch('/api/categories', {
+          const createRes = await apiClient('/api/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'add', name: 'Notlarım' })
@@ -214,7 +215,7 @@ export function useChat(currentFileId?: string) {
       formData.append('categoryId', catId);
       formData.append('date', new Date().toISOString().split('T')[0]);
       
-      const uploadRes = await fetch('/api/upload', {
+      const uploadRes = await apiClient('/api/upload', {
         method: 'POST',
         body: formData
       });
@@ -244,7 +245,7 @@ export function useChat(currentFileId?: string) {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await apiClient('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, fileId: currentFileId, mode }),

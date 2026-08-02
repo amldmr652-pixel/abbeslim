@@ -25,6 +25,7 @@ import {
   Music,
   Map,
   Timer,
+  Bell,
 } from 'lucide-react';
 
 import { useTranslation } from '@/app/hooks/useTranslation';
@@ -52,6 +53,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'tracker', icon: <Clapperboard size={20} />, href: '/tracker' },
   { id: 'map', icon: <Map size={20} />, href: '/map' },
   { id: 'music', icon: <Music size={20} />, href: '/music' },
+  { id: 'reminders', icon: <Bell size={20} />, href: '/reminders' },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
@@ -221,14 +223,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobil hamburger butonu */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-40 p-2 rounded-xl glass text-green-500 hover:text-green-400 transition-colors"
-        aria-label="Menüyü aç"
-      >
-        <Menu size={22} />
-      </button>
+      {/* Eski hamburger butonu kaldırıldı — Bottom Navigation Bar üzerindeki "Daha Fazla" butonu aynı işlevi görüyor */}
 
       {/* Mobil overlay */}
       {mobileOpen && (
@@ -266,6 +261,64 @@ export default function Sidebar() {
       >
         {sidebarContent}
       </aside>
+
+      {/* Mobil Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[9950] bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-green-900/30 safe-area-bottom">
+        <div className="flex items-center justify-around h-16 px-1">
+          {/* Dashboard */}
+          <Link
+            href="/"
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-colors ${
+              pathname === '/' ? 'text-green-400' : 'text-gray-500'
+            }`}
+          >
+            <LayoutDashboard size={20} />
+            <span className="text-[10px] font-medium">{t('sidebar.dashboard')}</span>
+          </Link>
+
+          {/* Arama */}
+          <Link
+            href="/search"
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-colors ${
+              pathname.startsWith('/search') ? 'text-green-400' : 'text-gray-500'
+            }`}
+          >
+            <Search size={20} />
+            <span className="text-[10px] font-medium">{t('sidebar.search')}</span>
+          </Link>
+
+          {/* Kütüphane */}
+          <Link
+            href="/library"
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-colors ${
+              pathname.startsWith('/library') ? 'text-green-400' : 'text-gray-500'
+            }`}
+          >
+            <BookOpen size={20} />
+            <span className="text-[10px] font-medium">{t('sidebar.library')}</span>
+          </Link>
+
+          {/* Takvim */}
+          <Link
+            href="/calendar"
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-colors ${
+              pathname.startsWith('/calendar') ? 'text-green-400' : 'text-gray-500'
+            }`}
+          >
+            <Calendar size={20} />
+            <span className="text-[10px] font-medium">{t('sidebar.calendar')}</span>
+          </Link>
+
+          {/* Daha Fazla — hamburger menüyü tetikler */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-colors text-gray-500`}
+          >
+            <Menu size={20} />
+            <span className="text-[10px] font-medium">{t('sidebar.more') || 'Daha Fazla'}</span>
+          </button>
+        </div>
+      </nav>
     </>
   );
 }

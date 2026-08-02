@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useMusicContext } from './context/MusicContext';
+import { apiClient } from '@/lib/apiClient';
 
 declare global {
   interface Window {
@@ -14,7 +15,7 @@ declare global {
 // Invidious üzerinden ses URL'si al (Telif engeli aşımı için)
 async function resolveAudioViaProxy(videoId: string): Promise<string | null> {
   try {
-    const res = await fetch(`/api/music/stream?videoId=${videoId}`);
+    const res = await apiClient(`/api/music/stream?videoId=${videoId}`);
     if (!res.ok) return null;
     const data = await res.json();
     return data.audioUrl || null;

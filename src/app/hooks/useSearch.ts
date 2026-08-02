@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from '@/app/hooks/useTranslation';
+import { apiClient } from '@/lib/apiClient';
 
 export type SearchMode = 'phrase' | 'word' | 'semantic' | 'hybrid';
 
@@ -20,7 +21,7 @@ export function useSearch() {
 
   useEffect(() => {
     // Kategorileri çek
-    fetch('/api/categories')
+    apiClient('/api/categories')
       .then(res => res.json())
       .then(data => {
         if (data.categories) {
@@ -39,7 +40,7 @@ export function useSearch() {
     if (!q) { setSearchResults([]); setSearchError(null); return; }
     setIsSearching(true);
     setSearchError(null);
-    fetch(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}&lang=${language}`)
+    apiClient(`/api/search?q=${encodeURIComponent(q)}&mode=${mode}&lang=${language}`)
       .then(res => {
         if (!res.ok) throw new Error('Arama isteği başarısız oldu');
         return res.json();

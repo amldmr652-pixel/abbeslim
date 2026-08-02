@@ -12,6 +12,7 @@ import Sidebar from './components/layout/Sidebar';
 import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useReminderEngine } from '@/app/hooks/useReminderEngine';
 
 
 // Auth sayfaları — bu route'larda widget'lar gizlenir
@@ -26,16 +27,19 @@ import FocusModeOverlay from './components/FocusModeOverlay';
 import { useFocusStore } from '@/stores/useFocusStore';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
+  useReminderEngine();
   const {
     selectedChannelId, isMusicPlaying,
     activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
     duration, volume, isMuted, setIsMusicPlaying, handlePrevTrack, handleNextTrack,
-    toggleFavorite, setIsMuted, setVolume, seekTo, isLoadingTrack
+    setIsMuted, setVolume, seekTo, isLoadingTrack,
+    toggleLikeSong, isCurrentSongLiked
   } = useMusicContext();
 
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'ai'>('none');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { setFocusMode, toggleFocusMode } = useFocusStore();
@@ -45,10 +49,33 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     const supabase = createClient();
+    
+    // İlk kontrol
     supabase.auth.getUser().then(({ data }) => {
-      setIsAuthenticated(!!data.user);
+      const loggedIn = !!data.user;
+      setIsAuthenticated(loggedIn);
+      setAuthChecked(true);
+      
+      // Giriş yapmamış ve auth sayfasında değilse → login'e yönlendir
+      if (!loggedIn && !AUTH_ROUTES.some(r => pathname.startsWith(r))) {
+        router.replace('/login');
+      }
     });
-  }, [pathname]);
+
+    // Oturum değişikliklerini dinle (logout, token expire vb.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const loggedIn = !!session?.user;
+      setIsAuthenticated(loggedIn);
+      
+      if (event === 'SIGNED_OUT') {
+        router.replace('/login');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [pathname, router]);
 
   // Keyboard Shortcuts Listener
   useEffect(() => {
@@ -181,10 +208,22 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     );
   }
 
+  // Auth kontrolü tamamlanana kadar loading göster
+  if (!authChecked) {
+    return (
+      <div className="flex items-center justify-center h-screen" style={{ background: 'radial-gradient(ellipse at top, #001a0d 0%, #000000 60%)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-2xl font-bold tracking-wider text-green-500">abbeslim.</div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden relative">
       <Sidebar />
-      <main className={`flex-1 overflow-y-auto ${selectedChannelId ? 'pb-24' : ''}`}>
+      <main className={`flex-1 overflow-y-auto pb-20 md:pb-0 ${selectedChannelId ? 'pb-40 md:pb-24' : ''}`}>
         {children}
       </main>
 
@@ -200,7 +239,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           )}
 
           {/* Sağ kenar yüzen radyal buton grubu */}
-          <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[9999] w-8 h-12 flex items-center justify-start">
+          <div className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[9999] w-8 h-12 items-center justify-start">
             {/* Gelişmiş Odak Modu Butonu (Sol Üst - 135 derece) */}
             <button
               onClick={() => {
@@ -311,7 +350,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       {isAuthenticated && selectedChannelId && activeChannel && activeTrack && (
         <div 
           onClick={() => router.push('/music')}
-          className={`fixed bottom-0 end-0 h-20 bg-stone-950/95 backdrop-blur-md border-t border-green-900/30 z-[9900] flex items-center justify-between px-6 cursor-pointer hover:bg-stone-900/80 transition-colors start-0 ${
+          className={`fixed bottom-16 md:bottom-0 end-0 h-20 bg-stone-950/95 backdrop-blur-md border-t border-green-900/30 z-[9900] flex items-center justify-between px-4 md:px-6 cursor-pointer hover:bg-stone-900/80 transition-colors start-0 ${
             sidebarCollapsed ? 'md:start-[68px]' : 'md:start-[240px]'
           }`}
         >
@@ -383,12 +422,12 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           {/* Right section: volume & favorite */}
           <div className="flex items-center gap-4 min-w-0 max-w-[30%] justify-end">
             <button 
-              onClick={(e) => { e.stopPropagation(); toggleFavorite(activeChannel.id); }}
+              onClick={(e) => { e.stopPropagation(); toggleLikeSong(); }}
               className={`transition-colors ${
-                activeChannel.isFavorite ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-white'
+                isCurrentSongLiked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Heart size={16} fill={activeChannel.isFavorite ? 'currentColor' : 'none'} />
+              <Heart size={16} fill={isCurrentSongLiked ? 'currentColor' : 'none'} />
             </button>
             
             <div className="flex items-center gap-1.5 hidden sm:flex">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useFileUpload } from '@/app/hooks/useFileUpload';
+import { apiClient } from '@/lib/apiClient';
 
 export function useLibrary() {
   const [files, setFiles] = useState<any[]>([]);
@@ -21,7 +22,7 @@ export function useLibrary() {
   const [showAddCategory, setShowAddCategory] = useState(false);
 
   const upload = useFileUpload(() => {
-    fetch('/api/files').then(r => r.json()).then(d => { if (d.files) setFiles(d.files); });
+    apiClient('/api/files').then(r => r.json()).then(d => { if (d.files) setFiles(d.files); });
   });
 
   // Dosya Yeniden Adlandırma State
@@ -45,7 +46,7 @@ export function useLibrary() {
     if (!renamingFileId || !renamingFileName.trim()) return;
     setIsRenaming(true);
     try {
-      const response = await fetch('/api/files', {
+      const response = await apiClient('/api/files', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: renamingFileId, name: renamingFileName.trim() }),
@@ -72,7 +73,7 @@ export function useLibrary() {
     if (!movingFileId) return;
     setIsMovingFile(true);
     try {
-      const response = await fetch('/api/files', {
+      const response = await apiClient('/api/files', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: movingFileId, categoryId: movingFileCategoryId || null }),
@@ -108,7 +109,7 @@ export function useLibrary() {
     if (!movingCategoryId) return;
     setIsMovingCategory(true);
     try {
-      const response = await fetch('/api/categories', {
+      const response = await apiClient('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,8 +136,8 @@ export function useLibrary() {
   // İlk yükleme
   useEffect(() => {
     Promise.all([
-      fetch('/api/files').then(res => res.json()),
-      fetch('/api/categories').then(res => res.json()),
+      apiClient('/api/files').then(res => res.json()),
+      apiClient('/api/categories').then(res => res.json()),
     ])
       .then(([filesData, catData]) => {
         if (filesData.files) setFiles(filesData.files);
@@ -149,7 +150,7 @@ export function useLibrary() {
   // Çöpü yükle
   const loadTrash = () => {
     setTrashLoading(true);
-    fetch('/api/files?trash=true')
+    apiClient('/api/files?trash=true')
       .then(res => res.json())
       .then(data => { if (data.files) setTrashedFiles(data.files); })
       .catch(err => console.error('Çöp çekme hatası:', err))
@@ -167,7 +168,7 @@ export function useLibrary() {
     if (!confirm('Bu dosyayı geri dönüşüm kutusuna taşımak istiyor musunuz?')) return;
 
     try {
-      const res = await fetch(`/api/files?id=${id}&action=trash`, { method: 'DELETE' });
+      const res = await apiClient(`/api/files?id=${id}&action=trash`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setFiles(fs => fs.filter(f => f.id !== id));
@@ -182,11 +183,11 @@ export function useLibrary() {
   // Çöpten geri al
   const handleRestore = async (id: string) => {
     try {
-      const res = await fetch(`/api/files?id=${id}&action=restore`, { method: 'DELETE' });
+      const res = await apiClient(`/api/files?id=${id}&action=restore`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setTrashedFiles(fs => fs.filter(f => f.id !== id));
-        fetch('/api/files').then(r => r.json()).then(d => { if (d.files) setFiles(d.files); });
+        apiClient('/api/files').then(r => r.json()).then(d => { if (d.files) setFiles(d.files); });
       } else {
         alert('Hata: ' + (data.error || 'Geri yüklenemedi.'));
       }
@@ -199,7 +200,7 @@ export function useLibrary() {
   const handlePermanentDelete = async (id: string) => {
     if (!confirm('Bu dosya kalıcı olarak silinecek ve kurtarılamayacak. Emin misiniz?')) return;
     try {
-      const res = await fetch(`/api/files?id=${id}&action=permanent`, { method: 'DELETE' });
+      const res = await apiClient(`/api/files?id=${id}&action=permanent`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setTrashedFiles(fs => fs.filter(f => f.id !== id));
@@ -215,7 +216,7 @@ export function useLibrary() {
   const handleClearTrash = async () => {
     if (!confirm('Geri dönüşüm kutusundaki TÜM dosyalar kalıcı olarak silinecek ve kurtarılamayacak. Emin misiniz?')) return;
     try {
-      const res = await fetch('/api/files?action=clear_trash', { method: 'DELETE' });
+      const res = await apiClient('/api/files?action=clear_trash', { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setTrashedFiles([]);
@@ -232,7 +233,7 @@ export function useLibrary() {
   const handleSaveCategory = async (id: string) => {
     if (!editingCategoryName.trim()) return;
     try {
-      const res = await fetch('/api/categories', {
+      const res = await apiClient('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'update', id, name: editingCategoryName.trim() }),
@@ -253,7 +254,7 @@ export function useLibrary() {
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
     try {
-      const res = await fetch('/api/categories', {
+      const res = await apiClient('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -279,7 +280,7 @@ export function useLibrary() {
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`"${name}" klasörünü silmek istiyor musunuz?\nİçindeki dosyalar "Diğer" klasörüne taşınacak.`)) return;
     try {
-      const res = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+      const res = await apiClient(`/api/categories?id=${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         setCategories(cats => cats.filter(c => c.id !== id).map(c => c.parentId === id ? { ...c, parentId: null } : c));

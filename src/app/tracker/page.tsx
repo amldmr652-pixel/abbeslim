@@ -7,6 +7,7 @@ import { useTranslation } from '@/app/hooks/useTranslation';
 import { useTrackerStore, MediaItem, MediaType, MediaStatus } from '@/stores/useTrackerStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
+import { apiClient } from '@/lib/apiClient';
 
 export default function TrackerPage() {
   const { t } = useTranslation();
@@ -71,7 +72,7 @@ export default function TrackerPage() {
       setIsSearching(true);
       try {
         // Backend proxy üzerinden arama (film/dizi için TMDB, kitap için Google Books + OpenLibrary)
-        const res = await fetch(`/api/tracker/search?type=${mediaType}&query=${encodeURIComponent(title)}`);
+        const res = await apiClient(`/api/tracker/search?type=${mediaType}&query=${encodeURIComponent(title)}`);
         if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
         setTmdbResults(data.results?.slice(0, 10) || []);

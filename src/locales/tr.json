@@ -38,7 +38,9 @@
     "expand": "Genişlet",
     "collapse": "Daralt",
     "tracker": "Medya Takibi",
-    "music": "Odak Müzik"
+    "music": "Odak Müzik",
+    "reminders": "Hatırlatıcılar",
+    "more": "Daha Fazla"
   },
   "calendar": {
     "newEvent": "Yeni Etkinlik",

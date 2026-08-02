@@ -17,6 +17,9 @@ export interface Habit {
   last_completed: string | null;
   created_at: string;
   updated_at: string;
+  scheduled_time: string | null;  // "08:30" formatı
+  description: string;
+  sort_order: number;
 }
 
 interface HabitState {
@@ -41,6 +44,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       const { data, error } = await getSupabase()
         .from('habits')
         .select('*')
+        .order('scheduled_time', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;

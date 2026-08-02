@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { extractTextClientSide } from '@/utils/fileExtractor';
+import { apiClient } from '@/lib/apiClient';
 
 export function useFileUpload(onSuccess?: () => void) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -43,7 +44,7 @@ export function useFileUpload(onSuccess?: () => void) {
       setUploadProgress(5);
 
       const [urlRes, extractionResult] = await Promise.all([
-        fetch('/api/get-upload-url', {
+        apiClient('/api/get-upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileName: uploadFile.name, fileType: uploadFile.type }),
@@ -78,7 +79,7 @@ export function useFileUpload(onSuccess?: () => void) {
       setUploadStatus('Kayıt oluşturuluyor... (Adım 3/3)');
 
       // Adım 3: Metadata + çıkarılan metin gönder — sunucu hiç dosya indirmiyor
-      const processRes = await fetch('/api/process', {
+      const processRes = await apiClient('/api/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

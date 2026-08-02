@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { apiClient } from '@/lib/apiClient'
 
 type UserStatus = 'pending' | 'approved' | 'banned'
 type FilterTab = 'all' | UserStatus
@@ -37,7 +38,7 @@ export default function AdminPanel({ adminUsername }: { adminUsername: string })
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/users')
+      const res = await apiClient('/api/admin/users')
       if (!res.ok) throw new Error()
       const data = await res.json()
       setUsers(data)
@@ -53,7 +54,7 @@ export default function AdminPanel({ adminUsername }: { adminUsername: string })
   const updateStatus = async (userId: string, status: UserStatus) => {
     setActionLoading(userId + status)
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await apiClient('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, status }),
@@ -77,7 +78,7 @@ export default function AdminPanel({ adminUsername }: { adminUsername: string })
     if (!confirm(`"${username}" adlı kullanıcıyı kalıcı olarak silmek istediğine emin misin?`)) return
     setActionLoading(userId + 'delete')
     try {
-      const res = await fetch(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
+      const res = await apiClient(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
       setUsers(prev => prev.filter(u => u.id !== userId))
       showToast('Kullanıcı silindi.', 'success')

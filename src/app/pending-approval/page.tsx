@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Clock, LogOut, ShieldCheck } from 'lucide-react'
+import { apiClient } from '@/lib/apiClient'
 import { useTranslation } from '@/app/hooks/useTranslation'
 
 export default function PendingApprovalPage() {
@@ -52,7 +53,7 @@ export default function PendingApprovalPage() {
     const startPolling = () => {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch('/api/admin/me')
+          const res = await apiClient('/api/admin/me')
           if (res.ok) {
             const profile = await res.json()
             if (profile.status === 'approved') {

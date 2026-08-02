@@ -4,9 +4,14 @@ import { useEffect } from 'react';
 import { MusicProvider } from './context/MusicContext';
 import HiddenYouTubePlayer from './HiddenYouTubePlayer';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { initCapacitor } from '@/lib/capacitor-init';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   const { theme } = useSettingsStore();
+
+  useEffect(() => {
+    initCapacitor();
+  }, []);
 
   useEffect(() => {
     // Remove all theme classes first

@@ -38,7 +38,9 @@
     "expand": "Expand",
     "collapse": "Collapse",
     "tracker": "Media Tracker",
-    "music": "Focus Music"
+    "music": "Focus Music",
+    "reminders": "Reminders",
+    "more": "More"
   },
   "calendar": {
     "newEvent": "New Event",

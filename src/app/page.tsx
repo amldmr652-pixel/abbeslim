@@ -16,6 +16,7 @@ import TasksWidget from './components/dashboard/TasksWidget';
 import QuickNoteWidget from './components/dashboard/QuickNoteWidget';
 import RecentFilesWidget from './components/dashboard/RecentFilesWidget';
 import GoalsWidget from './components/dashboard/GoalsWidget';
+import HabitsWidget from './components/dashboard/HabitsWidget';
 
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useGoalStore } from '@/stores/useGoalStore';
@@ -126,13 +127,14 @@ function DashboardContent() {
 
   const widgetMap: Record<string, React.ReactNode> = {
     tasks: <TasksWidget />,
+    habits: <HabitsWidget />,
     quickNote: <QuickNoteWidget />,
     recentFiles: <RecentFilesWidget files={recentFiles} />,
     goals: <GoalsWidget goals={goals} />,
   };
 
   // Ensure any missing widgets from order are still shown
-  const allWidgets = ['tasks', 'quickNote', 'recentFiles', 'goals'];
+  const allWidgets = ['tasks', 'habits', 'quickNote', 'recentFiles', 'goals'];
   const currentOrder = [...dashboardOrder];
   allWidgets.forEach(w => {
     if (!currentOrder.includes(w)) currentOrder.push(w);

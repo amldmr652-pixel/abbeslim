@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ClientProviders from "./ClientProviders";
@@ -10,6 +10,15 @@ export const metadata: Metadata = {
   title: "abbeslim. | Life OS — Kişisel Kontrol Merkezi",
   description: "Ders notlarınız, görevleriniz, hedefleriniz ve günlük yaşamınızı tek bir yerden yönetin. AI destekli akıllı arama, takvim, finans takibi ve daha fazlası.",
 };
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
+
 
 export default function RootLayout({
   children,

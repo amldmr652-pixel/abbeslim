@@ -39,7 +39,9 @@
     "expand": "توسيع",
     "collapse": "طي",
     "tracker": "متتبع المحتوى",
-    "music": "موسيقى التركيز"
+    "music": "موسيقى التركيز",
+    "reminders": "التنبيهات",
+    "more": "المزيد"
   },
   "calendar": {
     "newEvent": "حدث جديد",

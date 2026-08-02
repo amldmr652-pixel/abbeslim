@@ -20,7 +20,8 @@ export default function MusicPage() {
     handleSelectChannel, handlePrevTrack, handleNextTrack,
     setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted,
     addChannel, removeChannel, toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer,
-    setShuffleMode, setRepeatMode
+    setShuffleMode, setRepeatMode,
+    likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs
   } = useMusicContext();
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -290,13 +291,13 @@ export default function MusicPage() {
                   {/* Favorite & Sleep timer */}
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => toggleFavorite(activeChannel.id)}
+                      onClick={() => toggleLikeSong()}
                       className={`p-2 rounded-full hover:bg-white/5 transition-all ${
-                        activeChannel.isFavorite ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-white'
+                        isCurrentSongLiked ? 'text-red-500 hover:text-red-400' : 'text-gray-400 hover:text-white'
                       }`}
-                      title="Favorilere Ekle"
+                      title={isCurrentSongLiked ? 'Beğeniyi Kaldır' : 'Şarkıyı Beğen'}
                     >
-                      <Heart size={20} fill={activeChannel.isFavorite ? 'currentColor' : 'none'} />
+                      <Heart size={20} fill={isCurrentSongLiked ? 'currentColor' : 'none'} />
                     </button>
 
                     <div className="relative">
@@ -373,6 +374,41 @@ export default function MusicPage() {
 
             {/* Channels Scroll Container */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-4 scrollbar-thin">
+              {/* Beğenilen Şarkılar */}
+              {likedSongs.length > 0 && (
+                <div>
+                  <h4 className="text-xs uppercase tracking-widest text-red-500 font-bold mb-3 px-1 flex items-center gap-1.5">
+                    <Music size={12} /> Beğenilen Şarkılar
+                  </h4>
+                  <div className="space-y-2 mb-4">
+                    {likedSongs.slice(0, 10).map(song => (
+                      <div key={song.id} className="glass p-2.5 rounded-2xl flex items-center justify-between group border border-white/5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                            <Music size={14} className="text-red-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{song.title}</p>
+                            <p className="text-xs text-gray-400 truncate">{song.artist}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const supabase = createClient();
+                            await supabase.from('liked_songs').delete().eq('id', song.id);
+                            fetchLikedSongs();
+                          }}
+                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          title="Beğeniyi Kaldır"
+                        >
+                          <Heart size={14} fill="currentColor" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Favorite Channels */}
               {favoriteChannels.length > 0 && (
                 <div>

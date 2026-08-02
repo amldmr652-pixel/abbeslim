@@ -1,28 +1,62 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
+import { apiClient } from '@/lib/apiClient'
 import AdminPanel from './AdminPanel'
 
-export default async function AdminPage() {
-  const supabase = await createClient()
+export default function AdminPage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [username, setUsername] = useState<string>('')
+  const [loading, setLoading] = useState(true)
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/login')
+          return
+        }
 
-  // RLS'yi bypass etmek için service role client kullan
-  const adminSupabase = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+        const res = await apiClient('/api/admin/me')
+        if (!res.ok) {
+          router.push('/')
+          return
+        }
 
-  const { data: profile } = await adminSupabase
-    .from('profiles')
-    .select('is_admin, username')
-    .eq('id', user.id)
-    .single()
+        const profile = await res.json()
+        if (profile.is_admin) {
+          setIsAdmin(true)
+          setUsername(profile.username || '')
+        } else {
+          router.push('/')
+        }
+      } catch (error) {
+        console.error('Admin check failed:', error)
+        router.push('/')
+      } finally {
+        setLoading(false)
+      }
+    }
 
-  if (!profile?.is_admin) redirect('/')
+    checkAdmin()
+  }, [router, supabase])
 
-  return <AdminPanel adminUsername={profile.username} />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#001a0d] flex items-center justify-center text-green-500">
+        <div className="flex items-center gap-4">
+          <span className="text-xl font-medium animate-pulse">Yetki kontrol ediliyor...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAdmin) return null
+
+  return <AdminPanel adminUsername={username} />
 }
