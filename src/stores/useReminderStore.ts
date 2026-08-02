@@ -17,6 +17,8 @@ export interface Reminder {
   is_active: boolean;
   days_of_week: number[];       // [0,1,2,3,4,5,6] — 0=Pazar
   sound: string;
+  source_type?: 'calendar' | 'task' | 'habit' | null;
+  source_id?: string | null;
   last_triggered_at: string | null;
   created_at: string;
   updated_at: string;

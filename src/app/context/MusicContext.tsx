@@ -89,6 +89,7 @@ interface MusicContextType {
   isCurrentSongLiked: boolean;
   toggleLikeSong: () => Promise<void>;
   fetchLikedSongs: () => Promise<void>;
+  playDirectVideo: (videoId: string, title: string, artist: string) => void;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -115,12 +116,18 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   });
 
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [directVideo, setDirectVideo] = useState<{ videoId: string; title: string; artist: string } | null>(null);
   const [isMusicPlaying, setIsMusicPlaying]     = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isMusicSynced, setIsMusicSynced]       = useState(true);
 
-  const activeChannel = channels.find(c => c.id === selectedChannelId) ?? null;
-  const activeTrack   = activeChannel ? activeChannel.tracks[currentTrackIndex] : null;
+  const activeChannel = directVideo
+    ? null
+    : (channels.find(c => c.id === selectedChannelId) ?? null);
+
+  const activeTrack: Track | null = directVideo
+    ? { title: directVideo.title, artist: directVideo.artist, audioSrc: `yt-video:${directVideo.videoId}` }
+    : (activeChannel ? activeChannel.tracks[currentTrackIndex] : null);
   
   // Persisted volume state
   const [volume, setVolumeState] = useState<number>(() => {
@@ -323,9 +330,19 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:') || !!src?.startsWith('yt-video:');
 
   const handleSelectChannel = (id: string) => {
+    setDirectVideo(null);
     setIsLoadingTrack(true);
     setSelectedChannelId(id);
     setCurrentTrackIndex(0);
+    setIsMusicPlaying(true);
+  };
+
+  const playDirectVideo = (videoId: string, title: string, artist: string) => {
+    setIsLoadingTrack(true);
+    setDirectVideo({ videoId, title, artist });
+    setSelectedChannelId(null);
+    setCurrentSongTitle(title);
+    setCurrentSongArtist(artist);
     setIsMusicPlaying(true);
   };
 
@@ -422,7 +439,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       addChannel, removeChannel, registerYTPlayer,
       toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer, updateSongInfo, updateProgress,
       setShuffleMode, setRepeatMode, clearSeekRequest,
-      likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs
+      likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, playDirectVideo
     }}>
       {children}
     </MusicContext.Provider>

@@ -1175,3 +1175,29 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 ### 5. Derleme Hatasının Çözülmesi (ReferenceError: activeTrack before initialization)
 - **Sorun:** Üretim derlemesi (production build) sırasında static sayfa oluşturucusu (prerendering) `activeTrack` değişkeninin bildirilmeden önce `isCurrentSongLiked` içerisinde çağrılması nedeniyle çöküyordu.
 - **Çözüm:** `MusicContext.tsx` içindeki `activeChannel` ve `activeTrack` bildirimleri hook'un en üstüne (liked_songs state'inin üzerine) taşınarak, IIFE kullanan computed alanların henüz tanımlanmamış değişkenlere erişmesi engellendi. `isCurrentSongLiked` ifadesi IIFE yerine daha kararlı standart reaktif değişkene çevrildi. Proje başarıyla derlendi.
+
+
+## [2026-08-03] V2.33 — Hatırlatıcı Otomatik Senkronizasyonu & Beğenilen Şarkı Tıklayarak Oynatma (Gemini)
+
+### 1. Hatırlatıcı Otomatik Senkronizasyonu (`reminderSync.ts`, `useCalendarStore`, `useTaskStore`, `useHabitStore`, `reminders/page.tsx`)
+- **Tasarım & Mantık:**
+  - `public.reminders` tablosuna `source_type` ('calendar' | 'task' | 'habit') ve `source_id` (UUID) sütunları eklendi (`scripts/phase9-migration.sql`).
+  - `src/lib/reminderSync.ts` modülü oluşturularak otomatik senkronizasyon fonksiyonları yazıldı:
+    - **Takvim Etkinlikleri:** Etkinlik başlangıç saatinden (`start_time`) 15 dakika öncesi için tek seferlik hatırlatıcı oluşturulur (`📅 Etkinlik Adı`).
+    - **Görevler:** Bitiş tarihi (`due_date`) olan ve henüz tamamlanmamış görevler için son gün sabah 09:00 hatırlatıcısı oluşturulur (`✅ Görev Adı`). Görev tamamlandığında veya silindiğinde hatırlatıcı otomatik temizlenir.
+    - **Alışkanlıklar / Rutinler:** Saat atanan (`scheduled_time`) alışkanlıklar için frekansına uygun (`daily` -> her gün, `weekly` -> haftalık) tekrarlayan hatırlatıcı oluşturulur (`🔁 Alışkanlık Adı`).
+  - Store'ların (`useCalendarStore`, `useTaskStore`, `useHabitStore`) `add`, `update`, `delete`, `toggle` eylemlerinin ardından bu senkronizasyon fonksiyonları otomatik tetiklenecek şekilde entegre edildi.
+  - `/reminders` arayüzünde otomatik oluşturulan alarmlar için renkli kaynak rozetleri (📅 Takvim, ✅ Görev, 🔁 Rutin) gösterilmesi sağlandı.
+
+### 2. Beğenilen Şarkıyı Tıklayarak Oynatma (`MusicContext.tsx`, `music/page.tsx`)
+- **Sorun:** "Beğenilen Şarkılar" listesindeki bir şarkıya tıklandığında şarkı oynatılmıyordu (wrapper `div` üzerinde `onClick` tanımlı değildi).
+- **Çözüm:**
+  - `MusicContext.tsx` içerisine `directVideo` state'i ve `playDirectVideo(videoId, title, artist)` fonksiyonu eklendi.
+  - `activeTrack` computed mantığı güncellenerek, bir radyo kanalı seçili olmasa dahi doğrudan YouTube video ID'si ile şarkı çalabilmesi sağlandı.
+  - Kanal seçildiğinde `directVideo` temizlenerek radyo moduna kesintisiz dönüş sağlandı.
+  - `music/page.tsx` sayfasında "Beğenilen Şarkılar" listesindeki şarkı kartlarına `onClick` handler'ı, `cursor-pointer`, hover stilleri ve silme butonuna `stopPropagation` eklendi. Artık şarkıya tıklandığında doğrudan oynatılmaktadır.
+
+### 3. Derleme & Dağıtım
+- Yerel `npm run build` derlemesi sıfır hata ile tamamlandı (37 sayfa başarıyla static prerender edildi).
+- Tüm değişiklikler `npx vercel --prod` komutu ile canlıya ([abbeslim.vercel.app](https://abbeslim.vercel.app)) deploy edildi ve git'e commit edildi.
+

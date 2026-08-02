@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
+import { syncReminderForTask, deleteLinkedReminder } from '@/lib/reminderSync';
 
 // Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -64,6 +65,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       if (error) throw error;
       set((state) => ({ tasks: [data, ...state.tasks] }));
+
+      // Hatırlatıcı senkronizasyonu
+      syncReminderForTask(data);
     } catch (error: any) {
       console.error('Error adding task:', error.message);
       throw error;
@@ -83,6 +87,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === id ? data : t)),
       }));
+
+      // Hatırlatıcı senkronizasyonu
+      syncReminderForTask(data);
     } catch (error: any) {
       console.error('Error updating task:', error.message);
       throw error;
@@ -96,6 +103,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== id),
       }));
+
+      // Hatırlatıcı silme
+      deleteLinkedReminder('task', id);
     } catch (error: any) {
       console.error('Error deleting task:', error.message);
       throw error;
@@ -104,16 +114,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   toggleTaskCompletion: async (id, currentStatus) => {
     try {
+      const newStatus = !currentStatus;
       // Optimistic update
       set((state) => ({
         tasks: state.tasks.map((t) =>
-          t.id === id ? { ...t, is_completed: !currentStatus } : t
+          t.id === id ? { ...t, is_completed: newStatus } : t
         ),
       }));
 
       const { error } = await getSupabase()
         .from('tasks')
-        .update({ is_completed: !currentStatus })
+        .update({ is_completed: newStatus })
         .eq('id', id);
 
       if (error) {
@@ -124,6 +135,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           ),
         }));
         throw error;
+      }
+
+      // Hatırlatıcı senkronizasyonu (tamamlandıysa siler, tamamlanmadıysa tekrar ekler)
+      const targetTask = get().tasks.find(t => t.id === id);
+      if (targetTask) {
+        syncReminderForTask(targetTask);
       }
     } catch (error: any) {
       console.error('Error toggling task:', error.message);

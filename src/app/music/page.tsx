@@ -21,7 +21,7 @@ export default function MusicPage() {
     setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted,
     addChannel, removeChannel, toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer,
     setShuffleMode, setRepeatMode,
-    likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs
+    likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, playDirectVideo
   } = useMusicContext();
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -382,7 +382,11 @@ export default function MusicPage() {
                   </h4>
                   <div className="space-y-2 mb-4">
                     {likedSongs.slice(0, 10).map(song => (
-                      <div key={song.id} className="glass p-2.5 rounded-2xl flex items-center justify-between group border border-white/5">
+                      <div
+                        key={song.id}
+                        onClick={() => playDirectVideo(song.video_id, song.title, song.artist)}
+                        className="glass p-2.5 rounded-2xl flex items-center justify-between group border border-white/5 hover:border-green-500/30 hover:bg-white/5 cursor-pointer transition-all"
+                      >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
                             <Music size={14} className="text-red-400" />
@@ -393,7 +397,8 @@ export default function MusicPage() {
                           </div>
                         </div>
                         <button
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             const supabase = createClient();
                             await supabase.from('liked_songs').delete().eq('id', song.id);
                             fetchLikedSongs();

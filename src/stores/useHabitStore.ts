@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
+import { syncReminderForHabit, deleteLinkedReminder } from '@/lib/reminderSync';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -122,6 +123,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
 
       if (error) throw error;
       set((state) => ({ habits: [data, ...state.habits] }));
+
+      // Hatırlatıcı senkronizasyonu
+      syncReminderForHabit(data);
     } catch (error: any) {
       console.error('Error adding habit:', error.message);
       throw error;
@@ -141,6 +145,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       set((state) => ({
         habits: state.habits.map((h) => (h.id === id ? data : h)),
       }));
+
+      // Hatırlatıcı senkronizasyonu
+      syncReminderForHabit(data);
     } catch (error: any) {
       console.error('Error updating habit:', error.message);
       throw error;
@@ -154,6 +161,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       set((state) => ({
         habits: state.habits.filter((h) => h.id !== id),
       }));
+
+      // Hatırlatıcı silme
+      deleteLinkedReminder('habit', id);
     } catch (error: any) {
       console.error('Error deleting habit:', error.message);
       throw error;

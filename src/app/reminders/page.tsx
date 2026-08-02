@@ -192,6 +192,21 @@ export default function RemindersPage() {
                     <h3 className="font-semibold text-base text-white truncate max-w-xs md:max-w-md">
                       {reminder.title}
                     </h3>
+                    {reminder.source_type === 'calendar' && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">
+                        📅 Takvim
+                      </span>
+                    )}
+                    {reminder.source_type === 'task' && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
+                        ✅ Görev
+                      </span>
+                    )}
+                    {reminder.source_type === 'habit' && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                        🔁 Rutin
+                      </span>
+                    )}
                   </div>
                   {reminder.description && (
                     <p className="text-xs text-gray-400 mt-1">{reminder.description}</p>
