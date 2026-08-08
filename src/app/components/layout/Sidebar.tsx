@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import {
   LayoutDashboard,
+  Home,
+  Bot,
   Search,
   BookOpen,
   Calendar,
@@ -40,7 +42,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', icon: <LayoutDashboard size={20} />, href: '/' },
+  { id: 'home', icon: <Home size={20} />, href: '/' },
+  { id: 'dashboard', icon: <LayoutDashboard size={20} />, href: '/dashboard' },
+  { id: 'chat', icon: <Bot size={20} />, href: '/chat' },
   { id: 'search', icon: <Search size={20} />, href: '/search' },
   { id: 'library', icon: <BookOpen size={20} />, href: '/library' },
   { id: 'calendar', icon: <Calendar size={20} />, href: '/calendar' },

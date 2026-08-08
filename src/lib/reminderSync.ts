@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { useReminderStore } from '@/stores/useReminderStore'
+import { useSettingsStore } from '@/stores/useSettingsStore'
 import { CalendarEvent } from '@/stores/useCalendarStore'
 import { Task } from '@/stores/useTaskStore'
 import { Habit } from '@/stores/useHabitStore'
@@ -26,44 +27,56 @@ export async function syncReminderForCalendarEvent(event: CalendarEvent): Promis
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Etkinlik başlama zamanından 15 dakika öncesini hesapla
-    const startDate = new Date(event.start_time)
-    const reminderDate = new Date(startDate.getTime() - 15 * 60 * 1000)
+    const defaults = useSettingsStore.getState().reminderDefaults?.calendar || { daysBefore: [3, 2, 1, 0], enabled: true }
 
-    const hours = String(reminderDate.getHours()).padStart(2, '0')
-    const minutes = String(reminderDate.getMinutes()).padStart(2, '0')
-    const reminderTime = `${hours}:${minutes}`
-    const dayOfWeek = startDate.getDay()
-
-    // Mevcut senkronize hatırlatıcı var mı kontrol et
-    const { data: existing } = await supabase
-      .from('reminders')
-      .select('id')
-      .eq('source_type', 'calendar')
-      .eq('source_id', event.id)
-      .maybeSingle()
-
-    const reminderPayload = {
-      user_id: user.id,
-      title: `📅 ${event.title}`,
-      description: event.description || 'Takvim Etkinliği Hatırlatıcısı (15 dk önce)',
-      reminder_time: reminderTime,
-      is_recurring: false,
-      is_active: true,
-      days_of_week: [dayOfWeek],
-      source_type: 'calendar',
-      source_id: event.id
+    // Eğer hatırlatıcılar kapalıysa mevcutları temizle ve çık
+    if (!defaults.enabled) {
+      await deleteLinkedReminder('calendar', event.id)
+      return
     }
 
-    if (existing) {
-      await supabase
-        .from('reminders')
-        .update(reminderPayload)
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('reminders')
-        .insert(reminderPayload)
+    // Temiz başlangıç için eski bağlı hatırlatıcıları sil
+    await supabase
+      .from('reminders')
+      .delete()
+      .eq('source_type', 'calendar')
+      .eq('source_id', event.id)
+
+    const startDate = new Date(event.start_time)
+
+    // Her gün önceliği için ayrı hatırlatıcı ekle
+    for (const daysBefore of defaults.daysBefore) {
+      const reminderDate = new Date(startDate.getTime() - daysBefore * 24 * 60 * 60 * 1000)
+      if (daysBefore === 0) {
+        // Etkinlik günü 15 dk önce
+        reminderDate.setMinutes(reminderDate.getMinutes() - 15)
+      } else {
+        // Öncesindeki günlerde sabah 09:00
+        reminderDate.setHours(9, 0, 0, 0)
+      }
+
+      const hours = String(reminderDate.getHours()).padStart(2, '0')
+      const minutes = String(reminderDate.getMinutes()).padStart(2, '0')
+      const reminderTime = `${hours}:${minutes}`
+      const dayOfWeek = reminderDate.getDay()
+
+      let label = `${daysBefore} gün kaldı`
+      if (daysBefore === 0) label = 'Bugün 15 dk önce'
+      else if (daysBefore === 1) label = 'Yarın'
+
+      const reminderPayload = {
+        user_id: user.id,
+        title: `📅 ${event.title} (${label})`,
+        description: event.description || `Takvim Hatırlatıcısı (${label})`,
+        reminder_time: reminderTime,
+        is_recurring: false,
+        is_active: true,
+        days_of_week: [dayOfWeek],
+        source_type: 'calendar',
+        source_id: event.id
+      }
+
+      await supabase.from('reminders').insert(reminderPayload)
     }
 
     useReminderStore.getState().fetchReminders()
@@ -74,7 +87,7 @@ export async function syncReminderForCalendarEvent(event: CalendarEvent): Promis
 
 export async function syncReminderForTask(task: Task): Promise<void> {
   try {
-    // Görev tamamlandıysa veya son tarihi yoksa bağlı hatırlatıcıyı sil
+    // Görev tamamlandıysa veya son tarihi yoksa bağlı hatırlatıcıları sil
     if (task.is_completed || !task.due_date) {
       await deleteLinkedReminder('task', task.id)
       return
@@ -84,38 +97,43 @@ export async function syncReminderForTask(task: Task): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Bitiş gününde sabah 09:00 hatırlatıcı
-    const taskDate = new Date(`${task.due_date}T00:00:00`)
-    const dayOfWeek = taskDate.getDay()
+    const defaults = useSettingsStore.getState().reminderDefaults?.task || { daysBefore: [3, 2, 1, 0], enabled: true }
 
-    const { data: existing } = await supabase
-      .from('reminders')
-      .select('id')
-      .eq('source_type', 'task')
-      .eq('source_id', task.id)
-      .maybeSingle()
-
-    const reminderPayload = {
-      user_id: user.id,
-      title: `✅ ${task.title}`,
-      description: `Görev Bitiş Günü Hatırlatıcısı (${task.due_date})`,
-      reminder_time: '09:00',
-      is_recurring: false,
-      is_active: true,
-      days_of_week: [dayOfWeek],
-      source_type: 'task',
-      source_id: task.id
+    if (!defaults.enabled) {
+      await deleteLinkedReminder('task', task.id)
+      return
     }
 
-    if (existing) {
-      await supabase
-        .from('reminders')
-        .update(reminderPayload)
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('reminders')
-        .insert(reminderPayload)
+    // Temizleme
+    await supabase
+      .from('reminders')
+      .delete()
+      .eq('source_type', 'task')
+      .eq('source_id', task.id)
+
+    const dueDate = new Date(`${task.due_date}T09:00:00`)
+
+    for (const daysBefore of defaults.daysBefore) {
+      const reminderDate = new Date(dueDate.getTime() - daysBefore * 24 * 60 * 60 * 1000)
+      const dayOfWeek = reminderDate.getDay()
+
+      let label = `${daysBefore} gün kaldı`
+      if (daysBefore === 0) label = 'Bugün (Bitiş günü)'
+      else if (daysBefore === 1) label = 'Yarın'
+
+      const reminderPayload = {
+        user_id: user.id,
+        title: `✅ ${task.title} (${label})`,
+        description: `Görev Hatırlatıcısı (${label})`,
+        reminder_time: '09:00',
+        is_recurring: false,
+        is_active: true,
+        days_of_week: [dayOfWeek],
+        source_type: 'task',
+        source_id: task.id
+      }
+
+      await supabase.from('reminders').insert(reminderPayload)
     }
 
     useReminderStore.getState().fetchReminders()
@@ -126,8 +144,9 @@ export async function syncReminderForTask(task: Task): Promise<void> {
 
 export async function syncReminderForHabit(habit: Habit): Promise<void> {
   try {
-    // Alışkanlığın planlanmış saati yoksa bağlı hatırlatıcıyı sil
-    if (!habit.scheduled_time) {
+    const defaults = useSettingsStore.getState().reminderDefaults?.habit || { enabled: true }
+
+    if (!defaults.enabled || !habit.scheduled_time) {
       await deleteLinkedReminder('habit', habit.id)
       return
     }

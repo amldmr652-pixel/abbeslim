@@ -15,7 +15,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
   useEffect(() => {
     // Remove all theme classes first
-    document.body.classList.remove('theme-dark', 'theme-light', 'theme-amoled');
+    document.body.classList.remove('theme-dark', 'theme-light', 'theme-amoled', 'theme-palestine');
     // Add the active theme class
     document.body.classList.add(`theme-${theme}`);
   }, [theme]);

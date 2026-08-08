@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { apiClient } from '@/lib/apiClient';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 export interface Source {
   fileName: string;
@@ -252,6 +253,14 @@ export function useChat(currentFileId?: string) {
       });
 
       const data = await res.json();
+
+      if (data.actions && Array.isArray(data.actions)) {
+        data.actions.forEach((act: any) => {
+          if (act.type === 'update_settings' && act.setting_type === 'theme') {
+            useSettingsStore.getState().setTheme(act.value);
+          }
+        });
+      }
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),

@@ -463,6 +463,18 @@ DAVRANIŞIN:
                         },
                         required: ['query']
                       }
+                    },
+                    {
+                      name: 'update_settings',
+                      description: 'Sitenin teması veya diğer kullanıcı ayarlarını günceller. Örn: temayı Filistin (palestine), koyu (dark), açık (light) veya amoled yapmak.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          setting_type: { type: 'STRING', description: '"theme", "chat_mode", "reminder_defaults" gibi ayar adı.' },
+                          value: { type: 'STRING', description: 'Ayar değeri. Temalar için: "palestine", "dark", "light", "amoled".' }
+                        },
+                        required: ['setting_type', 'value']
+                      }
                     }
                   ]
                 }
@@ -505,6 +517,14 @@ DAVRANIŞIN:
     // Inspect if a functionCall was requested
     const part = geminiData?.candidates?.[0]?.content?.parts?.[0];
     const functionCall = part?.functionCall;
+
+    if (functionCall && functionCall.name === 'update_settings') {
+      const args = functionCall.args as { setting_type: string; value: string };
+      return NextResponse.json({
+        answer: `⚙️ Ayar güncellendi: **${args.setting_type}** → **${args.value}** ✨`,
+        actions: [{ type: 'update_settings', setting_type: args.setting_type, value: args.value }]
+      });
+    }
 
     if (functionCall && functionCall.name === 'create_calendar_event') {
       const args = functionCall.args as {

@@ -58,7 +58,10 @@ export default function GreetingWidget() {
     // Hava Durumu Fetch
     const fetchWeather = async () => {
       try {
-        setWeatherLoading(true);
+        // Sadece ilk yüklemede spinner göster, güncellemelerde flicker yapma
+        if (!weather) {
+          setWeatherLoading(true);
+        }
 
         const getPosition = (): Promise<GeolocationPosition> => {
           return new Promise((resolve, reject) => {
@@ -109,7 +112,7 @@ export default function GreetingWidget() {
         });
       } catch (error) {
         console.error("Hava durumu alınamadı:", error);
-        setWeather({ 
+        setWeather(prev => prev || { 
           temp: 20, 
           desc: t('dashboard.weather.error') || 'Hata', 
           city: t('dashboard.weather.unknown') || 'Bilinmiyor', 
@@ -123,7 +126,7 @@ export default function GreetingWidget() {
     };
 
     fetchWeather();
-  }, [t]);
+  }, [language]);
 
   const getWeatherIcon = (iconName: string, size = 20) => {
     if (iconName.includes('rain')) return <CloudRain size={size} className="text-blue-400" />;

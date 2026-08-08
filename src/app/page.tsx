@@ -1,177 +1,197 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GripHorizontal } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import {
+  LayoutDashboard, Bot, Search, BookOpen, Calendar, CheckSquare, Target, StickyNote,
+  Clock, Sparkles, X, Quote, Compass, ArrowRight, ShieldCheck, Heart
+} from 'lucide-react';
+import { getRandomQuote, SpiritualQuote } from '@/data/verses';
+import { useTranslation } from '@/app/hooks/useTranslation';
 import { createClient } from '@/utils/supabase/client';
 
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-
-// Dashboard Alt Bileşenleri
-import GreetingWidget from './components/dashboard/GreetingWidget';
-import QuickStats from './components/dashboard/QuickStats';
-import TasksWidget from './components/dashboard/TasksWidget';
-import QuickNoteWidget from './components/dashboard/QuickNoteWidget';
-import RecentFilesWidget from './components/dashboard/RecentFilesWidget';
-import GoalsWidget from './components/dashboard/GoalsWidget';
-import HabitsWidget from './components/dashboard/HabitsWidget';
-
-import { useTaskStore } from '@/stores/useTaskStore';
-import { useGoalStore } from '@/stores/useGoalStore';
-import { useSettingsStore } from '@/stores/useSettingsStore';
-import { useFinanceStore } from '@/stores/useFinanceStore';
-
-function SortableWidgetWrapper({ id, children }: { id: string, children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({id});
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: transform ? 10 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="relative group h-full">
-      <div 
-        {...attributes} 
-        {...listeners} 
-        className="absolute top-3 right-3 z-20 p-2 bg-black/50 text-gray-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-grab hover:text-white hover:bg-green-600/50"
-      >
-        <GripHorizontal size={16} />
-      </div>
-      <div className="h-full">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function DashboardContent() {
-  const { tasks, fetchTasks } = useTaskStore();
-  const { goals, fetchGoals } = useGoalStore();
-  const { dashboardOrder, setDashboardOrder } = useSettingsStore();
-  const { fetchTransactions, getTotalExpense } = useFinanceStore();
-  
-  const [recentFiles, setRecentFiles] = useState<any[]>([]);
-  const [totalWorkMinutes, setTotalWorkMinutes] = useState(0);
-
-  const completedTasks = tasks.filter(t => t.is_completed).length;
-  const totalTasks = tasks.length;
-  const activeGoalsCount = goals.length;
+export default function HomePage() {
+  const { t, language } = useTranslation();
+  const [userName, setUserName] = useState<string>('Kullanıcı');
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const [formattedDate, setFormattedDate] = useState<string>('');
+  const [activeQuote, setActiveQuote] = useState<SpiritualQuote | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchGoals();
-    fetchTransactions();
-    fetchTasks();
-    
-    const fetchDashboardData = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    // Sayfa açılışında rastgele bir ayet/hadis seç
+    setActiveQuote(getRandomQuote());
 
-      // Son 5 dosyayı çek
-      const { data: files } = await supabase
-        .from('files')
-        .select('id, name, url, createdAt')
-        .eq('user_id', user.id)
-        .eq('isDeleted', false)
-        .order('createdAt', { ascending: false })
-        .limit(5);
-
-      if (files && files.length > 0) {
-        const formattedFiles = files.map((f: any) => ({
-          id: f.id,
-          name: f.name,
-          type: f.name.split('.').pop() || 'file',
-          date: new Date(f.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
-          url: f.url || null
-        }));
-        setRecentFiles(formattedFiles);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserName(data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Kullanıcı');
       }
+    });
 
-      // Pomodoro toplam süreyi hesapla
-      const { data: sessions } = await supabase
-        .from('pomodoro_sessions')
-        .select('duration_minutes')
-        .eq('user_id', user.id)
-        .eq('mode', 'pomodoro'); // sadece odaklanma süresi
-
-      if (sessions) {
-        const totalMin = sessions.reduce((sum, s) => sum + s.duration_minutes, 0);
-        setTotalWorkMinutes(totalMin);
-      }
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString(language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'tr-TR', { hour: '2-digit', minute: '2-digit' }));
+      setFormattedDate(new Intl.DateTimeFormat(language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long'
+      }).format(now));
     };
 
-    fetchDashboardData();
-  }, [fetchGoals, fetchTransactions, fetchTasks]);
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+    return () => clearInterval(timer);
+  }, [language]);
 
-  const workTimeHours = Math.floor(totalWorkMinutes / 60);
-  const workTimeMinutes = totalWorkMinutes % 60;
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = dashboardOrder.indexOf(active.id as string);
-      const newIndex = dashboardOrder.indexOf(over.id as string);
-      setDashboardOrder(arrayMove(dashboardOrder, oldIndex, newIndex));
+  // Boş alana tıklanınca rastgele yeni bir ayet veya hadis göster
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    // Eğer tıklanan element buton veya kart ise tetikleme
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('.no-quote-trigger')) {
+      return;
     }
+    setActiveQuote(getRandomQuote());
+    setIsModalOpen(true);
   };
-
-  const widgetMap: Record<string, React.ReactNode> = {
-    tasks: <TasksWidget />,
-    habits: <HabitsWidget />,
-    quickNote: <QuickNoteWidget />,
-    recentFiles: <RecentFilesWidget files={recentFiles} />,
-    goals: <GoalsWidget goals={goals} />,
-  };
-
-  // Ensure any missing widgets from order are still shown
-  const allWidgets = ['tasks', 'habits', 'quickNote', 'recentFiles', 'goals'];
-  const currentOrder = [...dashboardOrder];
-  allWidgets.forEach(w => {
-    if (!currentOrder.includes(w)) currentOrder.push(w);
-  });
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
-      <GreetingWidget />
-
-
-      <QuickStats 
-        completedTasks={completedTasks}
-        totalTasks={totalTasks}
-        workTimeHours={workTimeHours}
-        workTimeMinutes={workTimeMinutes}
-        monthlyExpense={getTotalExpense()}
-        activeGoalsCount={activeGoalsCount}
-      />
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={currentOrder} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.8s_ease-out]">
-            {currentOrder.map(id => (
-              <SortableWidgetWrapper key={id} id={id}>
-                {widgetMap[id]}
-              </SortableWidgetWrapper>
-            ))}
+    <div 
+      onClick={handleBackgroundClick}
+      className="min-h-[calc(100vh-4rem)] w-full max-w-7xl mx-auto p-4 md:p-8 flex flex-col justify-between cursor-pointer select-none animate-[fadeIn_0.6s_ease-out]"
+    >
+      {/* Üst Kısım: Karşılama ve Canlı Saat */}
+      <div className="space-y-4 no-quote-trigger">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass p-6 rounded-3xl border border-green-900/30">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-semibold rounded-full mb-3">
+              <Sparkles size={14} /> Life OS Kontrol Merkezi 🇵🇸
+            </div>
+            <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+              Hoş Geldiniz, <span className="text-green-400">{userName}</span>
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">
+              Gününüz bereketli ve verimli geçsin. Boş alana tıklayarak ilham verici ayet ve hadisleri keşfedebilirsiniz.
+            </p>
           </div>
-        </SortableContext>
-      </DndContext>
+
+          <div className="flex flex-col md:items-end justify-center shrink-0">
+            <div className="text-3xl md:text-4xl font-mono font-bold text-green-400 tracking-wider flex items-center gap-2">
+              <Clock size={28} className="text-green-500 animate-pulse" />
+              {currentTime}
+            </div>
+            <p className="text-xs text-gray-400 mt-1 font-medium">{formattedDate}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Orta Kısım: Günün Ayet/Hadis Öne Çıkan Kartı */}
+      {activeQuote && (
+        <div className="my-6 no-quote-trigger">
+          <div className="glass p-6 md:p-8 rounded-3xl border border-green-500/20 bg-gradient-to-r from-green-950/20 via-black/40 to-red-950/20 relative overflow-hidden group hover:border-green-500/40 transition-all">
+            <div className="absolute top-4 right-4 text-green-500/20 group-hover:text-green-500/40 transition-colors">
+              <Quote size={64} />
+            </div>
+
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-green-400">
+                <Compass size={16} /> Günün {activeQuote.type === 'ayet' ? 'Âyeti' : 'Hadis-i Şerifi'}
+              </div>
+
+              <p className="text-right text-xl md:text-2xl font-serif leading-relaxed text-white text-emerald-200 dir-rtl" dir="rtl">
+                {activeQuote.arabic}
+              </p>
+
+              <p className="text-base md:text-lg text-gray-200 font-medium italic">
+                "{activeQuote.turkish}"
+              </p>
+
+              <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-gray-400">
+                <span className="font-semibold text-green-400">{activeQuote.source}</span>
+                <span className="text-[11px] text-gray-500">Boş alana tıklayarak başka bir söz görün ✨</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alt Kısım: Hızlı Erişim Kartları Grid */}
+      <div className="no-quote-trigger">
+        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <ArrowRight size={16} className="text-green-500" /> Hızlı Erişim Panoları
+        </h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+          {[
+            { id: 'dashboard', title: 'Dashboard', desc: 'Rutinler & Görevler', icon: <LayoutDashboard size={22} />, href: '/dashboard', color: 'from-green-600/20 to-emerald-950/40 border-green-500/30 text-green-400' },
+            { id: 'chat', title: 'AI Chat', desc: 'Yapay Zeka Asistanı', icon: <Bot size={22} />, href: '/chat', color: 'from-blue-600/20 to-slate-950/40 border-blue-500/30 text-blue-400' },
+            { id: 'search', title: 'Arama', desc: 'Semantik Not Arama', icon: <Search size={22} />, href: '/search', color: 'from-purple-600/20 to-purple-950/40 border-purple-500/30 text-purple-400' },
+            { id: 'library', title: 'Kütüphane', desc: 'Dosyalar & Klasörler', icon: <BookOpen size={22} />, href: '/library', color: 'from-orange-600/20 to-amber-950/40 border-orange-500/30 text-orange-400' },
+            { id: 'calendar', title: 'Takvim', desc: 'Etkinlik Yönetimi', icon: <Calendar size={22} />, href: '/calendar', color: 'from-teal-600/20 to-teal-950/40 border-teal-500/30 text-teal-400' },
+            { id: 'tasks', title: 'Görevler', desc: 'Yapılacaklar Listesi', icon: <CheckSquare size={22} />, href: '/tasks', color: 'from-emerald-600/20 to-green-950/40 border-emerald-500/30 text-emerald-400' },
+            { id: 'goals', title: 'Hedefler', desc: 'Alışkanlık Takibi', icon: <Target size={22} />, href: '/goals', color: 'from-rose-600/20 to-red-950/40 border-rose-500/30 text-rose-400' },
+            { id: 'notes', title: 'Notlar', icon: <StickyNote size={22} />, desc: 'Hızlı Fikirler', href: '/notes', color: 'from-indigo-600/20 to-indigo-950/40 border-indigo-500/30 text-indigo-400' },
+          ].map(card => (
+            <Link
+              key={card.id}
+              href={card.href}
+              className={`glass p-4 rounded-2xl border bg-gradient-to-br transition-all duration-300 hover:scale-[1.03] group ${card.color}`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
+                  {card.icon}
+                </div>
+                <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-all text-white transform group-hover:translate-x-1" />
+              </div>
+              <h3 className="font-bold text-white text-base group-hover:text-green-300 transition-colors">{card.title}</h3>
+              <p className="text-xs text-gray-400">{card.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Ayet & Hadis Popup Modalı */}
+      {isModalOpen && activeQuote && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="glass bg-black/90 border border-green-500/40 p-8 rounded-3xl max-w-xl w-full relative shadow-2xl space-y-6 text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold rounded-full">
+              <Sparkles size={14} /> {activeQuote.type === 'ayet' ? 'Kutsal Âyet-i Kerîme' : 'Sahih Hadîs-i Şerîf'}
+            </div>
+
+            <p className="text-2xl md:text-3xl font-serif leading-relaxed text-emerald-300 dir-rtl py-2" dir="rtl">
+              {activeQuote.arabic}
+            </p>
+
+            <p className="text-lg text-white font-medium italic border-t border-b border-white/10 py-4">
+              "{activeQuote.turkish}"
+            </p>
+
+            <div className="flex items-center justify-between text-xs text-gray-400 pt-2">
+              <span className="font-bold text-green-400">{activeQuote.source}</span>
+              <button
+                onClick={() => setActiveQuote(getRandomQuote())}
+                className="text-xs text-green-400 hover:text-green-300 font-semibold underline flex items-center gap-1"
+              >
+                Başka Göster 🔄
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
-
-// SSR kapalı — client tarafında çalışan bileşenler ve zaman fonksiyonları var
-const DashboardNoSSR = dynamic(() => Promise.resolve(DashboardContent), { ssr: false });
-
-export default function Home() {
-  return <DashboardNoSSR />;
 }

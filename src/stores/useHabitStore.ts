@@ -32,6 +32,7 @@ interface HabitState {
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   checkInHabit: (id: string) => Promise<void>;
+  uncheckHabit: (id: string) => Promise<void>;
 }
 
 export const useHabitStore = create<HabitState>((set, get) => ({
@@ -198,6 +199,39 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       }));
     } catch (error: any) {
       console.error('Error checking in habit:', error.message);
+      throw error;
+    }
+  },
+
+  uncheckHabit: async (id) => {
+    const habit = get().habits.find((h) => h.id === id);
+    if (!habit) return;
+
+    // Sadece bugün check-in yapılmışsa geri al
+    if (habit.last_completed) {
+      const lastDate = new Date(habit.last_completed).toDateString();
+      const today = new Date().toDateString();
+      if (lastDate !== today) return; // Bugün yapılmamışsa geri alma
+    } else {
+      return; // Zaten check-in yapılmamış
+    }
+
+    const newStreak = Math.max(0, habit.streak - 1);
+
+    try {
+      const { data, error } = await getSupabase()
+        .from('habits')
+        .update({ streak: newStreak, last_completed: null })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      set((state) => ({
+        habits: state.habits.map((h) => (h.id === id ? data : h)),
+      }));
+    } catch (error: any) {
+      console.error('Error unchecking habit:', error.message);
       throw error;
     }
   },

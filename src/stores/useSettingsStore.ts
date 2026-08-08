@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ThemeType = 'dark' | 'light' | 'amoled';
+export type ThemeType = 'dark' | 'light' | 'amoled' | 'palestine';
 
 export interface WidgetPosition {
   i: string;
@@ -125,6 +125,14 @@ interface SettingsState {
   chatDefaultMode: 'sources' | 'hybrid' | 'independent'; // default 'hybrid'
   chatSaveHistory: boolean;          // default true
 
+  // ── YENİ: Hatırlatıcı Ayarları ──
+  reminderDefaults: {
+    calendar: { daysBefore: number[]; enabled: boolean };
+    task: { daysBefore: number[]; enabled: boolean };
+    habit: { enabled: boolean };
+    goal: { enabled: boolean };
+  };
+
   // ── YENİ: Arama Ayarları ──
   searchDefaultMode: 'hybrid' | 'phrase' | 'word' | 'semantic'; // default 'hybrid'
   
@@ -136,14 +144,15 @@ interface SettingsState {
   setSidebarCollapsed: (collapsed: boolean) => void;
   setShortcut: (action: string, shortcut: ShortcutConfig | null) => void;
   resetShortcuts: () => void;
+  setReminderDefaults: (defaults: Partial<SettingsState['reminderDefaults']>) => void;
   updateSettings: (partial: Partial<SettingsState>) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'dark',
-      dashboardOrder: ['tasks', 'quickNote', 'recentFiles', 'goals'],
+      theme: 'palestine',
+      dashboardOrder: ['tasks', 'habits', 'quickNote', 'recentFiles', 'goals'],
       breakSounds: DEFAULT_BREAK_SOUNDS,
       selectedBreakSoundId: 'forest',
       sidebarCollapsed: false,
@@ -195,6 +204,13 @@ export const useSettingsStore = create<SettingsState>()(
       chatDefaultMode: 'hybrid',
       chatSaveHistory: true,
 
+      reminderDefaults: {
+        calendar: { daysBefore: [3, 2, 1, 0], enabled: true },
+        task: { daysBefore: [3, 2, 1, 0], enabled: true },
+        habit: { enabled: true },
+        goal: { enabled: true },
+      },
+
       searchDefaultMode: 'hybrid',
       
       setTheme: (theme) => set({ theme }),
@@ -221,6 +237,14 @@ export const useSettingsStore = create<SettingsState>()(
       })),
       
       resetShortcuts: () => set({ shortcuts: DEFAULT_SHORTCUTS }),
+
+      setReminderDefaults: (defaults) => set((state) => ({
+        reminderDefaults: {
+          ...state.reminderDefaults,
+          ...defaults
+        }
+      })),
+
       updateSettings: (partial) => set((state) => ({ ...state, ...partial }))
     }),
     {

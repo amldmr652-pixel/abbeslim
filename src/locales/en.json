@@ -21,7 +21,9 @@
     "next": "Next"
   },
   "sidebar": {
+    "home": "Home",
     "dashboard": "Dashboard",
+    "chat": "AI Chat",
     "search": "Search",
     "library": "Library",
     "calendar": "Calendar",

@@ -23,7 +23,7 @@ export default function GoalsWidget({ goals }: GoalsWidgetProps) {
       <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-5">
         <Target size={18} className="text-purple-400" /> {t('dashboard.activeGoals')}
       </h2>
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
         {goals.map(goal => (
           <div key={goal.id}>
             <div className="flex justify-between text-sm mb-1.5">

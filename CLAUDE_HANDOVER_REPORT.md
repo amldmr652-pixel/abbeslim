@@ -1227,3 +1227,48 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - `npm run build` komutu çalıştırıldı ve sıfır hata ile tamamlandı (Compiled successfully).
 
 
+---
+
+## [2026-08-08] V2.35 — Dashboard Düzeltmeleri, Filistin Teması, Otomatik Hatırlatıcılar, AI Chat Sayfası, Ana Sayfa & 200+ Ayet/Hadis (Gemini 3.6 Flash)
+
+### 1. Dashboard Bug Düzeltmeleri (`TasksWidget.tsx`, `GoalsWidget.tsx`, `HabitsWidget.tsx`, `RecentFilesWidget.tsx`, `useHabitStore.ts`, `useSettingsStore.ts`, `page.tsx`)
+- **Widget Scrollability:** Tüm widget içerik alanlarına `max-h-` ve `overflow-y-auto custom-scrollbar pr-1` eklendi.
+- **Tamamlanan Görev Filtresi:** `TasksWidget.tsx` içinde `is_completed: true` olan görevler listeden otomatik gizlenecek şekilde filtre mantığı düzeltildi. Alt kısma tamamlanan görevlerin toplam sayısını veren şık özet rozeti eklendi (`✅ Toplam X görev tamamlandı`).
+- **Alışkanlık Check-in Toggle (Geri Alma):** `useHabitStore.ts` içerisine `uncheckHabit(id)` fonksiyonu eklendi. `HabitsWidget.tsx` üzerindeki checkbox butonları toggle yapısına dönüştürüldü; bugün tamamlanan rutinlerin işareti tek tıkla geri alınabiliyor (`streak` otomatik bir azaltılıyor). `.slice(0, 15)` ile kapasite artırıldı.
+- **Widget Sıralama İyileştirmeleri:** `useSettingsStore.ts` varsayılan `dashboardOrder` dizisine eksik olan `'habits'` eklendi. `page.tsx` üzerindeki Grip tutacakları belirginleştirildi, `z-index` yükseltildi ve sürükleme hassasiyeti artırıldı.
+
+### 2. Hava Durumu Flickering Düzeltmesi (`GreetingWidget.tsx`)
+- `fetchWeather` fonksiyonunun `useEffect` dependency'sindeki instabil `t` referansı `language` ile değiştirildi.
+- Stale-while-revalidate mantığı uygulanarak, hava durumu zaten yüklüyken tekrarlayan güncellemelerde `weatherLoading` spinner'ının çakması (flickering) engellendi.
+
+### 3. Filistin Bayrağı Teması — Ayrı Tema ve Varsayılan (`globals.css`, `useSettingsStore.ts`, `ClientProviders.tsx`, `settings/page.tsx`)
+- `globals.css` içerisine `body.theme-palestine` eklendi: Siyah zemin üzerinde koyu yeşil & kırmızı gradyan ışıması, Filistin yeşili (`#009736`) ve kırmızı aksan renkleri.
+- `useSettingsStore.ts` varsayılan teması `'palestine'` olarak ayarlandı.
+- Ayarlar sayfası Tema sekmesine 🇵🇸 Filistin teması kartı eklendi.
+
+### 4. Otomatik Hatırlatıcı Zamanlaması (`reminderSync.ts`, `useSettingsStore.ts`, `settings/page.tsx`)
+- `useSettingsStore.ts` içerisine `reminderDefaults` konfigürasyon yapısı ve `setReminderDefaults` eklendi.
+- Ayarlar sayfasına **"Hatırlatıcılar"** (🔔) sekmesi eklendi; takvim etkinlikleri ve görevler için kaç gün önceden (3 gün, 2 gün, 1 gün, aynı gün) bildirim gönderileceği kullanıcı tercihlerine açıldı.
+- `reminderSync.ts` güncellenerek etkinlikler ve görevler için seçili gün kriterlerine uygun çoklu otomatik hatırlatıcılar oluşturulması sağlandı (Örn: `📅 Toplantı (3 gün kaldı)`, `📅 Toplantı (yarın)`, `📅 Toplantı (bugün 15 dk önce)`).
+
+### 5. AI Chat Sayfası & Sohbet Geçmişi Store (`useConversationStore.ts`, `chat/page.tsx`, `Sidebar.tsx`, `settings/page.tsx`)
+- **`useConversationStore.ts`:** Sohbet geçmişini yöneten Zustand store yazıldı (`lifeos-chat-conversations` localStorage persistence).
+- **`/chat` Rotası:** Sol panelde sohbet geçmişi listesi, "Yeni Sohbet" butonu, tekil sohbet silme; sağ panelde tam ekran AI mesaj alanı (`ChatMessageList`, `ChatInput`) bulunan modern chat room sayfası oluşturuldu.
+- **Sidebar Entegrasyonu:** Sol menüye "AI Sohbet" (`Bot` ikonu) eklendi.
+- **AI Ayarları Tab'ı:** Ayarlar sayfasına "AI Ayarları" (🤖) tab'ı eklendi; varsayılan yanıt modu seçimi, sohbet geçmişini saklama toggle'ı ve tüm geçmişi temizleme butonu entegre edildi.
+
+### 6. Ana Sayfa (Home) Ayrımı & 200+ Ayet/Hadis Gösterimi (`page.tsx`, `dashboard/page.tsx`, `verses.ts`, `Sidebar.tsx`, `tr.json`, `en.json`, `ar.json`)
+- **`/dashboard` Rotası:** Eski Dashboard sayfası `/dashboard` rotasına taşındı. Sidebar menüsünde "Ana Sayfa" (`/`) ve "Dashboard" (`/dashboard`) ayrıldı.
+- **`/` Yeni Ana Sayfa:** Minimalist karşılama ekranı, canlı saat, 8 ana modüle hızlı erişim kartları oluşturuldu.
+- **`verses.ts` Veritabanı:** 100 sahih Kur'an ayeti ve 100 sahih hadis-i şerif içeren toplam 200+ kayıtlık Arapça + Türkçe mealli veri kümesi yazıldı.
+- **Boş Alan Tıklama Etkileşimi:** Ana sayfanın boş alanlarına tıklandığında cam efektli şık bir popup modal açılarak rastgele bir ayet veya hadis-i şerif gösterilmesi sağlandı.
+
+### 7. AI İle Ayarlar Yönetimi (`/api/chat/route.ts`, `useChat.ts`, `chat/page.tsx`)
+- Gemini için `update_settings` tool'u tanımlandı ve handler'ı yazıldı.
+- AI sohbetinde "temayı Filistin yap", "temayı koyu yap" gibi sesli veya yazılı komutlar verildiğinde, yanıtla gelen `actions` client tarafında algılanarak `useSettingsStore` üzerindeki tema anlık güncelleniyor.
+
+### 8. Derleme & Dağıtım Doğrulaması
+- `npm run build` komutu çalıştırıldı, TypeScript tip denetimi ve 39 static/dynamic route üretimi sıfır hata ile tamamlandı (Compiled & Type checked successfully).
+
+
+

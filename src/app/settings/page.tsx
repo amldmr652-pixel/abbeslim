@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   User, Settings, Palette, Music, Upload, Check, Loader2, Save, Trash2, Camera, Keyboard, X,
-  Timer, Calendar, StickyNote, CheckSquare, Target, Wallet, Gamepad2, Clapperboard, Map, Info
+  Timer, Calendar, StickyNote, CheckSquare, Target, Wallet, Gamepad2, Clapperboard, Map, Info, Bell, Bot
 } from 'lucide-react';
 import { Card, Input, Button } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
@@ -11,7 +11,7 @@ import { useSettingsStore, BreakSound, ThemeType } from '@/stores/useSettingsSto
 import { createClient } from '@/utils/supabase/client';
 import AvatarCropModal from '@/app/components/ui/AvatarCropModal';
 
-type TabType = 'profile' | 'theme' | 'shortcuts' | 'music' | 'pomodoro' | 'calendar' | 'finance' | 'notes' | 'tasks' | 'goals' | 'tracker' | 'games' | 'map';
+type TabType = 'profile' | 'theme' | 'shortcuts' | 'reminders' | 'ai' | 'music' | 'pomodoro' | 'calendar' | 'finance' | 'notes' | 'tasks' | 'goals' | 'tracker' | 'games' | 'map';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -255,6 +255,8 @@ export default function SettingsPage() {
         { id: 'profile', label: 'Profil', icon: <User size={16} /> },
         { id: 'theme', label: 'Görünüm', icon: <Palette size={16} /> },
         { id: 'shortcuts', label: 'Kısayollar', icon: <Keyboard size={16} /> },
+        { id: 'reminders', label: 'Hatırlatıcılar', icon: <Bell size={16} /> },
+        { id: 'ai', label: 'AI Ayarları', icon: <Bot size={16} /> },
       ]
     },
     {
@@ -385,8 +387,8 @@ export default function SettingsPage() {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <Card padding="lg">
                 <h2 className="text-xl font-bold text-white mb-6">Tema Seçimi</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {(['dark', 'light', 'amoled'] as ThemeType[]).map((t) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {(['palestine', 'dark', 'light', 'amoled'] as ThemeType[]).map((t) => (
                     <button
                       key={t}
                       onClick={() => settings.setTheme(t)}
@@ -397,20 +399,264 @@ export default function SettingsPage() {
                       }`}
                     >
                       {settings.theme === t && (
-                        <div className="absolute top-3 right-3 text-green-500">
+                        <div className="absolute top-3 right-3 text-green-500 z-10">
                           <Check size={18} />
                         </div>
                       )}
-                      <div className={`w-full h-24 rounded-lg mb-4 ${
+                      <div className={`w-full h-24 rounded-lg mb-4 flex items-center justify-center ${
+                        t === 'palestine' ? 'bg-gradient-to-br from-green-950 via-stone-950 to-red-950 border border-green-500/30' :
                         t === 'dark' ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-white/5' : 
                         t === 'light' ? 'bg-gradient-to-br from-gray-100 to-white border border-gray-300' : 
                         'bg-black border border-stone-800'
-                      }`} />
-                      <div className="font-bold text-white capitalize">{t === 'amoled' ? 'AMOLED Siyah' : t === 'dark' ? 'Koyu' : 'Açık'}</div>
+                      }`}>
+                        {t === 'palestine' && <span className="text-3xl">🇵🇸</span>}
+                      </div>
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        {t === 'palestine' ? 'Filistin (Varsayılan 🇵🇸)' : t === 'amoled' ? 'AMOLED Siyah' : t === 'dark' ? 'Koyu' : 'Açık'}
+                      </div>
                     </button>
                   ))}
                 </div>
-                <p className="mt-6 text-xs text-gray-500">Not: Tema değişikliği anlık olarak uygulanır. AMOLED Siyah seçeneği pikselleri tamamen kapatarak ekran güç tasarrufu sağlar.</p>
+                <p className="mt-6 text-xs text-gray-500">Not: Tema değişikliği anlık olarak uygulanır. Filistin teması siyah, yeşil ve kırmızı renk vurgularıyla özel olarak tasarlanmıştır.</p>
+              </Card>
+            </div>
+          )}
+
+          {/* REMINDERS */}
+          {activeTab === 'reminders' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <Card padding="lg">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                      <Bell className="text-green-500" size={22} /> Otomatik Hatırlatıcı Ayarları
+                    </h2>
+                    <p className="text-gray-400 text-sm">Görevler, takvim ve diğer modüller için varsayılan hatırlatıcı zamanlamasını özelleştirin.</p>
+                  </div>
+                  <Button 
+                    onClick={() => settings.setReminderDefaults({
+                      calendar: { daysBefore: [3, 2, 1, 0], enabled: true },
+                      task: { daysBefore: [3, 2, 1, 0], enabled: true },
+                      habit: { enabled: true },
+                      goal: { enabled: true }
+                    })}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Varsayılanlara Dön
+                  </Button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Takvim Etkinlikleri */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-green-900/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-white">📅 Takvim Etkinlikleri</h3>
+                        <p className="text-xs text-gray-400">Yeni bir takvim olayı eklendiğinde otomatik oluşturulacak bildirimler</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={settings.reminderDefaults?.calendar?.enabled ?? true}
+                          onChange={(e) => settings.setReminderDefaults({
+                            calendar: { 
+                              ...(settings.reminderDefaults?.calendar || { daysBefore: [3, 2, 1, 0] }),
+                              enabled: e.target.checked 
+                            }
+                          })}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                      </label>
+                    </div>
+                    {settings.reminderDefaults?.calendar?.enabled && (
+                      <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-white/5">
+                        {[
+                          { days: 3, label: '3 Gün Önce' },
+                          { days: 2, label: '2 Gün Önce' },
+                          { days: 1, label: '1 Gün Önce (Yarın)' },
+                          { days: 0, label: 'Aynı Gün (15 Dk Önce)' },
+                        ].map(opt => {
+                          const daysArr = settings.reminderDefaults?.calendar?.daysBefore || [3, 2, 1, 0];
+                          const isSelected = daysArr.includes(opt.days);
+                          return (
+                            <button
+                              key={opt.days}
+                              onClick={() => {
+                                const newDays = isSelected
+                                  ? daysArr.filter(d => d !== opt.days)
+                                  : [...daysArr, opt.days].sort((a,b) => b-a);
+                                settings.setReminderDefaults({
+                                  calendar: { enabled: true, daysBefore: newDays }
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                                isSelected
+                                  ? 'bg-green-600/30 text-green-300 border-green-500/50'
+                                  : 'bg-black/30 text-gray-400 border-gray-700 hover:text-white'
+                              }`}
+                            >
+                              {isSelected ? '✓ ' : ''}{opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Görevler */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-green-900/30">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-white">✅ Görevler (Bitiş Tarihi Olan)</h3>
+                        <p className="text-xs text-gray-400">Tarihli görev eklendiğinde otomatik eklenecek hatırlatıcılar</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={settings.reminderDefaults?.task?.enabled ?? true}
+                          onChange={(e) => settings.setReminderDefaults({
+                            task: { 
+                              ...(settings.reminderDefaults?.task || { daysBefore: [3, 2, 1, 0] }),
+                              enabled: e.target.checked 
+                            }
+                          })}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                      </label>
+                    </div>
+                    {settings.reminderDefaults?.task?.enabled && (
+                      <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-white/5">
+                        {[
+                          { days: 3, label: '3 Gün Önce' },
+                          { days: 2, label: '2 Gün Önce' },
+                          { days: 1, label: '1 Gün Önce (Yarın)' },
+                          { days: 0, label: 'Aynı Gün (Saat 09:00)' },
+                        ].map(opt => {
+                          const daysArr = settings.reminderDefaults?.task?.daysBefore || [3, 2, 1, 0];
+                          const isSelected = daysArr.includes(opt.days);
+                          return (
+                            <button
+                              key={opt.days}
+                              onClick={() => {
+                                const newDays = isSelected
+                                  ? daysArr.filter(d => d !== opt.days)
+                                  : [...daysArr, opt.days].sort((a,b) => b-a);
+                                settings.setReminderDefaults({
+                                  task: { enabled: true, daysBefore: newDays }
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                                isSelected
+                                  ? 'bg-green-600/30 text-green-300 border-green-500/50'
+                                  : 'bg-black/30 text-gray-400 border-gray-700 hover:text-white'
+                              }`}
+                            >
+                              {isSelected ? '✓ ' : ''}{opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rutinler & Alışkanlıklar */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-green-900/30 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-white">🔁 Alışkanlıklar & Rutinler</h3>
+                      <p className="text-xs text-gray-400">Saatli alışkanlıklar eklendiğinde saatinde bildirim al</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={settings.reminderDefaults?.habit?.enabled ?? true}
+                        onChange={(e) => settings.setReminderDefaults({
+                          habit: { enabled: e.target.checked }
+                        })}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* AI SETTINGS */}
+          {activeTab === 'ai' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <Card padding="lg">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Bot className="text-green-500" size={22} /> Yapay Zeka (AI) Ayarları
+                </h2>
+
+                <div className="space-y-6">
+                  {/* Varsayılan Mod */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-green-900/30">
+                    <label className="block text-sm font-semibold text-white mb-2">Varsayılan Yanıt Modu</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { id: 'sources', title: '📄 Sadece Belge', desc: 'Yalnızca yüklenen dokümanlardan yanıtlar' },
+                        { id: 'hybrid', title: '✨ Hibrit (Önerilen)', desc: 'Dokümanlar ve genel bilgileri harmanlar' },
+                        { id: 'independent', title: '🧠 Genel Bilgi', desc: 'Sadece genel yapay zeka bilgisinden yanıtlar' },
+                      ].map(mode => (
+                        <button
+                          key={mode.id}
+                          onClick={() => settings.updateSettings({ chatDefaultMode: mode.id as any })}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            settings.chatDefaultMode === mode.id
+                              ? 'bg-green-600/20 border-green-500 text-white'
+                              : 'bg-black/20 border-gray-800 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          <div className="font-bold text-sm mb-1">{mode.title}</div>
+                          <div className="text-xs text-gray-400">{mode.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sohbet Geçmişini Sakla */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-green-900/30 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-white">Sohbet Geçmişini Sakla</h3>
+                      <p className="text-xs text-gray-400">Geçmiş AI görüşmelerinizin cihazınızda saklanmasını sağlar</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={settings.chatSaveHistory ?? true}
+                        onChange={(e) => settings.updateSettings({ chatSaveHistory: e.target.checked })}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+
+                  {/* Tüm Geçmişi Sil */}
+                  <div className="p-4 rounded-2xl bg-red-950/20 border border-red-900/30 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-red-200">Tüm Sohbet Geçmişini Temizle</h3>
+                      <p className="text-xs text-red-300/60">Cihazınızda kayıtlı tüm AI konuşma verilerini kalıcı olarak siler</p>
+                    </div>
+                    <Button 
+                      variant="danger" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Tüm AI sohbet geçmişini silmek istediğinize emin misiniz?')) {
+                          localStorage.removeItem('lifeos-chat-conversations');
+                          localStorage.removeItem('lifeos-chat-general');
+                          alert('Sohbet geçmişi başarıyla silindi.');
+                        }
+                      }}
+                    >
+                      Geçmişi Sil
+                    </Button>
+                  </div>
+                </div>
               </Card>
             </div>
           )}

@@ -21,7 +21,9 @@
     "next": "Sonraki"
   },
   "sidebar": {
+    "home": "Ana Sayfa",
     "dashboard": "Dashboard",
+    "chat": "AI Sohbet",
     "search": "Arama",
     "library": "Kütüphane",
     "calendar": "Takvim",

@@ -9,7 +9,7 @@ import { useTranslation } from '@/app/hooks/useTranslation';
 
 export default function HabitsWidget() {
   const { t } = useTranslation();
-  const { habits, fetchHabits, checkInHabit } = useHabitStore();
+  const { habits, fetchHabits, checkInHabit, uncheckHabit } = useHabitStore();
 
   useEffect(() => {
     fetchHabits();
@@ -24,7 +24,7 @@ export default function HabitsWidget() {
       if (!b.scheduled_time) return -1;
       return a.scheduled_time.localeCompare(b.scheduled_time);
     })
-    .slice(0, 6); // Dashboard'da en fazla 6 tane göster
+    .slice(0, 15); // Tüm günlük rutinlerin sığabilmesi için kapasiteyi artırdık
 
   const isCompletedToday = (lastCompleted: string | null) => {
     if (!lastCompleted) return false;
@@ -71,7 +71,7 @@ export default function HabitsWidget() {
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar pr-1">
         {dailyHabits.map(habit => {
           const done = isCompletedToday(habit.last_completed);
           return (
@@ -82,11 +82,11 @@ export default function HabitsWidget() {
               }`}
             >
               <button
-                onClick={() => !done && checkInHabit(habit.id)}
-                disabled={done}
+                onClick={() => done ? uncheckHabit(habit.id) : checkInHabit(habit.id)}
+                title={done ? 'İşareti kaldır (Geri al)' : 'Tamamlandı olarak işaretle'}
                 className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all ${
                   done
-                    ? 'bg-green-500 text-stone-950'
+                    ? 'bg-green-500 text-stone-950 hover:bg-red-500 hover:text-white'
                     : 'border border-gray-700 text-gray-600 hover:border-green-500 hover:text-green-400'
                 }`}
               >

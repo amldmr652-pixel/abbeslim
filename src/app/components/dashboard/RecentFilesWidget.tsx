@@ -34,7 +34,7 @@ export default function RecentFilesWidget({ files }: RecentFilesWidgetProps) {
           {t('common.all')} <ChevronRight size={14} className="rtl:rotate-180" />
         </Link>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
         {files.length === 0 ? (
           <div className="text-sm text-gray-500 text-center py-4">{t('dashboard.noFiles')}</div>
         ) : (

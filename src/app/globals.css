@@ -20,6 +20,19 @@ body.theme-amoled {
   --glass-border: rgba(255, 255, 255, 0.04);
 }
 
+body.theme-palestine {
+  --bg-primary: radial-gradient(ellipse at top, #002b11 0%, #0c0203 50%, #000000 90%);
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --glass-bg: rgba(0, 151, 54, 0.05);
+  --glass-border: rgba(0, 151, 54, 0.2);
+  --scrollbar-thumb: rgba(0, 151, 54, 0.3);
+}
+
+body.theme-palestine .glass {
+  box-shadow: 0 8px 32px 0 rgba(0, 151, 54, 0.1), inset 0 0 0 1px rgba(206, 17, 38, 0.15);
+}
+
 body.theme-light {
   --bg-primary: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #ecfdf5 100%);
   --text-primary: #1a1a1a;
