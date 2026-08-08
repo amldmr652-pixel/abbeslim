@@ -223,6 +223,7 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
     setSimulatedQuery,
     toggleListen,
     startListening,
+    stopListening,
     networkRetryCount,
   };
 }

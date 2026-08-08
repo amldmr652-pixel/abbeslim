@@ -1396,3 +1396,33 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - `cargo clean` yapılmadan Windows `.ico` güncellenmez (tauri-winres cache).
 - Android build için `JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"` (JDK 21) gereklidir, sistem JRE 1.8 yeterli değildir.
 
+---
+
+## [2026-08-09] V2.41 — 15 Maddelik Kapsamlı Mobil & Masaüstü İyileştirme Paketi
+
+### Faz: 15 Maddelik Uygulama ve UI İyileştirmeleri
+
+### 1. Yapılanlar
+
+- **#1 Mobil Logo Glow Düzeltmesi (`Logo.tsx`):** SVG monogramındaki `blur-sm` glow katmanı mobil ekranlarda beyaz bir nokta oluşturduğu için `hidden md:block` yapılarak mobilde gizlendi, `strokeLinejoin="miter"` seçilerek parlak birikme engellendi.
+- **#2 Ayet/Hadis Tıklama Alanı (`page.tsx`):** Kartların dışındaki genel sayfa container'ındaki `no-quote-trigger` engelleri kaldırıldı; boş alanların tamamı tıklanabilir hale getirildi.
+- **#3 Mobilde Widget Sürükleme (`dashboard/page.tsx`):** `@dnd-kit/core` `TouchSensor` entegre edildi (`delay: 200ms`, `tolerance: 6px`). Sürükleme tutamaçlarına `touch-action: none` ve mobil görünürlük eklendi.
+- **#4 Widget Dikey Boşlukları (`dashboard/page.tsx`):** Grid boşluğu `gap-6` → `gap-4` seviyesine indirildi. Widget yüksekliklerindeki gereksiz `h-full` zorlamaları kaldırılarak içerik yüksekliğine (`h-auto`) geçildi.
+- **#5 Hatırlatıcı Ayarları Detaylandırma (`reminders/page.tsx`, `useReminderStore.ts`, `useReminderEngine.ts`):** 
+  - Öncelik (Düşük/Normal/Yüksek), Kategori (Genel/İş/Kişisel/Sağlık/İbadet), Erteleme (5-30dk), Bildirim Sesi (Bip/Melodi/Yumuşak/Sessiz) ve Tekrar Seçenekleri eklendi. `useReminderEngine` dinamik Web Audio frekanslarıyla donatıldı.
+- **#6 Admin Panel Kısayolu (`Sidebar.tsx`):** Giriş yapan kullanıcının admin yetkisi `/api/admin/me` üzerinden sorgulanıp `is_admin === true` olan hesaplar için Sidebar'a sarı kalkan ikonlu Admin linki eklendi.
+- **#7 Odak Müzik Mobil Senkronizasyonu (`MusicContext.tsx`):** Supabase `user_channels` tablosundan gelen kanallar `DEFAULT_CHANNELS` ile güvenli bir şekilde harmanlandı (merge map); varsayılan kanalların mobilde kaybolması engellendi.
+- **#8 Pomodoro Mobil Başlatma Düzeltmesi (`usePomodoroTimer.ts`, `PomodoroTimer.tsx`):** Butonlara `touch-action: manipulation` eklendi, SVG timer katmanına `pointer-events-none` verildi. `visibilitychange` dinleyicisi ile mobil ekran uyanışlarında sayacın anında güncellenmesi sağlandı.
+- **#9 Medya Takibi Mobil Yıldızları (`tracker/page.tsx`):** Rating yıldızlarına mobil dokunma için minimum `36px` touch alanı eklendi (`touch-manipulation`, `p-1.5`, belirgin renkler).
+- **#10 Oyunlar Süre Senkronizasyonu (`useGamesStore.ts`, `games/page.tsx`):** Günlük oynama süresi Supabase `game_sessions` tablosuna debounced (5s) olarak senkronize edildi. PC'de oynanan süre mobilde anında güncelleniyor.
+- **#11 Çevrimdışı Mod Koruması (`useOnlineStatus.ts`, `LayoutShell.tsx`):** İnternet kesintilerinde uygulamanın çökmesini veya login'e atmasını önlemek için çevrimdışı koruması ve üst sarı uyarı şeridi eklendi.
+- **#12 Ayet Virgül Taşması Düzeltmesi (`page.tsx`):** Arapça ve Türkçe ayet metinlerine `overflow-wrap: break-word`, `word-break: break-word` ve `leading-loose` eklendi, kaynak bilgisi alt satıra hizalandı.
+- **#13 Direkt Tıklama Modu (`useSettingsStore.ts`, `settings/page.tsx`, `page.tsx`):** Ayarlar'a "Ayet/Hadis Değiştirme Modu" eklendi (Panel Açarak vs. Direkt Tıklayarak).
+- **#14 Sağ Tık & Mobil Basılı Tutma Navigasyonu (`page.tsx`):** Sol tık/dokunma = sonraki ayet; Sağ tık / Mobilde 500ms basılı tutma = önceki ayet navigasyonu eklendi.
+- **#15 Sesli Not Transkript Entegrasyonu (`notes/page.tsx`, `useSpeechRecognition.ts`):** Inline kod kaldırılıp `useSpeechRecognition` hook'u bağlandı. Canlı transkriptler not içeriğine otomatik ekleniyor.
+
+### 2. Derleme & Doğrulama
+- `npm run build` → 38/38 sayfa hatasız derlendi.
+- Desktop (`npx tauri build`) ve Mobile (`gradlew assembleDebug`) paketlemeleri güncellendi.
+
+

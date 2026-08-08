@@ -419,6 +419,36 @@ export default function SettingsPage() {
                 </div>
                 <p className="mt-6 text-xs text-gray-500">Not: Tema değişikliği anlık olarak uygulanır. Filistin teması siyah, yeşil ve kırmızı renk vurgularıyla özel olarak tasarlanmıştır.</p>
               </Card>
+
+              {/* AYET & HADİS TIKLAMA MODU */}
+              <Card padding="lg">
+                <h2 className="text-xl font-bold text-white mb-2">Ayet & Hadis Değiştirme Modu</h2>
+                <p className="text-gray-400 text-sm mb-6">Ana sayfada boşluğa tıkladığınızda ayet ve hadislerin nasıl değişeceğini seçin.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => settings.updateSettings({ quoteChangeMode: 'modal' })}
+                    className={`p-4 rounded-2xl border-2 transition-all text-left ${
+                      settings.quoteChangeMode === 'modal'
+                        ? 'border-green-500 bg-green-500/10 text-white'
+                        : 'border-transparent glass text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <div className="font-bold text-sm mb-1">📋 Panel Açarak (Varsayılan)</div>
+                    <div className="text-xs text-gray-400">Tıklandığında ayeti tam ekran açılan popup panelinde gösterir.</div>
+                  </button>
+                  <button
+                    onClick={() => settings.updateSettings({ quoteChangeMode: 'direct' })}
+                    className={`p-4 rounded-2xl border-2 transition-all text-left ${
+                      settings.quoteChangeMode === 'direct'
+                        ? 'border-green-500 bg-green-500/10 text-white'
+                        : 'border-transparent glass text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <div className="font-bold text-sm mb-1">⚡ Direkt Tıklayarak</div>
+                    <div className="text-xs text-gray-400">Sol tık: Sonraki ayet • Sağ tık/Basılı tut: Önceki ayet. Panel açılmaz.</div>
+                  </button>
+                </div>
+              </Card>
             </div>
           )}
 

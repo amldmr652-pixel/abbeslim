@@ -42,3 +42,8 @@ next-env.d.ts
 
 .vercel
 .env*
+
+abbeslim_1.0.0_x64-setup.exe
+abbeslim-v1.0.0.apk
+*.exe
+*.apk

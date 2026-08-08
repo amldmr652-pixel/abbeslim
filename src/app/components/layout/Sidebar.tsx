@@ -29,8 +29,10 @@ import {
   Timer,
   Bell,
   Download,
+  Shield,
 } from 'lucide-react';
 import { isWeb } from '@/utils/platform';
+import { apiClient } from '@/lib/apiClient';
 
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
@@ -73,8 +75,28 @@ export default function Sidebar() {
   const { t, language, setLanguage } = useTranslation();
   const { theme, sidebarCollapsed: collapsed, setSidebarCollapsed: setCollapsed } = useSettingsStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const supabase = createClient();
   const isPalestine = theme === 'palestine';
+
+  useEffect(() => {
+    async function checkAdminStatus() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const res = await apiClient('/api/admin/me');
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile?.is_admin) {
+            setIsAdmin(true);
+          }
+        }
+      } catch (e) {
+        // Silent fail for non-admins
+      }
+    }
+    checkAdminStatus();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -183,6 +205,7 @@ export default function Sidebar() {
 
       {/* Alt kısım */}
       <div className="px-3 py-4 border-t border-green-900/20 space-y-1">
+        {isAdmin && renderNavItem({ id: 'admin', icon: <Shield size={20} className="text-yellow-400" />, href: '/admin' })}
         {isWeb() && renderNavItem({ id: 'download', icon: <Download size={20} />, href: '/download' })}
         {BOTTOM_ITEMS.map(renderNavItem)}
         

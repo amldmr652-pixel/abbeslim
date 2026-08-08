@@ -13,7 +13,7 @@ import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useReminderEngine } from '@/app/hooks/useReminderEngine';
-
+import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
 
 // Auth sayfaları — bu route'larda widget'lar gizlenir
 const AUTH_ROUTES = ['/login', '/register', '/pending-approval'];
@@ -28,6 +28,7 @@ import { useFocusStore } from '@/stores/useFocusStore';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   useReminderEngine();
+  const isOnline = useOnlineStatus();
   const {
     selectedChannelId, isMusicPlaying,
     activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
@@ -51,15 +52,19 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     const supabase = createClient();
     
     // İlk kontrol
-    supabase.auth.getUser().then(({ data }) => {
-      const loggedIn = !!data.user;
+    supabase.auth.getUser().then(({ data, error }) => {
+      const loggedIn = !!data?.user;
       setIsAuthenticated(loggedIn);
       setAuthChecked(true);
       
-      // Giriş yapmamış ve auth sayfasında değilse → login'e yönlendir
-      if (!loggedIn && !AUTH_ROUTES.some(r => pathname.startsWith(r))) {
+      // Giriş yapmamış ve auth sayfasında değilse → login'e yönlendir (yalnızca internet varsa)
+      if (!loggedIn && navigator.onLine && !AUTH_ROUTES.some(r => pathname.startsWith(r))) {
         router.replace('/login');
       }
+    }).catch(() => {
+      // Offline fallback: allow app to stay rendered
+      setIsAuthenticated(true);
+      setAuthChecked(true);
     });
 
     // Oturum değişikliklerini dinle (logout, token expire vb.)
@@ -221,11 +226,17 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen overflow-hidden relative">
-      <Sidebar />
-      <main className={`flex-1 overflow-y-auto pb-20 md:pb-0 ${activeTrack ? 'pb-40 md:pb-24' : ''}`}>
-        {children}
-      </main>
+    <div className="flex h-screen overflow-hidden relative flex-col">
+      {!isOnline && (
+        <div className="bg-amber-500/90 text-black font-semibold text-xs py-1.5 px-4 text-center z-[9999] flex items-center justify-center gap-2 shadow-md">
+          <span>📡 Çevrimdışısınız — Uygulama internetsiz modda çalışıyor (bazı veriler senkronize olmayabilir)</span>
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden relative">
+        <Sidebar />
+        <main className={`flex-1 overflow-y-auto pb-20 md:pb-0 ${activeTrack ? 'pb-40 md:pb-24' : ''}`}>
+          {children}
+        </main>
 
       {/* Sağ Üst Köşe Widget Butonları */}
       {isAuthenticated && (
@@ -456,6 +467,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       )}
 
       {/* Odak Müzik Modalı kaldırıldı (Artık tam sayfa /music route'u var) */}
+      </div>
     </div>
   );
 }

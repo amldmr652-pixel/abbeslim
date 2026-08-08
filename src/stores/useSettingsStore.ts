@@ -136,6 +136,9 @@ interface SettingsState {
   // ── YENİ: Arama Ayarları ──
   searchDefaultMode: 'hybrid' | 'phrase' | 'word' | 'semantic'; // default 'hybrid'
   
+  // ── YENİ: Ayet/Hadis Tıklama Modu ──
+  quoteChangeMode: 'modal' | 'direct'; // default 'modal'
+  
   setTheme: (theme: ThemeType) => void;
   setDashboardOrder: (order: string[]) => void;
   addCustomBreakSound: (sound: BreakSound) => void;
@@ -212,6 +215,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       searchDefaultMode: 'hybrid',
+      quoteChangeMode: 'modal',
       
       setTheme: (theme) => set({ theme }),
       setDashboardOrder: (dashboardOrder) => set({ dashboardOrder }),

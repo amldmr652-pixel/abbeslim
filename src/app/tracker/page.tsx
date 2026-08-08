@@ -192,18 +192,23 @@ export default function TrackerPage() {
 
   const renderStars = (currentRating: number, interactive = false, onRate?: (r: number) => void) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex gap-1 items-center justify-center">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
             type="button"
             disabled={!interactive}
-            onClick={() => interactive && onRate && onRate(star)}
-            className={`transition-colors ${interactive ? 'cursor-pointer hover:scale-110' : 'cursor-default'} ${
-              star <= currentRating ? 'text-yellow-400' : 'text-gray-600'
+            onClick={(e) => {
+              e.stopPropagation();
+              if (interactive && onRate) onRate(star);
+            }}
+            className={`p-1.5 transition-all touch-manipulation min-w-[36px] min-h-[36px] md:min-w-[32px] md:min-h-[32px] flex items-center justify-center rounded-xl ${
+              interactive ? 'cursor-pointer hover:scale-125 active:scale-95 bg-white/5 hover:bg-white/10 border border-white/5' : 'cursor-default'
+            } ${
+              star <= currentRating ? 'text-yellow-400' : 'text-gray-500 hover:text-yellow-200'
             }`}
           >
-            <Star size={interactive ? 24 : 16} fill={star <= currentRating ? 'currentColor' : 'none'} />
+            <Star size={interactive ? 22 : 16} fill={star <= currentRating ? 'currentColor' : 'none'} className="shrink-0" />
           </button>
         ))}
       </div>

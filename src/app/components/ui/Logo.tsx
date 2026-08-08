@@ -28,8 +28,8 @@ export default function Logo({
     >
       {/* Bold Modern Emblem Icon */}
       <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500/25 via-stone-900 to-black border border-green-500/40 shadow-lg shadow-green-500/20 group-hover:border-green-400 group-hover:shadow-green-500/40 group-hover:scale-105 transition-all duration-300 shrink-0">
-        {/* Glow */}
-        <div className="absolute inset-0 rounded-2xl bg-green-500/15 blur-sm pointer-events-none group-hover:bg-green-500/30 transition-all" />
+        {/* Glow (Desktop only, subtle) */}
+        <div className="absolute inset-0 rounded-2xl bg-green-500/10 hidden md:block pointer-events-none group-hover:bg-green-500/25 transition-all" />
 
         <svg
           viewBox="0 0 32 32"
@@ -43,7 +43,7 @@ export default function Logo({
             stroke={primaryStroke}
             strokeWidth="3.5"
             strokeLinecap="round"
-            strokeLinejoin="round"
+            strokeLinejoin="miter"
           />
           {/* Connecting Crossbar */}
           <path

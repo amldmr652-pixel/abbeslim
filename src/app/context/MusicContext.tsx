@@ -269,8 +269,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
         if (data?.channels_data) {
           const cloud: Channel[] = data.channels_data;
-          setChannels(cloud);
-          localStorage.setItem(LS_KEY, JSON.stringify(cloud));
+          const mergedMap = new Map<string, Channel>();
+          DEFAULT_CHANNELS.forEach(c => mergedMap.set(c.id, c));
+          cloud.forEach(c => mergedMap.set(c.id, c));
+          const merged = Array.from(mergedMap.values());
+          setChannels(merged);
+          localStorage.setItem(LS_KEY, JSON.stringify(merged));
         }
       } catch (e) {
         console.warn('Supabase kanal yükleme hatası:', e);

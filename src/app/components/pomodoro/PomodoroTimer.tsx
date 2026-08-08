@@ -56,7 +56,7 @@ export default function PomodoroTimer({
 
       {/* Dairesel Sayaç */}
       <div className={isShaking ? 'pomodoro-shake' : ''} style={{ position:'relative', width:'200px', height:'200px', marginBottom:'24px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <svg width="200" height="200" viewBox="0 0 120 120" style={{ position:'absolute', top:0, left:0, transform:'rotate(-90deg)' }}>
+        <svg width="200" height="200" viewBox="0 0 120 120" style={{ position:'absolute', top:0, left:0, transform:'rotate(-90deg)', pointerEvents:'none' }}>
           <circle cx="60" cy="60" r={RADIUS} fill="transparent" stroke="#2a2a2a" strokeWidth="5"/>
           <circle cx="60" cy="60" r={RADIUS} fill="transparent" stroke={isFinished ? '#ef4444' : '#22c55e'} strokeWidth="5" strokeLinecap="round"
             strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`} strokeDashoffset={strokeDashoffset} style={{ transition:'stroke-dashoffset 1s linear,stroke 0.3s' }}/>
@@ -70,15 +70,15 @@ export default function PomodoroTimer({
       </div>
 
       {/* Kontroller */}
-      <div style={{ display:'flex', alignItems:'center', gap:'16px', marginBottom:'20px' }}>
-        <button id="pomodoro-reset-btn" className="pomodoro-icon-btn" onClick={() => resetTimer()} title="Sıfırla"
-          style={{ background:'transparent', border:'2px solid #333', color:'#666', width:'44px', height:'44px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'14px', transition:'transform 0.2s,border-color 0.2s,color 0.2s' }}>◀◀</button>
-        <button id="pomodoro-play-btn" className="pomodoro-main-btn" onClick={isRunning ? pauseTimer : startTimer}
-          style={{ background:'#22c55e', color:'#000', border:'none', padding:'12px 32px', borderRadius:'50px', fontSize:'15px', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', transition:'background-color 0.2s,transform 0.2s' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'16px', marginBottom:'20px', touchAction:'manipulation' }}>
+        <button id="pomodoro-reset-btn" type="button" className="pomodoro-icon-btn" onClick={() => resetTimer()} title="Sıfırla"
+          style={{ background:'transparent', border:'2px solid #333', color:'#666', width:'44px', height:'44px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'14px', transition:'transform 0.2s,border-color 0.2s,color 0.2s', touchAction:'manipulation' }}>◀◀</button>
+        <button id="pomodoro-play-btn" type="button" className="pomodoro-main-btn" onClick={isRunning ? pauseTimer : startTimer}
+          style={{ background:'#22c55e', color:'#000', border:'none', padding:'12px 32px', borderRadius:'50px', fontSize:'15px', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', transition:'background-color 0.2s,transform 0.2s', touchAction:'manipulation' }}>
           {isRunning ? '⏸ Duraklat' : timeLeft === 0 ? '▶ Tekrar' : timeLeft < totalTimeForMode ? '▶ Devam Et' : '▶ Başla'}
         </button>
-        <button id="pomodoro-skip-btn" className="pomodoro-icon-btn" onClick={skipSession} title="Atla"
-          style={{ background:'transparent', border:'2px solid #333', color:'#666', width:'44px', height:'44px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'14px', transition:'transform 0.2s,border-color 0.2s,color 0.2s' }}>⏭</button>
+        <button id="pomodoro-skip-btn" type="button" className="pomodoro-icon-btn" onClick={skipSession} title="Atla"
+          style={{ background:'transparent', border:'2px solid #333', color:'#666', width:'44px', height:'44px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:'14px', transition:'transform 0.2s,border-color 0.2s,color 0.2s', touchAction:'manipulation' }}>⏭</button>
       </div>
     </>
   );

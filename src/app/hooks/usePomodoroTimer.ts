@@ -55,13 +55,25 @@ export function usePomodoroTimer() {
     }
   }, [currentMode, currentWorkTime, currentShortTime, currentLongTime, isRunning, setTimeLeft]);
 
-  // Tick timer
+  // Tick timer & mobile visibility sync
   useEffect(() => {
     if (!isRunning) return;
     const interval = setInterval(() => {
       tick();
     }, 500);
-    return () => clearInterval(interval);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tick();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [isRunning, tick]);
 
   const handleFinish = useCallback(() => {

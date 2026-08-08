@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, Plus, Trash2, Edit, Clock, AlertCircle } from 'lucide-react';
+import { Bell, BellOff, Plus, Trash2, Edit, Clock, AlertCircle, Tag, ShieldAlert, Volume2 } from 'lucide-react';
 import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useReminderStore, Reminder } from '@/stores/useReminderStore';
@@ -15,6 +15,27 @@ const DAYS = [
   { label: 'Cum', value: 5 },
   { label: 'Cmt', value: 6 },
   { label: 'Paz', value: 0 },
+];
+
+const CATEGORIES = [
+  { id: 'general', label: '📌 Genel', color: 'bg-stone-800 text-gray-300' },
+  { id: 'work', label: '💼 İş', color: 'bg-blue-950/40 text-blue-300 border-blue-500/30' },
+  { id: 'personal', label: '👤 Kişisel', color: 'bg-purple-950/40 text-purple-300 border-purple-500/30' },
+  { id: 'health', label: '🏥 Sağlık', color: 'bg-red-950/40 text-red-300 border-red-500/30' },
+  { id: 'worship', label: '🕌 İbadet', color: 'bg-emerald-950/40 text-emerald-300 border-emerald-500/30' },
+];
+
+const PRIORITIES = [
+  { id: 'low', label: '🟢 Düşük' },
+  { id: 'medium', label: '🟡 Normal' },
+  { id: 'high', label: '🔴 Yüksek' },
+];
+
+const SOUNDS = [
+  { id: 'beep', label: '🔊 Standart Bip' },
+  { id: 'chime', label: '🔔 Melodi / Çan' },
+  { id: 'gentle', label: '🎶 Yumuşak Ton' },
+  { id: 'silent', label: '🔕 Sessiz' },
 ];
 
 export default function RemindersPage() {
@@ -32,6 +53,12 @@ export default function RemindersPage() {
   const [description, setDescription] = useState('');
   const [reminderTime, setReminderTime] = useState('08:00');
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]);
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [category, setCategory] = useState<'general' | 'work' | 'personal' | 'health' | 'worship'>('general');
+  const [sound, setSound] = useState('beep');
+  const [snoozeMinutes, setSnoozeMinutes] = useState(10);
+  const [repeatType, setRepeatType] = useState<'once' | 'daily' | 'weekly' | 'monthly'>('daily');
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,6 +81,11 @@ export default function RemindersPage() {
     setDescription('');
     setReminderTime('08:00');
     setSelectedDays([1, 2, 3, 4, 5, 6, 0]);
+    setPriority('medium');
+    setCategory('general');
+    setSound('beep');
+    setSnoozeMinutes(10);
+    setRepeatType('daily');
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -65,6 +97,11 @@ export default function RemindersPage() {
     setDescription(reminder.description || '');
     setReminderTime(reminder.reminder_time.slice(0, 5));
     setSelectedDays(reminder.days_of_week || []);
+    setPriority(reminder.priority || 'medium');
+    setCategory(reminder.category || 'general');
+    setSound(reminder.sound || 'beep');
+    setSnoozeMinutes(reminder.snooze_minutes || 10);
+    setRepeatType(reminder.repeat_type || 'daily');
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -80,28 +117,31 @@ export default function RemindersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !title.trim()) return;
-    if (selectedDays.length === 0) {
-      setErrorMsg('Lütfen en az bir gün seçin.');
+    if (repeatType === 'weekly' && selectedDays.length === 0) {
+      setErrorMsg('Haftalık hatırlatıcı için lütfen en az bir gün seçin.');
       return;
     }
 
     try {
+      const payload: Partial<Reminder> = {
+        title: title.trim(),
+        description: description.trim(),
+        reminder_time: reminderTime,
+        days_of_week: selectedDays,
+        priority,
+        category,
+        sound,
+        snooze_minutes: snoozeMinutes,
+        repeat_type: repeatType,
+      };
+
       if (isEditMode && selectedId) {
-        await updateReminder(selectedId, {
-          title: title.trim(),
-          description: description.trim(),
-          reminder_time: reminderTime,
-          days_of_week: selectedDays,
-        });
+        await updateReminder(selectedId, payload);
       } else {
         await addReminder({
+          ...payload,
           user_id: userId,
-          title: title.trim(),
-          description: description.trim(),
-          reminder_time: reminderTime,
-          days_of_week: selectedDays,
           is_active: true,
-          sound: 'default',
         });
       }
       setIsModalOpen(false);
@@ -111,14 +151,12 @@ export default function RemindersPage() {
   };
 
   const getDaysLabel = (reminderDays: number[]) => {
-    if (!reminderDays || reminderDays.length === 0) return 'Seçili gün yok';
+    if (!reminderDays || reminderDays.length === 0) return 'Tek seferlik';
     if (reminderDays.length === 7) return 'Her gün';
     
-    // İş günleri check
     const isWeekdays = [1, 2, 3, 4, 5].every(d => reminderDays.includes(d)) && reminderDays.length === 5;
     if (isWeekdays) return 'Hafta içi';
 
-    // Hafta sonu check
     const isWeekend = [6, 0].every(d => reminderDays.includes(d)) && reminderDays.length === 2;
     if (isWeekend) return 'Hafta sonu';
 
@@ -154,7 +192,7 @@ export default function RemindersPage() {
             <Bell className="text-green-500" size={32} />
             {t('sidebar.reminders') || 'Hatırlatıcılar'}
           </h1>
-          <p className="text-gray-400 mt-2">Günlük rutinleriniz için alarmlar ve hatırlatıcılar kurun</p>
+          <p className="text-gray-400 mt-2">Detaylı kategoriler, öncelikler ve esnek tekrarlarla alarmlarınızı özelleştirin</p>
         </div>
         <Button onClick={handleOpenAddModal} className="flex items-center gap-2" size="md">
           <Plus size={16} /> Yeni Hatırlatıcı
@@ -169,92 +207,99 @@ export default function RemindersPage() {
             <p className="text-xs text-gray-500 mt-1">Hemen bir hatırlatıcı ekleyerek başlayın.</p>
           </div>
         ) : (
-          reminders.map((reminder) => (
-            <div
-              key={reminder.id}
-              className={`glass p-5 rounded-3xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                reminder.is_active 
-                  ? 'border-green-500/10 hover:border-green-500/20' 
-                  : 'border-white/5 opacity-60 hover:opacity-80'
-              }`}
-            >
-              <div className="flex items-start gap-4 min-w-0">
-                <div className={`p-3 rounded-2xl shrink-0 ${
-                  reminder.is_active ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-gray-500'
-                }`}>
-                  <Clock size={24} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-xl font-bold text-white font-mono">
-                      {reminder.reminder_time.slice(0, 5)}
-                    </span>
-                    <h3 className="font-semibold text-base text-white truncate max-w-xs md:max-w-md">
-                      {reminder.title}
-                    </h3>
-                    {reminder.source_type === 'calendar' && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">
-                        📅 Takvim
-                      </span>
-                    )}
-                    {reminder.source_type === 'task' && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
-                        ✅ Görev
-                      </span>
-                    )}
-                    {reminder.source_type === 'habit' && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
-                        🔁 Rutin
-                      </span>
-                    )}
+          reminders.map((reminder) => {
+            const categoryObj = CATEGORIES.find(c => c.id === reminder.category) || CATEGORIES[0];
+            const priorityObj = PRIORITIES.find(p => p.id === reminder.priority) || PRIORITIES[1];
+
+            return (
+              <div
+                key={reminder.id}
+                className={`glass p-5 rounded-3xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                  reminder.is_active 
+                    ? 'border-green-500/10 hover:border-green-500/20' 
+                    : 'border-white/5 opacity-60 hover:opacity-80'
+                }`}
+              >
+                <div className="flex items-start gap-4 min-w-0">
+                  <div className={`p-3 rounded-2xl shrink-0 ${
+                    reminder.is_active ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-gray-500'
+                  }`}>
+                    <Clock size={24} />
                   </div>
-                  {reminder.description && (
-                    <p className="text-xs text-gray-400 mt-1">{reminder.description}</p>
-                  )}
-                  <p className="text-xs text-green-500/70 font-semibold mt-1">
-                    {getDaysLabel(reminder.days_of_week)}
-                  </p>
-                </div>
-              </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3 flex-wrap mb-1">
+                      <span className="text-xl font-bold text-white font-mono">
+                        {reminder.reminder_time.slice(0, 5)}
+                      </span>
+                      <h3 className="font-semibold text-base text-white truncate max-w-xs md:max-w-md">
+                        {reminder.title}
+                      </h3>
+                      
+                      {/* Priority badge */}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                        reminder.priority === 'high' ? 'bg-red-950/40 text-red-400 border-red-500/30' :
+                        reminder.priority === 'low' ? 'bg-green-950/40 text-green-400 border-green-500/30' :
+                        'bg-yellow-950/40 text-yellow-400 border-yellow-500/30'
+                      }`}>
+                        {priorityObj.label}
+                      </span>
 
-              <div className="flex items-center justify-end gap-3 border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
-                {/* Active Toggle Switch */}
-                <button
-                  onClick={() => toggleActive(reminder.id)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    reminder.is_active ? 'bg-green-500' : 'bg-stone-700'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-stone-950 transition-transform ${
-                      reminder.is_active ? 'translate-x-6' : 'translate-x-1'
+                      {/* Category badge */}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${categoryObj.color}`}>
+                        {categoryObj.label}
+                      </span>
+                    </div>
+
+                    {reminder.description && (
+                      <p className="text-xs text-gray-400 mb-1">{reminder.description}</p>
+                    )}
+
+                    <div className="flex items-center gap-3 text-xs text-green-500/70 font-semibold flex-wrap">
+                      <span>{getDaysLabel(reminder.days_of_week)}</span>
+                      {reminder.snooze_minutes && <span>• Erteleme: {reminder.snooze_minutes}dk</span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+                  {/* Active Toggle Switch */}
+                  <button
+                    onClick={() => toggleActive(reminder.id)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      reminder.is_active ? 'bg-green-500' : 'bg-stone-700'
                     }`}
-                  />
-                </button>
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-stone-950 transition-transform ${
+                        reminder.is_active ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleOpenEditModal(reminder)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                    title="Düzenle"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('Bu hatırlatıcıyı silmek istediğinizden emin misiniz?')) {
-                        deleteReminder(reminder.id);
-                      }
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
-                    title="Sil"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEditModal(reminder)}
+                      className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                      title="Düzenle"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Bu hatırlatıcıyı silmek istediğinizden emin misiniz?')) {
+                          deleteReminder(reminder.id);
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                      title="Sil"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -263,7 +308,7 @@ export default function RemindersPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         title={isEditMode ? 'Hatırlatıcıyı Düzenle' : 'Yeni Hatırlatıcı'} 
-        maxWidth="sm"
+        maxWidth="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {errorMsg && (
@@ -272,33 +317,95 @@ export default function RemindersPage() {
               {errorMsg}
             </div>
           )}
+
           <div>
             <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Başlık</label>
             <Input
               value={title}
               onChange={setTitle}
-              placeholder="Örn: Su iç, İlaç al"
+              placeholder="Örn: Su iç, İlaç al, Ders çalış"
               required
             />
           </div>
+
           <div>
-            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Açıklama (Opsiyonel)</label>
-            <Input
+            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Detaylı Açıklama (Opsiyonel)</label>
+            <textarea
               value={description}
-              onChange={setDescription}
-              placeholder="Örn: 2 bardak su içmeyi unutma"
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Örn: 2 bardak su iç, B vitamini hapı al"
+              className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors text-sm resize-none h-20"
             />
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Saat</label>
-            <input
-              type="time"
-              value={reminderTime}
-              onChange={(e) => setReminderTime(e.target.value)}
-              className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white font-mono focus:border-green-500 focus:outline-none transition-colors"
-              required
-            />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Saat</label>
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={(e) => setReminderTime(e.target.value)}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white font-mono focus:border-green-500 focus:outline-none transition-colors"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Kategori</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as any)}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors text-sm"
+              >
+                {CATEGORIES.map(c => (
+                  <option key={c.id} value={c.id} className="bg-stone-900 text-white">{c.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Öncelik Seviyesi</label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as any)}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors text-sm"
+              >
+                {PRIORITIES.map(p => (
+                  <option key={p.id} value={p.id} className="bg-stone-900 text-white">{p.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Bildirim Sesi</label>
+              <select
+                value={sound}
+                onChange={(e) => setSound(e.target.value)}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors text-sm"
+              >
+                {SOUNDS.map(s => (
+                  <option key={s.id} value={s.id} className="bg-stone-900 text-white">{s.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5 font-semibold">Erteleme (Snooze)</label>
+              <select
+                value={snoozeMinutes}
+                onChange={(e) => setSnoozeMinutes(parseInt(e.target.value))}
+                className="w-full bg-black/50 border border-green-900/50 rounded-2xl p-3 px-4 text-white focus:border-green-500 focus:outline-none transition-colors text-sm"
+              >
+                <option value={5} className="bg-stone-900 text-white">5 Dakika</option>
+                <option value={10} className="bg-stone-900 text-white">10 Dakika</option>
+                <option value={15} className="bg-stone-900 text-white">15 Dakika</option>
+                <option value={30} className="bg-stone-900 text-white">30 Dakika</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="text-xs text-gray-400 block mb-2 font-semibold">Hangi Günler Tekrarlansın?</label>
             <div className="flex flex-wrap gap-1.5">
@@ -321,6 +428,7 @@ export default function RemindersPage() {
               })}
             </div>
           </div>
+
           <div className="flex justify-end gap-3 pt-4 border-t border-green-900/30">
             <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>
               İptal

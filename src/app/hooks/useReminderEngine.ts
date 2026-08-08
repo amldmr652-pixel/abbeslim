@@ -4,16 +4,16 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useReminderStore } from '@/stores/useReminderStore';
 
 // Basit alarm sesi üret (Web Audio API)
-function playAlarmSound() {
+function playAlarmSound(soundType = 'beep') {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const playBeep = (freq: number, startTime: number, duration: number) => {
+    const playBeep = (freq: number, startTime: number, duration: number, type: OscillatorType = 'sine') => {
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
       oscillator.frequency.value = freq;
-      oscillator.type = 'sine';
+      oscillator.type = type;
       gainNode.gain.setValueAtTime(0.3, startTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
       oscillator.start(startTime);
@@ -21,10 +21,19 @@ function playAlarmSound() {
     };
 
     const now = audioCtx.currentTime;
-    // 3 kısa bip sesi
-    playBeep(880, now, 0.15);
-    playBeep(880, now + 0.2, 0.15);
-    playBeep(1100, now + 0.4, 0.3);
+    if (soundType === 'chime') {
+      playBeep(523.25, now, 0.4, 'triangle');
+      playBeep(659.25, now + 0.2, 0.4, 'triangle');
+      playBeep(783.99, now + 0.4, 0.6, 'triangle');
+    } else if (soundType === 'gentle') {
+      playBeep(440, now, 0.5, 'sine');
+      playBeep(554.37, now + 0.3, 0.5, 'sine');
+    } else {
+      // 3 kısa bip sesi (beep / default)
+      playBeep(880, now, 0.15);
+      playBeep(880, now + 0.2, 0.15);
+      playBeep(1100, now + 0.4, 0.3);
+    }
   } catch (e) {
     console.warn('Alarm sesi çalınamadı:', e);
   }
@@ -75,7 +84,7 @@ export function useReminderEngine() {
       triggeredRef.current.add(todayKey);
 
       // Alarm sesi çal
-      playAlarmSound();
+      playAlarmSound(reminder.sound || 'beep');
 
       // Tarayıcı bildirimi
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {

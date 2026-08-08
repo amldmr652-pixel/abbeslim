@@ -11,6 +11,8 @@ import { createClient } from '@/utils/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { useSpeechRecognition } from '@/app/hooks/useSpeechRecognition';
+
 export default function NotesPage() {
   const { t, language } = useTranslation();
   const settings = useSettingsStore();
@@ -29,10 +31,20 @@ export default function NotesPage() {
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  // Speech Recognition Hook
+  const { listening, startListening, stopListening, isSimulatingMic, setIsSimulatingMic, simulatedQuery, setSimulatedQuery } = useSpeechRecognition({
+    onTranscriptChange: (text) => {
+      if (!text.trim()) return;
+      setContent(prev => {
+        const base = prev ? (prev.endsWith('\n') ? prev : prev + '\n') : '';
+        return base + '🎤 ' + text.trim();
+      });
+    },
+    onSearch: () => {},
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -101,62 +113,11 @@ export default function NotesPage() {
 
       mediaRecorder.start();
       setIsRecording(true);
-
-      startSpeechRecognition();
+      startListening();
     } catch (err) {
       console.error("Mikrofon izni alınamadı:", err);
       alert("Mikrofon izni reddedildi.");
     }
-  };
-
-  const startSpeechRecognition = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'tr-TR';
-
-    let finalTranscript = '';
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interimTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript = transcript;
-        }
-      }
-      setContent(prev => {
-        const base = prev.endsWith('\n') || prev === '' ? prev : prev + '\n';
-        if (finalTranscript) {
-          return base + '🎤 ' + finalTranscript.trim();
-        }
-        return prev;
-      });
-      setIsTranscribing(!!interimTranscript);
-    };
-
-    recognition.onerror = (e: any) => {
-      console.error("Speech recognition error in notes page:", e);
-      setIsTranscribing(false);
-    };
-    recognition.onend = () => {
-      setIsTranscribing(false);
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        try {
-          recognition.start();
-        } catch (err) {
-          console.error("Failed to restart speech recognition in notes page:", err);
-        }
-      }
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
   };
 
   const stopRecording = () => {
@@ -164,11 +125,7 @@ export default function NotesPage() {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    setIsTranscribing(false);
+    stopListening();
   };
 
   const handleSave = async () => {
@@ -362,7 +319,7 @@ export default function NotesPage() {
                       }`}
                     >
                       {isRecording ? (
-                        <><Square size={14} className="fill-current" /> {isTranscribing ? 'Dinleniyor...' : 'Durdur'}</>
+                        <><Square size={14} className="fill-current" /> {listening ? 'Dinleniyor...' : 'Durdur'}</>
                       ) : (
                         <><Mic size={14} /> Sesle Yaz</>
                       )}

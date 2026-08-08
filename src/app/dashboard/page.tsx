@@ -5,7 +5,7 @@ import { GripHorizontal } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/utils/supabase/client';
 
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -34,16 +34,17 @@ function SortableWidgetWrapper({ id, children }: { id: string, children: React.R
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group h-full">
+    <div ref={setNodeRef} style={style} className="relative group h-auto">
       <div 
         {...attributes} 
         {...listeners} 
-        className="absolute top-3 right-3 z-20 p-2 bg-green-900/60 text-green-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-grab hover:text-white hover:bg-green-600/70 hover:scale-110 shadow-lg border border-green-500/30"
+        className="absolute top-3 right-3 z-20 p-2.5 bg-green-900/80 text-green-300 rounded-xl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all cursor-grab active:cursor-grabbing hover:text-white hover:bg-green-600/90 hover:scale-110 shadow-lg border border-green-500/40 touch-none"
         title="Sürükleyerek yerini değiştir"
+        style={{ touchAction: 'none' }}
       >
-        <GripHorizontal size={16} />
+        <GripHorizontal size={18} />
       </div>
-      <div className="h-full">
+      <div className="h-auto">
         {children}
       </div>
     </div>
@@ -114,6 +115,7 @@ function DashboardContent() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -159,7 +161,7 @@ function DashboardContent() {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={currentOrder} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-[fadeIn_0.8s_ease-out]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-[fadeIn_0.8s_ease-out]">
             {currentOrder.map(id => (
               <SortableWidgetWrapper key={id} id={id}>
                 {widgetMap[id]}

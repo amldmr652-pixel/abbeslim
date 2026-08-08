@@ -18,7 +18,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 export default function GamesPage() {
   const { t } = useTranslation();
   const settings = useSettingsStore();
-  const { timePlayedToday, incrementTime, gameStats, checkAndResetDaily } = useGamesStore();
+  const { timePlayedToday, incrementTime, gameStats, checkAndResetDaily, fetchCloudTime } = useGamesStore();
   const [activeGame, setActiveGame] = useState<string | null>(null);
   
   // Mounted check to prevent hydration mismatch for time
@@ -26,7 +26,8 @@ export default function GamesPage() {
   useEffect(() => {
     setMounted(true);
     checkAndResetDaily();
-  }, [checkAndResetDaily]);
+    fetchCloudTime();
+  }, [checkAndResetDaily, fetchCloudTime]);
 
   const dailyLimit = (settings.gamesDailyLimit || 15) * 60;
   const limitReached = timePlayedToday >= dailyLimit;

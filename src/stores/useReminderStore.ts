@@ -17,6 +17,10 @@ export interface Reminder {
   is_active: boolean;
   days_of_week: number[];       // [0,1,2,3,4,5,6] — 0=Pazar
   sound: string;
+  priority?: 'low' | 'medium' | 'high';
+  category?: 'general' | 'work' | 'personal' | 'health' | 'worship';
+  snooze_minutes?: number;
+  repeat_type?: 'once' | 'daily' | 'weekly' | 'monthly';
   source_type?: 'calendar' | 'task' | 'habit' | null;
   source_id?: string | null;
   last_triggered_at: string | null;
