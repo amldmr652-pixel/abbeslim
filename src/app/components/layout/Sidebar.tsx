@@ -28,7 +28,9 @@ import {
   Map,
   Timer,
   Bell,
+  Download,
 } from 'lucide-react';
+import { isWeb } from '@/utils/platform';
 
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
@@ -102,7 +104,7 @@ export default function Sidebar() {
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
     const hasBadge = item.hasBadge;
-    const label = t(`sidebar.${item.id}`);
+    const label = item.id === 'download' ? 'Uygulamayı İndir' : t(`sidebar.${item.id}`);
     const badgeText = t('common.comingSoon');
 
     const content = (
@@ -187,6 +189,7 @@ export default function Sidebar() {
 
       {/* Alt kısım */}
       <div className="px-3 py-4 border-t border-green-900/20 space-y-1">
+        {isWeb() && renderNavItem({ id: 'download', icon: <Download size={20} />, href: '/download' })}
         {BOTTOM_ITEMS.map(renderNavItem)}
         
         {/* Çıkış Yap Butonu */}

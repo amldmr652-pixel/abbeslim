@@ -1309,3 +1309,30 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 ### 3. Derleme & Dağıtım
 - `npm run build` hatasız tamamlandı.
 - `npx vercel --prod` ile yayına alındı.
+
+---
+
+## [2026-08-08] V2.38 — PC (Tauri 2 Windows) ve Android (Capacitor) Dönüşümü + /download Sayfası (Gemini 3.6 Flash)
+
+### 1. Yapılan Çalışmalar & Mimariler
+- **Ortak Altyapı (`src/utils/platform.ts`):** `getPlatform()`, `isDesktop()`, `isAndroid()`, `isWeb()`, `isNativeApp()` platform tespit utility'si yazıldı.
+- **Next.js Static Export Yapılandırması (`next.config.ts`):** `BUILD_TARGET=desktop` ve `BUILD_TARGET=mobile` ortam değişkenleri ile hem Tauri hem Capacitor için `output: 'export'`, `images.unoptimized`, `trailingSlash` otomatik devreye sokuldu.
+- **Tauri 2.0 Windows Masaüstü Dönüşümü (`src-tauri/`):**
+  - Tauri 2.0 yapılandırması (`tauri.conf.json`), NSIS kurulum hedefi, auto-updater eklentisi ve custom window ayarları tanımlandı.
+  - Rust toolchain (`stable-x86_64-pc-windows-gnu`) ve WinLibs MinGW GCC 16.1.0 UCRT entegre edildi.
+  - `scripts/build-desktop.js` scripti ile API route'lar static export dışı bırakılarak paketlendi.
+  - **Sonuç:** `abbeslim_1.0.0_x64-setup.exe` (sadece **6.2 MB** boyutunda) installer üretildi.
+- **Android APK Paketleme (`android/`, Capacitor):**
+  - `scripts/build-mobile.js` ve `npx cap sync` ile `out/` static web çıktıları Android projesine aktarıldı.
+- **İndirme Sayfası (`src/app/download/page.tsx` & Bileşenler):**
+  - Modüler 6 alt bileşen (`DownloadHero`, `PlatformCard`, `FeatureGrid`, `InstallGuide`, `SystemRequirements`, `FAQ`) oluşturuldu.
+  - Siyah/yeşil `.glass` tema standartlarına uygun responsive indirme sayfası yazıldı.
+- **Dashboard & Sidebar Entegrasyonu:**
+  - `DownloadWidget.tsx` dashboard'a eklendi (sadece browser ortamında `isWeb()` ile görünür).
+  - `Sidebar.tsx` alt kısmına "Uygulamayı İndir" linki eklendi (`isWeb()` kontrollü).
+
+### 2. Derleme & Doğrulama
+- `npm run build:desktop` → Static export hatasız 26/26 sayfa.
+- `npx tauri build --target x86_64-pc-windows-gnu` → **6.2 MB** `abbeslim_1.0.0_x64-setup.exe` oluşturuldu.
+- `npm run build:mobile` & `npx cap sync` → Android varlıkları güncellendi.
+- `npm run build` → Web regresyon kontrolü sıfır hata (39/39 sayfa + API route'lar).

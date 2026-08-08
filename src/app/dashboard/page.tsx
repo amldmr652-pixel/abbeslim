@@ -11,6 +11,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 // Dashboard Alt Bileşenleri
 import GreetingWidget from '@/app/components/dashboard/GreetingWidget';
+import DownloadWidget from '@/app/components/dashboard/DownloadWidget';
 import QuickStats from '@/app/components/dashboard/QuickStats';
 import TasksWidget from '@/app/components/dashboard/TasksWidget';
 import QuickNoteWidget from '@/app/components/dashboard/QuickNoteWidget';
@@ -143,7 +144,8 @@ function DashboardContent() {
   });
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <DownloadWidget />
       <GreetingWidget />
 
       <QuickStats 

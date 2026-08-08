@@ -3,18 +3,22 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 const isMobile = process.env.BUILD_TARGET === 'mobile';
+const isDesktop = process.env.BUILD_TARGET === 'desktop';
+const isNativeApp = isMobile || isDesktop;
 
 if (isMobile) {
   dotenv.config({ path: path.resolve(process.cwd(), '.env.mobile'), override: true });
+} else if (isDesktop) {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.desktop'), override: true });
 }
 
 const nextConfig: NextConfig = {
-  // Mobil build için static export
-  ...(isMobile ? { output: 'export' } : {}),
+  // Mobil/Masaüstü native build için static export
+  ...(isNativeApp ? { output: 'export' } : {}),
 
-  // Mobil build'de next/image optimizasyonu kapatılmalı
+  // Native build'de next/image optimizasyonu kapatılmalı
   images: {
-    unoptimized: isMobile,
+    unoptimized: isNativeApp,
   },
 
   turbopack: {},
@@ -26,8 +30,8 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Mobil build'de trailing slash gerekli (Capacitor routing)
-  ...(isMobile ? { trailingSlash: true } : {}),
+  // Native build'de trailing slash gerekli (Capacitor/Tauri routing)
+  ...(isNativeApp ? { trailingSlash: true } : {}),
 };
 
 export default nextConfig;
