@@ -21,37 +21,33 @@ body.theme-amoled {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   🇵🇸  FİLİSTİN TEMASI — Belirgin Bayrak Renkleri
-   Yeşil (#009736), Kırmızı (#CE1126), Beyaz (#FFFFFF), Siyah (#000000)
+   🇵🇸  FİLİSTİN TEMASI — Zarif Bayrak Renkleri Entegrasyonu
+   Zengin Zümrüt Yeşil (#009736), Siyah (#000000), Beyaz (#FFFFFF), Kırmızı (#CE1126)
    ═══════════════════════════════════════════════════════════════ */
 
 body.theme-palestine {
   --bg-primary: radial-gradient(
-    ellipse at top left,
-    #003d15 0%,
-    #001a0a 25%,
-    #000000 50%,
-    #1a0508 80%,
-    #0f0204 100%
+    ellipse at top,
+    #002b11 0%,
+    #001408 40%,
+    #000000 85%
   );
   --text-primary: #ffffff;
   --text-secondary: #b0b0b0;
-  --glass-bg: rgba(0, 151, 54, 0.07);
-  --glass-border: rgba(0, 151, 54, 0.28);
-  --scrollbar-thumb: rgba(0, 151, 54, 0.45);
+  --glass-bg: rgba(0, 151, 54, 0.06);
+  --glass-border: rgba(0, 151, 54, 0.22);
+  --scrollbar-thumb: rgba(0, 151, 54, 0.40);
 }
 
-/* Glass kartlara yeşil üst glow + kırmızı alt glow */
+/* Glass kartlara zarif zümrüt ışıması */
 body.theme-palestine .glass {
   box-shadow:
-    0 -3px 25px -5px rgba(0, 151, 54, 0.18),
-    0 4px 25px -5px rgba(206, 17, 38, 0.12),
-    inset 0 1px 0 0 rgba(0, 179, 65, 0.15),
-    inset 0 -1px 0 0 rgba(206, 17, 38, 0.10);
-  border-color: rgba(0, 151, 54, 0.28);
+    0 8px 32px 0 rgba(0, 151, 54, 0.12),
+    inset 0 1px 0 0 rgba(0, 179, 65, 0.15);
+  border-color: rgba(0, 151, 54, 0.22);
 }
 
-/* Sol kenar: Filistin bayrağı dikey şeridi (yeşil → beyaz → siyah → kırmızı) */
+/* Sol kenar: İnce ve zarif Filistin bayrağı dikey şeridi (4px) */
 body.theme-palestine::before {
   content: '';
   position: fixed;
@@ -74,7 +70,7 @@ body.theme-palestine::before {
   pointer-events: none;
 }
 
-/* Yeşil tonlarını Filistin yeşiline override */
+/* Yeşil tonları: Canlı ve net Filistin yeşili */
 body.theme-palestine .text-green-400 {
   color: #00b341 !important;
 }
@@ -90,6 +86,8 @@ body.theme-palestine .bg-green-600 {
 body.theme-palestine .bg-green-600\/15 {
   background-color: rgba(0, 151, 54, 0.15) !important;
 }
+
+/* Kırmızı Aksan: Bayrak üçgenini temsil eden aktif kenarlık ve detay rozetler */
 body.theme-palestine .border-green-500 {
   border-color: #CE1126 !important;
 }
@@ -109,21 +107,16 @@ body.theme-palestine .hover\:bg-green-600:hover {
   background-color: #007a2d !important;
 }
 
-/* Kırmızı aksan: hover efektleri */
-body.theme-palestine .hover\:text-green-400:hover {
-  color: #CE1126 !important;
-}
-
-/* Sidebar Palestine tonu */
+/* Sidebar Palestine tonu: Derin zümrüt-siyah */
 body.theme-palestine aside {
-  background: rgba(4, 14, 7, 0.92) !important;
-  border-color: rgba(0, 151, 54, 0.22) !important;
+  background: rgba(3, 12, 6, 0.94) !important;
+  border-color: rgba(0, 151, 54, 0.20) !important;
 }
 
 /* Mobil bottom nav Palestine */
 body.theme-palestine nav.fixed.bottom-0 {
-  background: rgba(4, 14, 7, 0.96) !important;
-  border-color: rgba(0, 151, 54, 0.25) !important;
+  background: rgba(3, 12, 6, 0.96) !important;
+  border-color: rgba(0, 151, 54, 0.22) !important;
 }
 
 /* Scrollbar Palestine yeşili */
