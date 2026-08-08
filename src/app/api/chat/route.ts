@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
 
     // Bugünün tarihi (Yerel Türkiye Saati)
     const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' });
-    const calendarDirective = `\n\nBugünün tarihi: ${todayDateStr}. Kullanıcı bir tarih belirttiğinde veya ekle/oluştur/getir/listele dediğinde uygun aracı çağır.
+    const calendarDirective = `\n\nBugünün tarihi: ${todayDateStr}. Kullanıcı bir tarih belirttiğinde veya ekle/oluştur/getir/listele dediğinde veya bir günlük program/çizelge sunduğunda uygun aracı çağır.
 
 Erişebildiğin araçlar:
 - create_calendar_event: Takvime yeni bir etkinlik ekler.
@@ -249,17 +249,25 @@ Erişebildiğin araçlar:
 - create_task: Görev listesine yeni bir görev ekler.
 - update_task_status: Görevi tamamlandı olarak işaretler veya günceller.
 - create_note: Notlar modülüne yeni bir hızlı not oluşturur.
-- create_goal: Hedefler modülüne yeni hedef veya alışkanlık ekler.
+- create_goal: Hedefler modülüne tek bir yeni hedef veya alışkanlık ekler.
+- bulk_create_habits: Birden fazla alışkanlığı (örn: günlük program, çalışma tablosu, rutin listesi) TEK SEFERDE toplu ekler. Kullanıcı saatleri belli görev/program verdiğinde MUTLAKA bu aracı çağır!
 - get_finance_summary: Finansal özet (gelir, gider, bakiye) getirir.
 - get_tasks_summary: Görev listesi özetini getirir.
 - get_calendar_events: Takvimdeki etkinlikleri getirir.
-- search_files: Kütüphanedeki dosyalarda arama yapar.`;
+- search_files: Kütüphanedeki dosyalarda arama yapar.
+
+ÖNEMLİ KURAL (GÜNLÜK PROGRAM & ÇİZELGE): Kullanıcı saatli veya sıralı bir günlük çalışma/yaşam programı paylaştığında ve bunu alışkanlıklar sekmesine eklemeni istediğinde:
+1. Programdaki HER BİR maddeyi bir alışkanlık nesnesi olarak ayıkla.
+2. Saat aralıklarını (örn: "03:30", "09:00", "12:30", "23:30") HH:MM formatında scheduled_time alanına yaz.
+3. Maddenin başlığını title alanına net ve temiz yaz.
+4. Alt detayları, parantez içindeki açıklamaları veya notları description alanına yaz.
+5. Maddelerin orijinal sırasını tam olarak koruyarak bulk_create_habits aracını çağır!`;
 
     let systemInstructionText = '';
     if (mode === 'independent') {
-      systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcıyla genel konularda sohbet et, sorularını kendi geniş genel bilgine dayanarak Türkçe cevapla. PDF belgelerini veya kaynaklarını referans almana gerek yoktur. Cevabında kesinlikle [1], [2] gibi kaynak numaraları kullanma.` + titleDirective + calendarDirective;
+      systemInstructionText = `Sen "abbeslim" adlı bir ders notu ve kişisel kontrol merkezi (Life OS) asistanısın. Kullanıcıyla genel konularda sohbet et, sorularını kendi geniş genel bilgine dayanarak Türkçe cevapla. PDF belgelerini veya kaynaklarını referans almana gerek yoktur. Cevabında kesinlikle [1], [2] gibi kaynak numaraları kullanma.` + titleDirective + calendarDirective;
     } else if (mode === 'sources') {
-      systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcının yüklediği PDF belgelerine dayalı sorulara yardımcı olursun.
+      systemInstructionText = `Sen "abbeslim" adlı bir ders notu ve kişisel kontrol merkezi (Life OS) asistanısın. Kullanıcının yüklediği PDF belgelerine dayalı sorulara yardımcı olursun.
 DAVRANIŞIN:
 - Sadece sana verilen KAYNAK METİNLERE dayanarak Türkçe cevap ver. Kaynakların dışına asla çıkma, tahmin yürütme.
 - PDF kaynaklardan gelen bilgileri kullanırken, bilginin veya cümlenin hemen sonuna [1], [2] gibi kaynak numaraları ekle (örn: "...anlatmaktadır [1]."). Metin içinde kesinlikle dosya adı, sayfa veya URL yazma, sadece [numara] formatını kullan. Numaralar sırasıyla yukarındaki KAYNAK listesindeki sıraya (1'den başlayarak) karşılık gelmelidir.
@@ -268,7 +276,7 @@ DAVRANIŞIN:
 - Cevapların kısa, net ve yardımcı olsun.` + titleDirective + calendarDirective;
     } else {
       // hybrid (ikisi birlikte)
-      systemInstructionText = `Sen "abbeslim" adlı bir ders notu asistanısın. Kullanıcının yüklediği PDF belgelerine dayalı sorulara yardımcı olursun.
+      systemInstructionText = `Sen "abbeslim" adlı bir ders notu ve kişisel kontrol merkezi (Life OS) asistanısın. Kullanıcının yüklediği PDF belgelerine dayalı sorulara yardımcı olursun.
 DAVRANIŞIN:
 - Selamlama, teşekkür gibi sosyal mesajlara doğal ve sıcak şekilde Türkçe yanıt ver.
 - PDF kaynaklardan gelen bilgileri kullanırken, bilginin veya cümlenin hemen sonuna [1], [2] gibi kaynak numaraları ekle (örn: "...anlatmaktadır [1]."). Metin içinde kesinlikle dosya adı, sayfa veya URL yazma, sadece [numara] formatını kullan. Numaralar sırasıyla yukarındaki KAYNAK listesindeki sıraya (1'den başlayarak) karşılık gelmelidir.
@@ -376,16 +384,42 @@ DAVRANIŞIN:
                     },
                     {
                       name: 'create_goal',
-                      description: 'Hedefler modülüne yeni bir hedef veya alışkanlık ekler.',
+                      description: 'Hedefler modülüne tek bir yeni hedef veya alışkanlık ekler.',
                       parameters: {
                         type: 'OBJECT',
                         properties: {
                           title: { type: 'STRING', description: 'Hedef veya alışkanlık adı.' },
                           type: { type: 'STRING', description: '"goal" (hedef) veya "habit" (alışkanlık).' },
                           target_value: { type: 'NUMBER', description: 'Hedef değeri.' },
-                          frequency: { type: 'STRING', description: 'Alışkanlık sıklığı: "daily" veya "weekly".' }
+                          frequency: { type: 'STRING', description: 'Alışkanlık sıklığı: "daily" veya "weekly".' },
+                          scheduled_time: { type: 'STRING', description: 'Planlanan saat, HH:MM formatında (örn: "09:30").' },
+                          description: { type: 'STRING', description: 'Açıklama veya not.' }
                         },
                         required: ['title', 'type']
+                      }
+                    },
+                    {
+                      name: 'bulk_create_habits',
+                      description: 'Birden fazla alışkanlığı (günlük program, çalışma planı, rutin listesi vb.) TEK SEFERDE toplu ekler.',
+                      parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                          habits: {
+                            type: 'ARRAY',
+                            description: 'Eklenecek alışkanlıklar listesi.',
+                            items: {
+                              type: 'OBJECT',
+                              properties: {
+                                title: { type: 'STRING', description: 'Alışkanlık adı / başlığı.' },
+                                scheduled_time: { type: 'STRING', description: 'Saat (HH:MM formatında, örn: "08:30").' },
+                                description: { type: 'STRING', description: 'Açıklama veya detay.' },
+                                frequency: { type: 'STRING', description: '"daily" veya "weekly". Varsayılan "daily".' }
+                              },
+                              required: ['title']
+                            }
+                          }
+                        },
+                        required: ['habits']
                       }
                     },
                     {
@@ -655,6 +689,8 @@ DAVRANIŞIN:
         type: string;
         target_value?: number;
         frequency?: string;
+        scheduled_time?: string;
+        description?: string;
       };
 
       const table = args.type === 'habit' ? 'habits' : 'goals';
@@ -670,6 +706,8 @@ DAVRANIŞIN:
         insertData.frequency = args.frequency || 'daily';
         insertData.streak = 0;
         insertData.color = '#22c55e';
+        if (args.scheduled_time) insertData.scheduled_time = args.scheduled_time;
+        if (args.description) insertData.description = args.description;
       }
 
       const { error: insertError } = await supabase.from(table).insert([insertData]);
@@ -680,9 +718,58 @@ DAVRANIŞIN:
       }
 
       const emoji = args.type === 'habit' ? '🔄' : '🎯';
+      const timeInfo = args.scheduled_time ? ` (${args.scheduled_time})` : '';
       return NextResponse.json({
-        answer: `${emoji} ${args.type === 'habit' ? 'Alışkanlık' : 'Hedef'} eklendi: "${args.title}"`,
+        answer: `${emoji} ${args.type === 'habit' ? 'Alışkanlık' : 'Hedef'} eklendi: "${args.title}"${timeInfo}`,
         goal: { title: args.title, type: args.type },
+      });
+    }
+
+    if (functionCall && functionCall.name === 'bulk_create_habits') {
+      const args = functionCall.args as {
+        habits: Array<{
+          title: string;
+          scheduled_time?: string;
+          description?: string;
+          frequency?: string;
+        }>;
+      };
+
+      const habitItems = args.habits || [];
+      if (habitItems.length === 0) {
+        return NextResponse.json({ answer: 'Eklenecek alışkanlık bulunamadı.' });
+      }
+
+      const insertData = habitItems.map((h, index) => ({
+        user_id: user.id,
+        title: h.title,
+        scheduled_time: h.scheduled_time ? (h.scheduled_time.length === 5 ? `${h.scheduled_time}:00` : h.scheduled_time) : null,
+        description: h.description || '',
+        frequency: h.frequency || 'daily',
+        streak: 0,
+        color: '#22c55e',
+        sort_order: index + 1,
+      }));
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from('habits')
+        .insert(insertData)
+        .select();
+
+      if (insertError) {
+        console.error('Bulk habit insert error:', insertError);
+        return NextResponse.json({ error: 'Alışkanlıklar eklenirken veritabanı hatası oluştu.' }, { status: 500 });
+      }
+
+      const habitSummaryLines = (insertedData || insertData).map((h: any, i: number) => {
+        const timeStr = h.scheduled_time ? ` [⏰ ${h.scheduled_time.substring(0, 5)}]` : '';
+        const descStr = h.description ? ` *(${h.description})*` : '';
+        return `${i + 1}. **${h.title}**${timeStr}${descStr}`;
+      }).join('\n');
+
+      return NextResponse.json({
+        answer: `✅ **${insertData.length} Adet Alışkanlık Alışkanlıklar Sekmesine Başarıyla Eklendi!**\n\n${habitSummaryLines}\n\n*Tüm görevler alışkanlıklar sekmesinde ve Dashboard widget'ında zaman sıralı olarak görüntülenecektir.*`,
+        goal: { title: `${insertData.length} alışkanlık`, type: 'bulk_habit' },
       });
     }
 

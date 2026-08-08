@@ -61,7 +61,7 @@ export function useChat(currentFileId?: string) {
   }, [messages, storageKey]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
     let binary = '';

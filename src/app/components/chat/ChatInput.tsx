@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Send } from 'lucide-react';
 
 interface ChatInputProps {
@@ -5,7 +6,7 @@ interface ChatInputProps {
   setInputValue: (value: string) => void;
   isLoading: boolean;
   handleSend: () => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function ChatInput({
@@ -15,10 +16,21 @@ export function ChatInput({
   handleSend,
   inputRef
 }: ChatInputProps) {
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      const scrollHeight = inputRef.current.scrollHeight;
+      // Max 140px (yaklaşık 5-6 satır)
+      inputRef.current.style.height = `${Math.min(scrollHeight, 140)}px`;
+    }
+  }, [inputValue, inputRef]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (inputValue.trim() && !isLoading) {
+        handleSend();
+      }
     }
   };
 
@@ -28,27 +40,28 @@ export function ChatInput({
       style={{ borderColor: 'rgba(34,197,94,0.1)' }}
     >
       <div
-        className="flex items-center gap-2 rounded-xl px-3 py-2"
+        className="flex items-end gap-2 rounded-xl px-3 py-2"
         style={{
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid rgba(34,197,94,0.2)',
         }}
       >
-        <input
+        <textarea
           ref={inputRef}
-          type="text"
+          rows={1}
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Sorunuzu yazın..."
+          placeholder="Sorunuzu yazın... (Shift+Enter ile alt satıra geçin)"
           disabled={isLoading}
-          className="flex-1 bg-transparent text-sm outline-none placeholder-gray-600 text-gray-100"
+          className="flex-1 bg-transparent text-sm outline-none placeholder-gray-600 text-gray-100 resize-none py-1 custom-scrollbar"
+          style={{ maxHeight: '140px', minHeight: '24px' }}
           id="ai-chat-input"
         />
         <button
           onClick={handleSend}
           disabled={isLoading || !inputValue.trim()}
-          className="flex items-center justify-center rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+          className="flex items-center justify-center rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 mb-0.5"
           style={{
             width: 32,
             height: 32,
@@ -64,3 +77,4 @@ export function ChatInput({
     </div>
   );
 }
+

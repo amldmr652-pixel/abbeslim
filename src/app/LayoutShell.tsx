@@ -322,12 +322,12 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
 
 
-          {/* AI Chat Panel (Yandan Açılan) */}
+          {/* AI Chat Panel (Serbest Konumlandırılabilir) */}
           <div
-            className={`fixed right-[130px] top-1/2 -translate-y-1/2 z-[9998] transition-all duration-300 ease-out origin-right ${
+            className={`z-[9998] transition-opacity duration-300 ease-out ${
               activePanel === 'ai'
-                ? 'opacity-100 scale-100 translate-x-0'
-                : 'opacity-0 scale-95 translate-x-4 pointer-events-none'
+                ? 'opacity-100'
+                : 'opacity-0 pointer-events-none hidden'
             }`}
           >
             <AIChatWidget isDropdown={true} />

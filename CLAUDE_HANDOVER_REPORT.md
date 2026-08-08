@@ -1201,3 +1201,29 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - Yerel `npm run build` derlemesi sıfır hata ile tamamlandı (37 sayfa başarıyla static prerender edildi).
 - Tüm değişiklikler `npx vercel --prod` komutu ile canlıya ([abbeslim.vercel.app](https://abbeslim.vercel.app)) deploy edildi ve git'e commit edildi.
 
+
+---
+
+## [2026-08-08] V2.34 — AI Chat Panel İyileştirmeleri: Drag/Resize, Shift+Enter ve Çoklu Aksiyon (Gemini 3.6 Flash)
+
+### 1. Shift+Enter Çok Satırlı Metin Girişi (`ChatInput.tsx`, `useChat.ts`)
+- `ChatInput.tsx` bileşenindeki `<input type="text">` elemanı `<textarea>` ile değiştirildi.
+- Shift+Enter ile doğal alt satıra geçme, Enter (Shift'siz) ile mesajı gönderme mantığı tanımlandı.
+- Metin girdisi değiştikçe `scrollHeight` hesaplanarak max 140px (yaklaşık 6 satır) sınırına kadar yüksekliğin otomatik ayarlanması sağlandı.
+- `useChat.ts` içerisindeki `inputRef` tipi `HTMLTextAreaElement` olarak güncellendi.
+
+### 2. Sürükle & Boyutlandır (Drag & Resize) Özelliği (`useDragResize.ts`, `AIChatWidget.tsx`, `LayoutShell.tsx`)
+- **`useDragResize.ts`:** PointerEvents tabanlı, sıfır bağımlılıklı özel React hook'u yazıldı. Paneli başlığından sürükleme (Drag), sağ alt köşesinden boyutlandırma (Resize), ekran sınırlarında kalma kısıtı ve geometri durumunun `localStorage` (`lifeos-chat-panel-geometry`) üzerinde saklanması sağlandı.
+- **`AIChatWidget.tsx`:** Hook entegre edildi. Başlık çubuğu sürüklenebilir hale getirildi (`cursor-grab`, `Move` ikonu). Sağ alt köşeye boyutlandırma görsel grip alanı (`svg`) eklendi. Başlığa konum/boyutu varsayılana döndüren sıfırlama butonu (`RotateCcw`) yerleştirildi.
+- **`LayoutShell.tsx`:** `fixed right-[130px] top-1/2 -translate-y-1/2` sabitTailwind konumlandırma sınıfları kaldırıldı; panel kendi dinamik `position: fixed`, `left`, `top`, `width`, `height` stillerini yönetir hale getirildi.
+
+### 3. Gemini Çoklu Aksiyon & Toplu Alışkanlık Ekleme (`/api/chat/route.ts`)
+- **`bulk_create_habits` Tool:** Gemini için yeni bir Function Declaration (`bulk_create_habits`) tanımlandı. Kullanıcı saatli günlük program, çizelge veya rutin paylaştığında tüm maddeleri sırasıyla (`title`, `scheduled_time`, `description`, `frequency`) tek seferde toplu veritabanına ekleme yeteneği kazandırıldı.
+- **Handler:** `bulk_create_habits` handler'ı eklendi. Gelen alışkanlıklar `sort_order` indeksleri ile birlikte Supabase `habits` tablosuna toplu `insert` yapılıp şık bir Türkçe özet mesajı döndürülüyor.
+- **`create_goal` Güncellemesi:** `type: 'habit'` eyleminde eksik olan `scheduled_time` ve `description` parametreleri hem tool deklarasyonuna hem veritabanı insert objesine eklendi.
+- **System Prompt & Talimatlar:** `calendarDirective` ve system instructions güncellenerek Gemini'nin kullanıcıdan gelen günlük yaşam/çalışma programlarını algılaması ve `bulk_create_habits` aracını saat sıralarını ve açıklamalarını koruyarak çağırması talimatlandırıldı.
+
+### 4. Derleme & Dağıtım
+- `npm run build` komutu çalıştırıldı ve sıfır hata ile tamamlandı (Compiled successfully).
+
+
