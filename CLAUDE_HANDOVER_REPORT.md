@@ -1291,3 +1291,21 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 ### 3. Derleme & Dağıtım
 - `npm run build` sıfır hata.
 - `npx vercel --prod` ile deploy edildi.
+
+---
+
+## [2026-08-08] V2.37 — Filistin Teması Kırmızı Rengi Arka Plandan Çıkarma & İnce Detaylara Yedirme (Gemini 3.6 Flash)
+
+### 1. Arka Plan Sadeleştirmesi (`globals.css`)
+- Arka plandaki koyu kırmızı/kızıl ışıma lekesi kaldırıldı.
+- Yeni arka plan: Derin ve temiz zümrüt yeşili & amoled siyah gradyanı (`radial-gradient(ellipse at top, #002b11 0%, #001408 40%, #000000 85%)`).
+- Glass kartlardaki kırmızı alt gölge kaldırıldı, temiz zümrüt cam ışımasına dönüştürüldü.
+
+### 2. Kırmızı Rengin Zarif Kullanımı (`Sidebar.tsx`, `globals.css`)
+- **Logo Nokta Detayı:** `Sidebar.tsx` içinde `abbeslim.` logosunun nokta karakteri (`.`) Palestine temasında bayrak kırmızısı (`#CE1126`), ismi ise bayrak yeşili (`#009736`) yapıldı.
+- **Aktif Menü Vurgusu:** Aktif sidebar item sol kenarlığı bayraktaki kırmızı üçgeni temsil eden `#CE1126` çizgisine sahip.
+- **Sol Kenar Bayrak Şeridi:** Ekranın solundaki ince 4px dikey bayrak şeridi (yeşil/beyaz/siyah/kırmızı) korundu.
+
+### 3. Derleme & Dağıtım
+- `npm run build` hatasız tamamlandı.
+- `npx vercel --prod` ile yayına alındı.
