@@ -164,16 +164,11 @@ export default function Sidebar() {
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-4 py-5 border-b border-green-900/20`}>
         {!collapsed && (
           <Link href="/" className="flex items-center gap-2">
-            <span className={`text-xl font-bold tracking-wider ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>
-              abbeslim<span className={isPalestine ? 'text-[#CE1126]' : 'text-green-500'}>.</span>
-            </span>
-            {isPalestine && <span className="text-xs">🇵🇸</span>}
+            <span className={`text-xl font-bold tracking-wider ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>abbeslim.</span>
           </Link>
         )}
         {collapsed && (
-          <Link href="/" className={`font-bold text-lg ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>
-            a<span className={isPalestine ? 'text-[#CE1126]' : 'text-green-500'}>.</span>
-          </Link>
+          <Link href="/" className={`font-bold text-lg ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>a.</Link>
         )}
         {/* Desktop collapse toggle */}
         <button
