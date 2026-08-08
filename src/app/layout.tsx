@@ -9,6 +9,14 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "abbeslim. | Life OS — Kişisel Kontrol Merkezi",
   description: "Ders notlarınız, görevleriniz, hedefleriniz ve günlük yaşamınızı tek bir yerden yönetin. AI destekli akıllı arama, takvim, finans takibi ve daha fazlası.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-128.png", type: "image/png", sizes: "128x128" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/icon-512.png",
+  },
 };
 
 export const viewport: Viewport = {

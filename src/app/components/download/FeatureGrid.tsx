@@ -1,19 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Zap, Shield, WifiOff } from 'lucide-react';
+import { Zap, Shield, Cpu } from 'lucide-react';
 
 export default function FeatureGrid() {
   const features = [
     {
       icon: <Zap size={24} className="text-green-400" />,
       title: 'Maksimum Performans',
-      desc: 'Tauri ve Capacitor altyapısı sayesinde minimum kaynak kullanımı ve anında açılış süresi.',
+      desc: 'Tauri ve Capacitor altyapısı sayesinde minimum RAM ve CPU kullanımıyla anında açılır.',
     },
     {
-      icon: <WifiOff size={24} className="text-green-400" />,
-      title: 'Çevrimdışı Çalışma',
-      desc: 'İnternet bağlantınız olmasa bile notlarınıza, takviminize ve yerel verilerinize erişin.',
+      icon: <Cpu size={24} className="text-green-400" />,
+      title: 'Yerel Güç & Hız',
+      desc: 'Cihazınızın donanım ivmesini kullanarak tarayıcı sınırlarından bağımsız, ultra akıcı çalışma deneyimi.',
     },
     {
       icon: <Shield size={24} className="text-green-400" />,

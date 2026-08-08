@@ -1336,3 +1336,25 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - `npx tauri build --target x86_64-pc-windows-gnu` → **6.2 MB** `abbeslim_1.0.0_x64-setup.exe` oluşturuldu.
 - `npm run build:mobile` & `npx cap sync` → Android varlıkları güncellendi.
 - `npm run build` → Web regresyon kontrolü sıfır hata (39/39 sayfa + API route'lar).
+
+---
+
+## [2026-08-09] V2.39 — Masaüstü İkonu (.ico/Android), Logo Revizyonu ve Medya Takibi Çoklu Motor (Antigravity)
+
+### 1. Yapılan Çalışmalar & Düzeltmeler
+- **Masaüstü & Mobil İkon Revizyonu (`src-tauri/icons/`, `android/`):**
+  - `npx tauri icon public/logo.svg` komutuyla `icon.ico`, `icon.icns`, 32x32, 128x128, 512x512 ve Android tüm `mipmap` launcher ikonları yeni zümrüt yeşili Life OS marka amblemine dönüştürüldü.
+  - Windows masaüstü kısayolu, görev çubuğu ve NSIS setup ikonları güncellendi.
+- **Logo Amblem Vektör Yenilemesi (`src/app/components/ui/Logo.tsx`, `public/logo.svg`):**
+  - Siyah arka planda kaybolan ince SVG yapısı tamamen kaldırıldı.
+  - Yüksek kontrastlı, kalın zümrüt yeşili (`#22c55e` / `#4ade80`) ışımalı modern `A` Life OS amblemi ve parlak beyaz çekirdek düğüm tasarlandı.
+- **Medya Takibi (Film/Dizi/Kitap) Çoklu Arama Motoru (`src/app/api/tracker/search/route.ts`, `src/app/tracker/page.tsx`):**
+  - TMDB bloklanması ihtimaline karşı **TVMaze API** ve **Apple iTunes API** multi-fallback olarak entegre edildi.
+  - Artık film ve dizi aramalarında yüksek çözünürlüklü afişler anında ve eksiksiz geliyor.
+  - Afişsiz veya özel öğeler için şık gradyanlı medya rozetleri ve manuel afiş linki yapıştırma alanı eklendi.
+
+### 2. Derleme & Doğrulama
+- `npx tauri build --target x86_64-pc-windows-gnu` → Yeni `.ico` ikonlu `abbeslim_1.0.0_x64-setup.exe` üretildi.
+- `./gradlew.bat assembleDebug` → Yeni `ic_launcher` ikonlu `abbeslim-v1.0.0.apk` üretildi.
+- `npx vercel --prod` → Web sitesi canlıya alındı.
+

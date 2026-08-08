@@ -29,7 +29,7 @@ export default function DownloadHero() {
 
       {/* Description */}
       <p className="text-gray-400 text-lg md:text-xl max-w-2xl mb-8">
-        Kişisel kontrol merkezinize Windows ve Android cihazlarınızdan daha hızlı, daha güvenli ve çevrimdışı erişin.
+        Kişisel kontrol merkezinize Windows ve Android cihazlarınızdan daha hızlı, akıcı ve güvenli erişin.
       </p>
 
       {/* Action button */}

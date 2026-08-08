@@ -96,14 +96,14 @@ export default function TrackerPage() {
     setTitle(item.title || item.name);
     setTmdbId(item.id.toString());
     
-    if (item.is_book) {
-      setPosterUrl(item.poster_path || '');
-    } else {
-      if (item.poster_path) {
-        setPosterUrl(`https://image.tmdb.org/t/p/w500${item.poster_path}`);
+    if (item.poster_path) {
+      if (item.poster_path.startsWith('http')) {
+        setPosterUrl(item.poster_path);
       } else {
-        setPosterUrl('');
+        setPosterUrl(`https://image.tmdb.org/t/p/w500${item.poster_path}`);
       }
+    } else {
+      setPosterUrl('');
     }
     setTmdbResults([]);
   };
@@ -345,9 +345,26 @@ export default function TrackerPage() {
                     onError={() => setImageErrors(prev => ({ ...prev, [item.id]: true }))}
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 gap-2 p-4 text-center">
-                    <ImageIcon size={40} className="opacity-30" />
-                    <span className="text-[10px] uppercase font-bold tracking-wider">Görsel Yok</span>
+                  <div className="w-full h-full flex flex-col items-center justify-between p-4 bg-gradient-to-br from-green-950/40 via-stone-900/80 to-black text-center relative overflow-hidden border-b border-white/5">
+                    {/* Ambient Glow */}
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full blur-xl pointer-events-none" />
+                    
+                    <div className="w-full flex justify-between items-center z-10">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400">
+                        {item.media_type === 'movie' ? 'Film' : item.media_type === 'series' ? 'Dizi' : 'Kitap'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2 z-10 my-auto">
+                      <div className="p-3 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400">
+                        {item.media_type === 'movie' ? <Clapperboard size={28} /> : item.media_type === 'series' ? <Tv size={28} /> : <Book size={28} />}
+                      </div>
+                      <span className="text-xs font-bold text-gray-200 line-clamp-2 px-1">
+                        {item.title}
+                      </span>
+                    </div>
+
+                    <span className="text-[9px] text-gray-500 z-10">Görsel eklemek için düzenle</span>
                   </div>
                 )}
                 
@@ -455,7 +472,7 @@ export default function TrackerPage() {
                     {res.poster_path ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img 
-                        src={res.is_book ? res.poster_path : `https://image.tmdb.org/t/p/w92${res.poster_path}`} 
+                        src={res.poster_path.startsWith('http') ? res.poster_path : `https://image.tmdb.org/t/p/w92${res.poster_path}`} 
                         alt="" 
                         className="w-8 h-12 object-cover rounded" 
                       />

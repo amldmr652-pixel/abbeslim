@@ -35,6 +35,7 @@ import { isWeb } from '@/utils/platform';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import Logo from '@/app/components/ui/Logo';
 
 interface NavItem {
   id: string;
@@ -164,14 +165,7 @@ export default function Sidebar() {
     <>
       {/* Logo */}
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-4 py-5 border-b border-green-900/20`}>
-        {!collapsed && (
-          <Link href="/" className="flex items-center gap-2">
-            <span className={`text-xl font-bold tracking-wider ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>abbeslim.</span>
-          </Link>
-        )}
-        {collapsed && (
-          <Link href="/" className={`font-bold text-lg ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>a.</Link>
-        )}
+        <Logo collapsed={collapsed} isPalestine={isPalestine} showSubtitle={!collapsed} />
         {/* Desktop collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}

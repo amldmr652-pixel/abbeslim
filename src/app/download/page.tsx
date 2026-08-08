@@ -35,7 +35,7 @@ export default function DownloadPage() {
             'Tauri 2 ile ultra hafif ve hızlı',
             'Sistem bildirimleri entegrasyonu',
             'Dahili otomatik güncelleme desteği',
-            'Çevrimdışı ve tam senkronize çalışma',
+            'Yerel önbellek ve anında bulut senkronizasyonu',
           ]}
         />
 
