@@ -1270,5 +1270,24 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 ### 8. Derleme & Dağıtım Doğrulaması
 - `npm run build` komutu çalıştırıldı, TypeScript tip denetimi ve 39 static/dynamic route üretimi sıfır hata ile tamamlandı (Compiled & Type checked successfully).
 
+---
 
+## [2026-08-08] V2.36 — Filistin Temasını Belirginleştirme (Claude Opus 4.6)
 
+### 1. CSS Tema Yeniden Yazımı (`globals.css`)
+- **Arka Plan Gradyanı:** `radial-gradient(ellipse at top left, #003d15 → #001a0a → #000 → #1a0508 → #0f0204)` — üst sol köşeden belirgin yeşil, alt sağ köşeye doğru belirgin kırmızı geçiş.
+- **Glass Efektleri Güçlendirildi:** `--glass-bg` opacity %5→%7, `--glass-border` opacity %20→%28. Glass kartlara çift yönlü glow eklendi: üstten yeşil (`rgba(0,151,54,0.18)`), alttan kırmızı (`rgba(206,17,38,0.12)`), `inset` yeşil üst çizgi + kırmızı alt çizgi.
+- **Bayrak Şeridi Dekorasyon:** `body.theme-palestine::before` pseudo-element ile sayfanın sol kenarına sabit 4px genişliğinde dikey Filistin bayrağı şeridi: yeşil→beyaz→siyah→kırmızı (4 eşit dilim).
+- **Renk Override'ları (13+ kural):** Tüm `text-green-*`, `bg-green-*`, `border-green-*` sınıfları Palestine'de bayrak yeşili (`#009736`, `#00b341`, `#33cc66`) ile override edildi. `border-green-500` aktif durumu kırmızı (`#CE1126`) olarak ayarlandı. Hover efektleri de kırmızı aksan aldı.
+- **Sidebar ve Bottom Nav Tonu:** `aside` ve `nav.fixed.bottom-0` arka planları koyu yeşil tint (`rgba(4,14,7,0.92)`) ve yeşil border aldı.
+- **Input Focus:** Palestine'de focus border'ı `#009736` + yeşil ring.
+- **Scrollbar:** Thumb hover %70 opacity yeşil.
+
+### 2. Sidebar Tema Uyumu (`Sidebar.tsx`)
+- `useSettingsStore` üzerinden `theme` okunuyor, `isPalestine` flag'i türetiliyor.
+- Logo rengi Palestine'de `text-[#009736]` + 🇵🇸 emoji rozeti.
+- Aktif menü öğesi sol border'ı Palestine'de `border-[#CE1126]` (kırmızı) — bayraktaki kırmızı üçgeni temsil ediyor.
+
+### 3. Derleme & Dağıtım
+- `npm run build` sıfır hata.
+- `npx vercel --prod` ile deploy edildi.
