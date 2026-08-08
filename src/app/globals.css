@@ -20,17 +20,128 @@ body.theme-amoled {
   --glass-border: rgba(255, 255, 255, 0.04);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   🇵🇸  FİLİSTİN TEMASI — Belirgin Bayrak Renkleri
+   Yeşil (#009736), Kırmızı (#CE1126), Beyaz (#FFFFFF), Siyah (#000000)
+   ═══════════════════════════════════════════════════════════════ */
+
 body.theme-palestine {
-  --bg-primary: radial-gradient(ellipse at top, #002b11 0%, #0c0203 50%, #000000 90%);
+  --bg-primary: radial-gradient(
+    ellipse at top left,
+    #003d15 0%,
+    #001a0a 25%,
+    #000000 50%,
+    #1a0508 80%,
+    #0f0204 100%
+  );
   --text-primary: #ffffff;
-  --text-secondary: #a3a3a3;
-  --glass-bg: rgba(0, 151, 54, 0.05);
-  --glass-border: rgba(0, 151, 54, 0.2);
-  --scrollbar-thumb: rgba(0, 151, 54, 0.3);
+  --text-secondary: #b0b0b0;
+  --glass-bg: rgba(0, 151, 54, 0.07);
+  --glass-border: rgba(0, 151, 54, 0.28);
+  --scrollbar-thumb: rgba(0, 151, 54, 0.45);
 }
 
+/* Glass kartlara yeşil üst glow + kırmızı alt glow */
 body.theme-palestine .glass {
-  box-shadow: 0 8px 32px 0 rgba(0, 151, 54, 0.1), inset 0 0 0 1px rgba(206, 17, 38, 0.15);
+  box-shadow:
+    0 -3px 25px -5px rgba(0, 151, 54, 0.18),
+    0 4px 25px -5px rgba(206, 17, 38, 0.12),
+    inset 0 1px 0 0 rgba(0, 179, 65, 0.15),
+    inset 0 -1px 0 0 rgba(206, 17, 38, 0.10);
+  border-color: rgba(0, 151, 54, 0.28);
+}
+
+/* Sol kenar: Filistin bayrağı dikey şeridi (yeşil → beyaz → siyah → kırmızı) */
+body.theme-palestine::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100vh;
+  z-index: 9999;
+  background: linear-gradient(
+    to bottom,
+    #009736 0%,
+    #009736 25%,
+    #ffffff 25%,
+    #ffffff 50%,
+    #000000 50%,
+    #000000 75%,
+    #CE1126 75%,
+    #CE1126 100%
+  );
+  pointer-events: none;
+}
+
+/* Yeşil tonlarını Filistin yeşiline override */
+body.theme-palestine .text-green-400 {
+  color: #00b341 !important;
+}
+body.theme-palestine .text-green-500 {
+  color: #009736 !important;
+}
+body.theme-palestine .text-green-300 {
+  color: #33cc66 !important;
+}
+body.theme-palestine .bg-green-600 {
+  background-color: #009736 !important;
+}
+body.theme-palestine .bg-green-600\/15 {
+  background-color: rgba(0, 151, 54, 0.15) !important;
+}
+body.theme-palestine .border-green-500 {
+  border-color: #CE1126 !important;
+}
+body.theme-palestine .border-green-900\/20 {
+  border-color: rgba(0, 151, 54, 0.22) !important;
+}
+body.theme-palestine .border-green-900\/30 {
+  border-color: rgba(0, 151, 54, 0.30) !important;
+}
+body.theme-palestine .bg-green-500\/10 {
+  background-color: rgba(0, 151, 54, 0.12) !important;
+}
+body.theme-palestine .border-green-500\/20 {
+  border-color: rgba(0, 151, 54, 0.25) !important;
+}
+body.theme-palestine .hover\:bg-green-600:hover {
+  background-color: #007a2d !important;
+}
+
+/* Kırmızı aksan: hover efektleri */
+body.theme-palestine .hover\:text-green-400:hover {
+  color: #CE1126 !important;
+}
+
+/* Sidebar Palestine tonu */
+body.theme-palestine aside {
+  background: rgba(4, 14, 7, 0.92) !important;
+  border-color: rgba(0, 151, 54, 0.22) !important;
+}
+
+/* Mobil bottom nav Palestine */
+body.theme-palestine nav.fixed.bottom-0 {
+  background: rgba(4, 14, 7, 0.96) !important;
+  border-color: rgba(0, 151, 54, 0.25) !important;
+}
+
+/* Scrollbar Palestine yeşili */
+body.theme-palestine ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 151, 54, 0.7) !important;
+}
+
+/* Input Palestine tonu */
+body.theme-palestine input,
+body.theme-palestine textarea,
+body.theme-palestine select {
+  border-color: rgba(0, 151, 54, 0.30) !important;
+}
+body.theme-palestine input:focus,
+body.theme-palestine textarea:focus,
+body.theme-palestine select:focus {
+  border-color: #009736 !important;
+  box-shadow: 0 0 0 2px rgba(0, 151, 54, 0.15) !important;
 }
 
 body.theme-light {

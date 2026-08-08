@@ -68,9 +68,10 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { t, language, setLanguage } = useTranslation();
-  const { sidebarCollapsed: collapsed, setSidebarCollapsed: setCollapsed } = useSettingsStore();
+  const { theme, sidebarCollapsed: collapsed, setSidebarCollapsed: setCollapsed } = useSettingsStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const supabase = createClient();
+  const isPalestine = theme === 'palestine';
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -131,10 +132,14 @@ export default function Sidebar() {
       </>
     );
 
+    const activeClass = isPalestine
+      ? 'bg-green-600/15 text-green-400 rtl:border-r-2 ltr:border-l-2 border-[#CE1126] rtl:mr-[-1px] ltr:ml-[-1px]'
+      : 'bg-green-600/15 text-green-400 rtl:border-r-2 ltr:border-l-2 border-green-500 rtl:mr-[-1px] ltr:ml-[-1px]';
+
     const className = `
       group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
       ${active
-        ? 'bg-green-600/15 text-green-400 rtl:border-r-2 ltr:border-l-2 border-green-500 rtl:mr-[-1px] ltr:ml-[-1px]'
+        ? activeClass
         : hasBadge
           ? 'text-gray-600 cursor-not-allowed'
           : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -159,11 +164,12 @@ export default function Sidebar() {
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-4 py-5 border-b border-green-900/20`}>
         {!collapsed && (
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-wider text-green-500">abbeslim.</span>
+            <span className={`text-xl font-bold tracking-wider ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>abbeslim.</span>
+            {isPalestine && <span className="text-xs">🇵🇸</span>}
           </Link>
         )}
         {collapsed && (
-          <Link href="/" className="text-green-500 font-bold text-lg">a.</Link>
+          <Link href="/" className={`font-bold text-lg ${isPalestine ? 'text-[#009736]' : 'text-green-500'}`}>a.</Link>
         )}
         {/* Desktop collapse toggle */}
         <button
