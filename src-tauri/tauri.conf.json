@@ -46,7 +46,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/abbeslim/notefinder/releases/latest/download/latest.json"
+        "https://github.com/amldmr652-pixel/abbeslim/releases/latest/download/latest.json"
       ]
     }
   }

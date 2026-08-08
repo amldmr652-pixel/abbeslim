@@ -11,8 +11,8 @@ import FAQ from '../components/download/FAQ';
 
 export default function DownloadPage() {
   const DOWNLOAD_URLS = {
-    windows: 'https://github.com/abbeslim/notefinder/releases/latest/download/abbeslim_1.0.0_x64-setup.exe',
-    android: 'https://github.com/abbeslim/notefinder/releases/latest/download/abbeslim-v1.0.0.apk',
+    windows: 'https://github.com/amldmr652-pixel/abbeslim/releases/latest/download/abbeslim_1.0.0_x64-setup.exe',
+    android: 'https://github.com/amldmr652-pixel/abbeslim/releases/latest/download/abbeslim-v1.0.0.apk',
   };
 
   return (
