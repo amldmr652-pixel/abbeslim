@@ -1358,3 +1358,41 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - `./gradlew.bat assembleDebug` → Yeni `ic_launcher` ikonlu `abbeslim-v1.0.0.apk` üretildi.
 - `npx vercel --prod` → Web sitesi canlıya alındı.
 
+---
+
+## [2026-08-09] V2.40 — PNG Tabanlı Uygulama İkonu Yenileme (Tüm Platformlar)
+
+### Faz: Uygulama İkonu Düzeltme
+
+### 1. Yapılanlar
+
+- **Sorun Tespiti:**
+  - `public/logo.svg` dosyasındaki SVG filtreleri (`feGaussianBlur`, glow efektleri) `npx tauri icon` ile PNG'ye dönüştürüldüğünde bozuluyordu.
+  - Sonuç: Windows masaüstü kısayolunda ve Android launcher'da ikon neredeyse görünmez kalıyordu.
+
+- **Çözüm: AI-Generated 1024x1024 PNG İkon:**
+  - `generate_image` aracıyla yüksek kaliteli, yüksek kontrastlı PNG uygulama ikonu oluşturuldu.
+  - `sharp-cli` ile JPG → PNG dönüşümü yapıldı (Python mevcut değildi).
+  - `npx tauri icon public/app-icon.png` ile tüm platform ikonları yeniden üretildi:
+    - Windows: `icon.ico` + 10 Appx Logo boyutu
+    - macOS: `icon.icns`
+    - Android: `mipmap-mdpi` → `mipmap-xxxhdpi` (launcher, round, foreground)
+    - iOS: 18 AppIcon boyutu
+  - Android `res/mipmap-*` klasörlerine ikonlar kopyalandı.
+  - Web favicon'lar güncellendi: `favicon.ico`, `icon-128.png`, `icon-512.png`.
+  - `layout.tsx` metadata'sı SVG yerine PNG/ICO referanslarına güncellendi.
+
+### 2. Değiştirilen Dosyalar
+- `public/app-icon.png` [YENİ] — 1024x1024 kaynak PNG ikon
+- `public/favicon.ico` [YENİ] — Web favicon
+- `public/icon-128.png` [YENİ] — 128x128 PNG favicon
+- `public/icon-512.png` [YENİ] — 512x512 PNG favicon
+- `src/app/layout.tsx` — `icons` metadata SVG → PNG/ICO
+- `src-tauri/icons/*` — Tüm platform ikonları yenilendi
+- `android/app/src/main/res/mipmap-*` — Android ikonları güncellendi
+
+### 3. Kritik Bilgi
+- SVG glow/blur filtreleri küçük PNG dönüşümlerinde kaybolur. Uygulama ikonları için her zaman yüksek çözünürlüklü raster (PNG) kaynak kullanılmalıdır.
+- `cargo clean` yapılmadan Windows `.ico` güncellenmez (tauri-winres cache).
+- Android build için `JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"` (JDK 21) gereklidir, sistem JRE 1.8 yeterli değildir.
+

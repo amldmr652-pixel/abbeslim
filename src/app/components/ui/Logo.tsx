@@ -52,8 +52,6 @@ export default function Logo({
             strokeWidth="3.5"
             strokeLinecap="round"
           />
-          {/* Glowing Center Core */}
-          <circle cx="16" cy="11.5" r="2" fill="#ffffff" />
         </svg>
       </div>
 
