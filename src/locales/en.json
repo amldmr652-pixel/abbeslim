@@ -21,6 +21,7 @@
     "next": "Next"
   },
   "sidebar": {
+    "admin": "Admin Panel",
     "home": "Home",
     "dashboard": "Dashboard",
     "chat": "AI Chat",

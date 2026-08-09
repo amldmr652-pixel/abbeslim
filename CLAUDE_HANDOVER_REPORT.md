@@ -1425,4 +1425,29 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - `npm run build` → 38/38 sayfa hatasız derlendi.
 - Desktop (`npx tauri build`) ve Mobile (`gradlew assembleDebug`) paketlemeleri güncellendi.
 
+---
+
+## [2026-08-09] V2.42 — 7 Maddelik Düzeltme ve İyileştirme Paketi (Bugfix & Refinements)
+
+### Faz: Düzeltme & İyileştirme Paketi
+
+### 1. Yapılanlar
+
+- **Madde 1 — Logo Beyazlığı Düzeltmesi (`Logo.tsx`):** Emblem container'ındaki parlak `from-green-500/25` gradient `from-green-500/10` seviyesine çekildi, border ve shadow opaklıkları yumuşatıldı. Glow katmanı tamamen silindi.
+- **Madde 2 — Ayet/Hadis Navigasyonu Yeniden Tasarım (`page.tsx`, `useSettingsStore.ts`, `settings/page.tsx`):**
+  - Popup modal yapısı tamamen kaldırıldı.
+  - **Sol tık (boş alana):** Doğrudan sonraki ayete geçer.
+  - **Sağ tık / Mobilde 500ms basılı tutma:** Tıklanan mouse/dokunma pozisyonunda şık, küçük bir context menü (`⏮ Önceki Ayet / ⏭ Sonraki Ayet`) açılır.
+  - `quoteChangeMode` seçeneği ve ayarlar kartı temizlendi.
+- **Madde 3 — Hatırlatıcılar Supabase Migration (`scripts/reminders-v2-migration.sql`):** `priority`, `category`, `snooze_minutes`, `repeat_type` sütunlarını `reminders` tablosuna ekleyen SQL migration scripti yazıldı.
+- **Madde 4 — Mobilde Alarm Sesi Düzeltmesi (`useReminderEngine.ts`):** `playAlarmSound` fonksiyonunda `AudioContext` suspended modunda ise `await audioCtx.resume()` eklendi. Mobil cihazlarda alarmların sessiz kalması engellendi.
+- **Madde 5 — Oyunlar Timer Jitter Düzeltmesi (`games/page.tsx`):** `useEffect` dependency array'indeki `timePlayedToday` kaldırıldı, interval callback içinde `useGamesStore.getState()` kullanıldı. Her saniye interval'ın yıkılıp yeniden kurulması önlendi.
+- **Madde 6 — Android Eksik İzinleri (`AndroidManifest.xml`):** Android 13+ bildirim izni (`POST_NOTIFICATIONS`), titreşim (`VIBRATE`), arka plan ve uyanıklık (`WAKE_LOCK`, `FOREGROUND_SERVICE`) ve ağ durumu (`ACCESS_NETWORK_STATE`) izinleri eklendi.
+- **Madde 7 — Derleme ve Paketleme:**
+  - `npm run build` → 38/38 sayfa hatasız derlendi.
+  - Desktop (`npx tauri build`) → Windows NSIS installer üretildi.
+  - Mobile (`gradlew assembleDebug`) → Android debug APK üretildi.
+
+
+
 

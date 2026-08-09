@@ -21,6 +21,7 @@
     "next": "Sonraki"
   },
   "sidebar": {
+    "admin": "Admin Paneli",
     "home": "Ana Sayfa",
     "dashboard": "Dashboard",
     "chat": "AI Sohbet",

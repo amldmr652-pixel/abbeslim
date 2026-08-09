@@ -1,0 +1,6 @@
+src-tauri/target
+android
+.next
+node_modules
+*.exe
+*.apk

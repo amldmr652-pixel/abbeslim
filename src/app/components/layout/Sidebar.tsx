@@ -84,10 +84,30 @@ export default function Sidebar() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // 1. User metadata check
+        if (user.user_metadata?.is_admin) {
+          setIsAdmin(true);
+          return;
+        }
+
+        // 2. Direct Supabase query check
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.is_admin) {
+          setIsAdmin(true);
+          return;
+        }
+
+        // 3. API route check
         const res = await apiClient('/api/admin/me');
         if (res.ok) {
-          const profile = await res.json();
-          if (profile?.is_admin) {
+          const p = await res.json();
+          if (p?.is_admin) {
             setIsAdmin(true);
           }
         }
@@ -127,7 +147,7 @@ export default function Sidebar() {
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
     const hasBadge = item.hasBadge;
-    const label = item.id === 'download' ? 'Uygulamayı İndir' : t(`sidebar.${item.id}`);
+    const label = item.id === 'admin' ? (t('sidebar.admin') !== 'sidebar.admin' ? t('sidebar.admin') : 'Admin Paneli') : item.id === 'download' ? 'Uygulamayı İndir' : t(`sidebar.${item.id}`);
     const badgeText = t('common.comingSoon');
 
     const content = (
