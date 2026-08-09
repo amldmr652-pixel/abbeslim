@@ -82,6 +82,23 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     };
   }, [pathname, router]);
 
+  // Giriş yapıldıktan sonra bildirim izni iste
+  useEffect(() => {
+    if (!isAuthenticated || isAuthRoute) return;
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'default'
+      ) {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch (e) {
+      // Bildirim desteklenmiyor (bazı mobil tarayıcılar)
+    }
+  }, [isAuthenticated, isAuthRoute]);
+
   // Keyboard Shortcuts Listener
   useEffect(() => {
     if (!isAuthenticated) return;
