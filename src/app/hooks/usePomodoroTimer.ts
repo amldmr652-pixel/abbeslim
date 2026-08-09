@@ -3,6 +3,7 @@ import { useMusicContext } from '../context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { usePomodoroStore, Mode as PomodoroMode } from '@/stores/usePomodoroStore';
+import { sendNotification, requestNotificationPermission } from '@/utils/notifications';
 
 export type Mode = PomodoroMode;
 
@@ -83,20 +84,10 @@ export function usePomodoroTimer() {
     setShaking(true);
     setTimeout(() => setShaking(false), 1000);
 
-    if (
-      typeof window !== 'undefined' &&
-      'Notification' in window &&
-      typeof Notification !== 'undefined' &&
-      Notification.permission === 'granted'
-    ) {
-      try {
-        new Notification('Süre Doldu! 🍅', {
-          body: currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!',
-        });
-      } catch (err) {
-        console.warn("Notification send error:", err);
-      }
-    }
+    sendNotification(
+      'Süre Doldu! 🍅',
+      currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!'
+    );
 
     const isPomodoro = currentMode === 'pomodoro';
     let nextMode: Mode;
@@ -156,19 +147,7 @@ export function usePomodoroTimer() {
   }, [timeLeft, isRunning, handleFinish]);
 
   const startTimer = () => {
-    try {
-      if (
-        typeof window !== 'undefined' &&
-        'Notification' in window &&
-        typeof Notification !== 'undefined' &&
-        typeof Notification.requestPermission === 'function' &&
-        Notification.permission === 'default'
-      ) {
-        Notification.requestPermission().catch(() => {});
-      }
-    } catch (e) {
-      // Ignore notification permission error on mobile
-    }
+    requestNotificationPermission().catch(() => {});
     start(timeLeft);
   };
 

@@ -13,6 +13,7 @@ import { useMusicContext } from './context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useReminderEngine } from '@/app/hooks/useReminderEngine';
+import { requestNotificationPermission } from '@/utils/notifications';
 import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
 
 // Auth sayfaları — bu route'larda widget'lar gizlenir
@@ -82,21 +83,10 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     };
   }, [pathname, router]);
 
-  // Giriş yapıldıktan sonra bildirim izni iste
+  // Giriş yapıldıktan sonra bildirim izni iste (çapraz platform: Web/Capacitor/Tauri)
   useEffect(() => {
     if (!isAuthenticated || isAuthRoute) return;
-    try {
-      if (
-        typeof window !== 'undefined' &&
-        'Notification' in window &&
-        typeof Notification !== 'undefined' &&
-        Notification.permission === 'default'
-      ) {
-        Notification.requestPermission().catch(() => {});
-      }
-    } catch (e) {
-      // Bildirim desteklenmiyor (bazı mobil tarayıcılar)
-    }
+    requestNotificationPermission().catch(() => {});
   }, [isAuthenticated, isAuthRoute]);
 
   // Keyboard Shortcuts Listener

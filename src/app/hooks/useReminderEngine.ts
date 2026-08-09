@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useReminderStore } from '@/stores/useReminderStore';
+import { sendNotification, requestNotificationPermission } from '@/utils/notifications';
 
 // Basit alarm sesi üret (Web Audio API)
 async function playAlarmSound(soundType = 'beep') {
@@ -54,11 +55,7 @@ export function useReminderEngine() {
       fetchReminders();
       
       // Bildirim izni iste
-      if (typeof window !== 'undefined' && 'Notification' in window) {
-        if (Notification.permission === 'default') {
-          Notification.requestPermission();
-        }
-      }
+      requestNotificationPermission().catch(() => {});
     }
   }, [fetchReminders]);
 
@@ -89,14 +86,11 @@ export function useReminderEngine() {
       // Alarm sesi çal
       playAlarmSound(reminder.sound || 'beep');
 
-      // Tarayıcı bildirimi
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(`🔔 ${reminder.title}`, {
-          body: reminder.description || 'Hatırlatıcı zamanı geldi!',
-          icon: '/favicon.ico',
-          tag: todayKey, // Aynı bildirimi tekrar gösterme
-        });
-      }
+      // Bildirim gönder (Web/Mobil/Tauri)
+      sendNotification(
+        `🔔 ${reminder.title}`,
+        reminder.description || 'Hatırlatıcı zamanı geldi!'
+      );
     });
   }, [reminders]);
 
