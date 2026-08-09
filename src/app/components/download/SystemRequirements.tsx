@@ -22,7 +22,7 @@ export default function SystemRequirements() {
             </div>
             <div className="flex justify-between py-1 border-b border-white/5">
               <span className="text-gray-400">Depolama</span>
-              <span>50 MB kullanılabilir alan</span>
+              <span>200 MB kullanılabilir alan</span>
             </div>
           </div>
         </div>
@@ -41,7 +41,7 @@ export default function SystemRequirements() {
             </div>
             <div className="flex justify-between py-1 border-b border-white/5">
               <span className="text-gray-400">Depolama</span>
-              <span>100 MB kullanılabilir alan</span>
+              <span>200 MB kullanılabilir alan</span>
             </div>
           </div>
         </div>

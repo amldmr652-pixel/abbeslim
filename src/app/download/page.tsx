@@ -26,7 +26,7 @@ export default function DownloadPage() {
           title="Windows Masaüstü"
           subtitle="Windows 10 & 11 (64-bit)"
           version="1.0.0"
-          size="~8 MB"
+          size="~128 MB"
           downloadUrl={DOWNLOAD_URLS.windows}
           icon={<Monitor size={32} />}
           badgeText="Masaüstü"
@@ -43,7 +43,7 @@ export default function DownloadPage() {
           title="Android Mobil"
           subtitle="Android 8.0 ve üzeri"
           version="1.0.0"
-          size="~25 MB"
+          size="~160 MB"
           downloadUrl={DOWNLOAD_URLS.android}
           icon={<Smartphone size={32} />}
           badgeText="Mobil APK"
