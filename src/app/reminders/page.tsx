@@ -85,14 +85,19 @@ export default function RemindersPage() {
   }, [fetchReminders]);
 
   const handleRequestPermission = async () => {
-    const granted = await requestNotificationPermission();
-    setHasPermission(granted);
-    if (granted) {
-      setTestStatus('✓ Bildirim izni başarıyla verildi!');
-      setTimeout(() => setTestStatus(null), 3000);
-    } else {
-      setTestStatus('⚠️ Bildirim izni engellendi veya reddedildi.');
-      setTimeout(() => setTestStatus(null), 4000);
+    try {
+      const granted = await requestNotificationPermission();
+      setHasPermission(granted);
+      if (granted) {
+        setTestStatus('✓ Bildirim izni başarıyla verildi!');
+        setTimeout(() => setTestStatus(null), 3000);
+      } else {
+        setTestStatus('⚠️ Bildirim izni verilemedi. Lütfen telefon/tarayıcı ayarlarınızdan bildirimleri açın.');
+        setTimeout(() => setTestStatus(null), 5000);
+      }
+    } catch (err: any) {
+      setTestStatus(`⚠️ İsteği gerçekleştirirken bir hata oluştu.`);
+      setTimeout(() => setTestStatus(null), 5000);
     }
   };
 

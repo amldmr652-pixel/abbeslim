@@ -13,7 +13,8 @@
     "cap:open:ios": "npx cap open ios",
     "tauri:dev": "npx tauri dev",
     "tauri:build": "npx tauri build",
-    "tauri:build:win": "npm run build:desktop && npx tauri build --target x86_64-pc-windows-msvc",
+    "tauri:build:win": "npm run build:desktop && npx tauri build --target x86_64-pc-windows-msvc && powershell -Command \"Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/abbeslim_1.0.0_x64-setup.exe' -Destination './abbeslim_1.0.0_x64-setup.exe' -Force\"",
+    "apk:copy": "powershell -Command \"Copy-Item 'android/app/build/outputs/apk/debug/app-debug.apk' -Destination './abbeslim-v1.0.0.apk' -Force\"",
     "start": "next start",
     "lint": "eslint"
   },

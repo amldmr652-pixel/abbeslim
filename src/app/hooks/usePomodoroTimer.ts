@@ -97,6 +97,12 @@ export function usePomodoroTimer() {
       const interval = settings.pomodoroLongBreakInterval || 4;
       nextMode = (nextCount % interval === 0) ? 'longBreak' : 'shortBreak';
       incrementPomodoroCount();
+      // Molaya geçilince otomatik müzik çal
+      try {
+        setIsMusicPlaying(true);
+      } catch (e) {
+        // MusicContext fallback
+      }
     } else {
       nextMode = 'pomodoro';
     }
@@ -137,7 +143,7 @@ export function usePomodoroTimer() {
         });
       }
     });
-  }, [currentMode, pomodoroCount, settings, pause, setFinished, setShaking, incrementPomodoroCount, setMode, start]);
+  }, [currentMode, pomodoroCount, settings, pause, setFinished, setShaking, incrementPomodoroCount, setMode, start, setIsMusicPlaying]);
 
   // Handle completion check
   useEffect(() => {

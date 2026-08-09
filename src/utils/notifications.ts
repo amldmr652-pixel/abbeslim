@@ -5,44 +5,37 @@
  */
 
 import { Capacitor } from '@capacitor/core';
-
-let LocalNotifications: typeof import('@capacitor/local-notifications').LocalNotifications | null = null;
-
-// Capacitor eklentisini lazy-load et
-async function getLocalNotifications() {
-  if (LocalNotifications) return LocalNotifications;
-  try {
-    const mod = await import('@capacitor/local-notifications');
-    LocalNotifications = mod.LocalNotifications;
-    return LocalNotifications;
-  } catch {
-    return null;
-  }
-}
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 /**
  * Bildirim izni iste (platform bağımsız)
  */
 export async function requestNotificationPermission(): Promise<boolean> {
-  // Capacitor native platform (Android/iOS)
-  if (Capacitor.isNativePlatform()) {
-    const ln = await getLocalNotifications();
-    if (!ln) return false;
-    const result = await ln.requestPermissions();
-    return result.display === 'granted';
-  }
-
-  // Web / Tauri WebView
-  if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'default') {
+  try {
+    // 1. Mobil Native Platform (Android / iOS)
+    if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
       try {
-        const result = await Notification.requestPermission();
-        return result === 'granted';
-      } catch {
-        return false;
+        const perms = await LocalNotifications.checkPermissions();
+        if (perms.display === 'granted') {
+          return true;
+        }
+        const req = await LocalNotifications.requestPermissions();
+        return req.display === 'granted';
+      } catch (err) {
+        console.warn('Capacitor LocalNotifications permission error:', err);
       }
     }
+
+    // 2. Web / Tauri / Chrome WebView Fallback
+    if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        return true;
+      }
+      const result = await Notification.requestPermission();
+      return result === 'granted';
+    }
+  } catch (e) {
+    console.error('Error requesting notification permission:', e);
   }
 
   return false;
@@ -54,45 +47,46 @@ export async function requestNotificationPermission(): Promise<boolean> {
 let notificationIdCounter = 1;
 
 export async function sendNotification(title: string, body: string): Promise<void> {
-  // Capacitor native platform (Android/iOS)
-  if (Capacitor.isNativePlatform()) {
-    const ln = await getLocalNotifications();
-    if (!ln) return;
+  try {
+    // 1. Mobil Native Platform (Android / iOS)
+    if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+      try {
+        const perms = await LocalNotifications.checkPermissions();
+        if (perms.display !== 'granted') {
+          const req = await LocalNotifications.requestPermissions();
+          if (req.display !== 'granted') return;
+        }
 
-    // İzin kontrolü
-    const perms = await ln.checkPermissions();
-    if (perms.display !== 'granted') {
-      const req = await ln.requestPermissions();
-      if (req.display !== 'granted') return;
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: notificationIdCounter++,
+              title,
+              body,
+              schedule: { at: new Date(Date.now() + 100) }, // Hemen göster
+            },
+          ],
+        });
+        return;
+      } catch (err) {
+        console.warn('Capacitor LocalNotifications schedule error:', err);
+      }
     }
 
-    await ln.schedule({
-      notifications: [
-        {
-          id: notificationIdCounter++,
-          title,
-          body,
-          schedule: { at: new Date(Date.now() + 100) }, // Hemen gönder
-          sound: undefined,
-          smallIcon: 'ic_notification',
-          largeIcon: 'ic_notification',
-        },
-      ],
-    });
-    return;
-  }
-
-  // Web / Tauri WebView
-  if (
-    typeof window !== 'undefined' &&
-    'Notification' in window &&
-    typeof Notification !== 'undefined' &&
-    Notification.permission === 'granted'
-  ) {
-    try {
-      new Notification(title, { body });
-    } catch (err) {
-      console.warn('Notification send error:', err);
+    // 2. Web / Tauri WebView Fallback
+    if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+      try {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      } catch (err) {
+        console.warn('Browser Notification send error:', err);
+      }
     }
+  } catch (e) {
+    console.error('Error sending notification:', e);
   }
 }

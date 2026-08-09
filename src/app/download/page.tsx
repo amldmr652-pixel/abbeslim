@@ -43,7 +43,7 @@ export default function DownloadPage() {
           title="Android Mobil"
           subtitle="Android 8.0 ve üzeri"
           version="1.0.0"
-          size="~160 MB"
+          size="~180 MB"
           downloadUrl={DOWNLOAD_URLS.android}
           icon={<Smartphone size={32} />}
           badgeText="Mobil APK"

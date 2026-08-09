@@ -8,7 +8,7 @@ export async function createClient() {
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7)
-    return createBaseClient(
+    const client = createBaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -22,6 +22,12 @@ export async function createClient() {
         }
       }
     )
+
+    // Proxy auth.getUser to automatically supply Bearer token when called without arguments
+    const originalGetUser = client.auth.getUser.bind(client.auth)
+    client.auth.getUser = (jwt?: string) => originalGetUser(jwt || token)
+
+    return client
   }
 
   const cookieStore = await cookies()
