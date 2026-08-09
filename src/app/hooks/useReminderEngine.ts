@@ -4,9 +4,12 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useReminderStore } from '@/stores/useReminderStore';
 
 // Basit alarm sesi üret (Web Audio API)
-function playAlarmSound(soundType = 'beep') {
+async function playAlarmSound(soundType = 'beep') {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
     const playBeep = (freq: number, startTime: number, duration: number, type: OscillatorType = 'sine') => {
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();

@@ -34,13 +34,16 @@ export default function GamesPage() {
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (activeGame && timePlayedToday < dailyLimit) {
+    if (activeGame) {
       timer = setInterval(() => {
-        incrementTime(activeGame);
+        const state = useGamesStore.getState();
+        if (state.timePlayedToday < dailyLimit) {
+          incrementTime(activeGame);
+        }
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [activeGame, incrementTime, timePlayedToday, dailyLimit]);
+  }, [activeGame, incrementTime, dailyLimit]);
 
   if (!mounted) return <div className="flex-1 p-8 text-center text-gray-500">Yükleniyor...</div>;
 

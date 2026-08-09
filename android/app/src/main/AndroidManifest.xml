@@ -32,6 +32,19 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     
+    <!-- Hatırlatıcı bildirimleri (Android 13+ zorunlu) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Alarm titreşimi -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Pomodoro arka planda çalışma -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    
+    <!-- Ağ durumu (çevrimdışı algılama) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
     <!-- Sesli arama ve sesli not için mikrofon -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />

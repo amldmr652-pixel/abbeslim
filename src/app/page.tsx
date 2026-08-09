@@ -4,23 +4,21 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard, Bot, Search, BookOpen, Calendar, CheckSquare, Target, StickyNote,
-  Clock, Sparkles, X, Quote, Compass, ArrowRight
+  Clock, Sparkles, Quote, Compass, ArrowRight
 } from 'lucide-react';
 import { SPIRITUAL_QUOTES, SpiritualQuote } from '@/data/verses';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { createClient } from '@/utils/supabase/client';
-import { useSettingsStore } from '@/stores/useSettingsStore';
 
 export default function HomePage() {
   const { language } = useTranslation();
-  const { quoteChangeMode } = useSettingsStore();
 
   const [userName, setUserName] = useState<string>('Kullanıcı');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [formattedDate, setFormattedDate] = useState<string>('');
   
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -63,31 +61,26 @@ export default function HomePage() {
 
   const handleBackgroundClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    // Don't trigger quote change if clicking interactive links or buttons
-    if (target.closest('a') || target.closest('button')) {
+    if (target.closest('a') || target.closest('button')) return;
+    
+    if (contextMenu) {
+      setContextMenu(null);
       return;
     }
-
-    if (quoteChangeMode === 'direct') {
-      nextQuote();
-    } else {
-      nextQuote();
-      setIsModalOpen(true);
-    }
+    nextQuote();
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('a') || target.closest('button')) {
-      return;
-    }
+    if (target.closest('a') || target.closest('button')) return;
     e.preventDefault();
-    prevQuote();
+    setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
     longPressTimerRef.current = setTimeout(() => {
-      prevQuote();
+      setContextMenu({ x: touch.clientX, y: touch.clientY });
     }, 500);
   };
 
@@ -116,7 +109,7 @@ export default function HomePage() {
               Hoş Geldiniz, <span className="text-green-400">{userName}</span>
             </h1>
             <p className="text-gray-400 text-sm mt-1">
-              Gününüz bereketli ve verimli geçsin. {quoteChangeMode === 'direct' ? 'Tıklayarak sonraki (sağ tık/basılı tut: önceki) ayeti görebilirsiniz.' : 'Boş alana tıklayarak ilham verici ayet ve hadisleri keşfedebilirsiniz.'}
+              Gününüz bereketli ve verimli geçsin. Boş alana tıklayarak sonraki ayete geçebilir, sağ tıklayarak önceki/sonraki arasında seçim yapabilirsiniz.
             </p>
           </div>
 
@@ -160,7 +153,7 @@ export default function HomePage() {
               {/* Source block */}
               <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs text-gray-400 flex-wrap gap-2">
                 <span className="font-semibold text-green-400 block">{activeQuote.source}</span>
-                <span className="text-[11px] text-gray-500">Sol tık: sonraki • Sağ tık/Basılı tut: önceki ✨</span>
+                <span className="text-[11px] text-gray-500">Sol tık: Sonraki • Sağ tık/Basılı tut: Menü ✨</span>
               </div>
             </div>
           </div>
@@ -203,48 +196,30 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Ayet & Hadis Popup Modalı (Sadece modal modunda) */}
-      {isModalOpen && activeQuote && quoteChangeMode === 'modal' && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out]"
-          onClick={(e) => { e.stopPropagation(); setIsModalOpen(false); }}
-        >
-          <div 
-            className="glass bg-black/90 border border-green-500/40 p-8 rounded-3xl max-w-xl w-full relative shadow-2xl space-y-6 text-center"
-            onClick={e => e.stopPropagation()}
+      {/* Sağ tık / Basılı tutma context menüsü */}
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setContextMenu(null)} />
+          <div
+            className="fixed z-[61] glass border border-green-500/30 rounded-2xl shadow-2xl shadow-black/60 py-2 min-w-[180px] animate-[fadeIn_0.15s_ease-out]"
+            style={{ left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 200 : contextMenu.x), top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 100 : contextMenu.y) }}
           >
-            <button 
+            <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+              onClick={(e) => { e.stopPropagation(); prevQuote(); setContextMenu(null); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-green-500/10 transition-colors flex items-center gap-3"
             >
-              <X size={20} />
+              ⏮ Önceki {activeQuote?.type === 'ayet' ? 'Ayet' : 'Hadis'}
             </button>
-
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold rounded-full">
-              <Sparkles size={14} /> {activeQuote.type === 'ayet' ? 'Kutsal Âyet-i Kerîme' : 'Sahih Hadîs-i Şerîf'}
-            </div>
-
-            <p className="text-2xl md:text-3xl font-serif leading-loose text-emerald-300 dir-rtl py-2 break-words" dir="rtl">
-              {activeQuote.arabic}
-            </p>
-
-            <p className="text-lg text-white font-medium italic border-t border-b border-white/10 py-4 break-words">
-              "{activeQuote.turkish}"
-            </p>
-
-            <div className="flex items-center justify-between text-xs text-gray-400 pt-2">
-              <span className="font-bold text-green-400">{activeQuote.source}</span>
-              <button
-                type="button"
-                onClick={nextQuote}
-                className="text-xs text-green-400 hover:text-green-300 font-semibold underline flex items-center gap-1"
-              >
-                Sonraki 🔄
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); nextQuote(); setContextMenu(null); }}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-green-500/10 transition-colors flex items-center gap-3"
+            >
+              ⏭ Sonraki {activeQuote?.type === 'ayet' ? 'Ayet' : 'Hadis'}
+            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
