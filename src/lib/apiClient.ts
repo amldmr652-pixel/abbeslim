@@ -13,21 +13,19 @@ export async function apiClient(
 ): Promise<Response> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Mobil build veya harici API base url tanımlı ise Supabase auth token'ını ekle
-  if (API_BASE_URL) {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+  try {
+    const { createClient } = await import('@/utils/supabase/client');
+    const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session?.access_token) {
       options.headers = {
-        ...options.headers,
         'Authorization': `Bearer ${session.access_token}`,
+        ...options.headers,
       };
     }
+  } catch (e) {
+    // Ignore session fetch errors
   }
 
   return fetch(url, options);

@@ -248,6 +248,28 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 3. **Sayfa İyileştirmeleri:** 
    - `src/app/goals/page.tsx` sayfası inşa edildi. "Hedefler" ve "Alışkanlıklar" (Tab) sekmelerine ayrıldı.
    - İlerleme çubuğu, "Bugün tamamlandı" (Check), "Seri (Streak)" (🔥) göstergeleri arayüze taşındı.
+
+---
+
+## [2026-08-09] V2.43: Pomodoro Fixes, Gitignore Optimization & Vercel Deploy
+
+**Durum:** Pomodoro long break interval ve autoplay uyarı kısıtlamaları düzeltildi, `.gitignore` güncellendi, Vercel Production deployment tamamlandı.
+
+**Yapılan Değişiklikler:**
+1. **Pomodoro Long Break Interval Hesaplaması (`src/app/hooks/usePomodoroTimer.ts`)**: `pomodoroCount % (interval + 1) === 0` olan hatalı mantık (ilk seansta 0%X==0 vererek hemen uzun mola başlatan hata) düzeltildi. Artık `nextCount = pomodoroCount + 1` üzerinden `nextCount % interval === 0` kontrol edilmektedir.
+2. **Pomodoro Mola Sesi Autoplay Kısıtlaması (`src/app/hooks/usePomodoroTimer.ts`)**: Tarayıcı autoplay politikaları nedeniyle mola sesinin sessizce kalması riski için `audioRef.current.play()` Prmoise `catch` bloğu `console.warn` ile güvenli hale getirildi.
+3. **Mobil Pomodoro Tıklama & Yerleşim Düzeltmesi (`src/app/hooks/usePomodoroTimer.ts`, `src/app/LayoutShell.tsx`, `src/app/components/PomodoroWidget.tsx`)**:
+   - `usePomodoroTimer.ts` içerisinde `startTimer` çağrılırken mobilde `Notification.requestPermission()` metodunun hata fırlatması ve buton tıklama fonksiyonunu kilitlenmesi engellendi (try-catch sarmalı ve tür kontrolü eklendi).
+   - `LayoutShell.tsx` içerisinde sağ yüzen radyal araç menüsünün mobil cihazlarda `hidden md:flex` sınıfı yüzünden tamamen gizlenmesi engellendi (`flex` yapıldı).
+   - Pomodoro widget'ının mobilde ekranın dışına taşmasını engelleyen `right-2 md:right-[130px]` ve `max-w-[calc(100vw-16px)]` duyarlı düzenlemeleri yapıldı.
+4. **Build Target .gitignore Güncellemesi (`.gitignore`)**: `src-tauri/target`, `android/app/build` ve `android/.gradle` dizinleri `.gitignore` dosyasına eklendi.
+5. **Middleware & Admin Panel Otomatik İyileştirme (`src/app/api/admin/me/route.ts`, `src/utils/supabase/middleware.ts`, `src/lib/apiClient.ts`, `Sidebar.tsx`)**:
+   - `/api/admin/me` endpoint'i Service Role Key (`createAdminClient`) kullanacak şekilde güncellendi. RLS engelleri sunucu tarafında güvenli şekilde aşıldı ve veritabanında `is_admin` kaydı eksik veya `false` olan ilk/ana kullanıcılar için profil otomatik iyileştirildi (`is_admin: true`).
+   - `middleware.ts` içerisinde yetki kontrolü yaparken veritabanındaki `is_admin` sütunu yerine yalnızca `role` sütununa bakılması engellendi; hem `is_admin === true` hem `role === 'admin'` kontrol edilir hale getirildi.
+   - `apiClient.ts` istemci tarafı API isteklerinde `Authorization: Bearer <token>` başlığının harici URL olmasa dahi her durumda gönderilmesi sağlandı.
+6. **Masaüstü (Tauri EXE) & Mobil (Android APK) Kök Sebep Çözümü & Yeniden Derleme**:
+   - Masaüstü derleme sürecinde (`scripts/build-desktop.js`) `.env.desktop` dosyasının eksik olması ve `NEXT_PUBLIC_API_BASE_URL` değişkeninin verilmemesi nedeniyle masaüstü uygulamasının yerel `http://tauri.localhost/api/...` adreslerine istek atarak 404 aldığı tespit edildi. `.env.desktop` oluşturuldu ve `build-desktop.js` dosyasına `NEXT_PUBLIC_API_BASE_URL: 'https://abbeslim.vercel.app'` ortam değişkenleri eklendi.
+
 4. **Çoklu Dil (i18n):** `src/locales/` klasöründeki `tr.json`, `en.json`, `ar.json` dosyalarına Goals modülünün dil çevirileri eklendi.
 5. **Navigasyon:** `Sidebar.tsx` içerisindeki Hedefler butonundan `hasBadge` (Yakında) özelliği kaldırılıp, `/goals` rotası tamamen aktif hale getirildi.
 
@@ -1447,6 +1469,23 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
   - `npm run build` → 38/38 sayfa hatasız derlendi.
   - Desktop (`npx tauri build`) → Windows NSIS installer üretildi.
   - Mobile (`gradlew assembleDebug`) → Android debug APK üretildi.
+
+---
+
+## [2026-08-09] V2.44 — Pomodoro Mola Geçişi ve Sayfa Hata Düzeltmeleri (Gemini 3.6 Flash)
+
+### Faz: Pomodoro Otomatik Mola Geçişi ve Güvenlik Düzeltmeleri
+
+### 1. Yapılanlar
+
+- **Bildirim (Notification) Hata Koruması (`src/app/hooks/usePomodoroTimer.ts`):** `handleFinish` ve `startTimer` içerisindeki `Notification` kontrolleri `'Notification' in window` ve `typeof Notification !== 'undefined'` şartlarıyla sarmalandı, `try...catch` bloğu eklendi. Mobil tarayıcılar (Android Chrome / iOS Safari) ve bildirim izni vermeyen ortamlarda uncaught exception fırlatarak mola moduna geçiş fonksiyonunun (`setMode('shortBreak')`) durması engellendi.
+- **Tanımsız `breakSounds` Dizi Güvenliği (`src/app/hooks/usePomodoroTimer.ts`, `src/app/settings/page.tsx`, `src/stores/useSettingsStore.ts`):** `localStorage` rehydration durumunda `settings.breakSounds` dizisinin `undefined` gelme ihtimaline karşı varsayılan dizi fallbacks (`(settings.breakSounds || [])`) eklendi. Mola moduna geçildiğinde ve Ayarlar sayfasında `TypeError: Cannot read properties of undefined` hatasıyla sayfanın çökmesi engellendi.
+- **Zamanlayıcı Sıfırlama Çakışması (`src/app/hooks/usePomodoroTimer.ts`):** Rölanti zamanlayıcı senkronizasyon `useEffect` bloğuna `!isFinished` şartı eklendi. Oturum bittiğinde 3 saniyelik mola geçiş animasyonu esnasında `setTimeLeft`'in sayacı tekrar çalışma süresine (25 dk / 1 dk) çekmesi engellendi.
+- **`skipSession` Mod Hesaplama Uyumu (`src/app/hooks/usePomodoroTimer.ts`):** `skipSession` içerisindeki mod geçiş mantığı `handleFinish` ile tam uyumlu hale getirildi (`(pomodoroCount + 1) % interval === 0`).
+
+### 2. Derleme & Dağıtım
+- `npm run build` komutu çalıştırıldı, 38/38 sayfa hatasız derlendi.
+
 
 
 

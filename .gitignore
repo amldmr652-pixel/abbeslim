@@ -47,3 +47,7 @@ abbeslim_1.0.0_x64-setup.exe
 abbeslim-v1.0.0.apk
 *.exe
 *.apk
+src-tauri/target
+android/app/build
+android/.gradle
+

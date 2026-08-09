@@ -28,7 +28,8 @@ export function usePomodoroTimer() {
   } = usePomodoroStore();
 
   const settings = useSettingsStore();
-  const { breakSounds, selectedBreakSoundId } = settings;
+  const breakSounds = settings.breakSounds || [];
+  const selectedBreakSoundId = settings.selectedBreakSoundId || 'forest';
 
   // Music Context
   const {
@@ -39,13 +40,13 @@ export function usePomodoroTimer() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync settings back to timeLeft when timer is idle
-  const currentWorkTime = settings.pomodoroWork;
-  const currentShortTime = settings.pomodoroShortBreak;
-  const currentLongTime = settings.pomodoroLongBreak;
+  // Sync settings back to timeLeft when timer is idle and not finished
+  const currentWorkTime = settings.pomodoroWork || 25;
+  const currentShortTime = settings.pomodoroShortBreak || 5;
+  const currentLongTime = settings.pomodoroLongBreak || 15;
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning && !isFinished) {
       const duration = currentMode === 'pomodoro'
         ? currentWorkTime * 60
         : currentMode === 'shortBreak'
@@ -53,7 +54,7 @@ export function usePomodoroTimer() {
           : currentLongTime * 60;
       setTimeLeft(duration);
     }
-  }, [currentMode, currentWorkTime, currentShortTime, currentLongTime, isRunning, setTimeLeft]);
+  }, [currentMode, currentWorkTime, currentShortTime, currentLongTime, isRunning, isFinished, setTimeLeft]);
 
   // Tick timer & mobile visibility sync
   useEffect(() => {
@@ -82,17 +83,28 @@ export function usePomodoroTimer() {
     setShaking(true);
     setTimeout(() => setShaking(false), 1000);
 
-    if (typeof window !== 'undefined' && Notification.permission === 'granted') {
-      new Notification('Süre Doldu! 🍅', {
-        body: currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!',
-      });
+    if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+      try {
+        new Notification('Süre Doldu! 🍅', {
+          body: currentMode === 'pomodoro' ? 'Harika iş çıkardın! Şimdi mola zamanı.' : 'Mola bitti, odaklanma zamanı!',
+        });
+      } catch (err) {
+        console.warn("Notification send error:", err);
+      }
     }
 
     const isPomodoro = currentMode === 'pomodoro';
     let nextMode: Mode;
 
     if (isPomodoro) {
-      nextMode = pomodoroCount % (settings.pomodoroLongBreakInterval + 1) === 0 ? 'longBreak' : 'shortBreak';
+      const nextCount = pomodoroCount + 1;
+      const interval = settings.pomodoroLongBreakInterval || 4;
+      nextMode = (nextCount % interval === 0) ? 'longBreak' : 'shortBreak';
       incrementPomodoroCount();
     } else {
       nextMode = 'pomodoro';
@@ -100,10 +112,10 @@ export function usePomodoroTimer() {
 
     // Get time for next mode
     const nextTime = nextMode === 'pomodoro' 
-      ? settings.pomodoroWork * 60 
+      ? (settings.pomodoroWork || 25) * 60 
       : nextMode === 'shortBreak' 
-        ? settings.pomodoroShortBreak * 60 
-        : settings.pomodoroLongBreak * 60;
+        ? (settings.pomodoroShortBreak || 5) * 60 
+        : (settings.pomodoroLongBreak || 15) * 60;
 
     const autoStart = isPomodoro ? settings.pomodoroAutoStartBreaks : settings.pomodoroAutoStartPomodoros;
 
@@ -144,8 +156,18 @@ export function usePomodoroTimer() {
   }, [timeLeft, isRunning, handleFinish]);
 
   const startTimer = () => {
-    if (typeof window !== 'undefined' && Notification.permission === 'default') {
-      Notification.requestPermission();
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        typeof Notification !== 'undefined' &&
+        typeof Notification.requestPermission === 'function' &&
+        Notification.permission === 'default'
+      ) {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch (e) {
+      // Ignore notification permission error on mobile
     }
     start(timeLeft);
   };
@@ -157,20 +179,20 @@ export function usePomodoroTimer() {
   const resetTimer = useCallback((mode?: Mode) => {
     const targetMode = mode ?? currentMode;
     const time = targetMode === 'pomodoro' 
-      ? settings.pomodoroWork * 60 
+      ? (settings.pomodoroWork || 25) * 60 
       : targetMode === 'shortBreak' 
-        ? settings.pomodoroShortBreak * 60 
-        : settings.pomodoroLongBreak * 60;
+        ? (settings.pomodoroShortBreak || 5) * 60 
+        : (settings.pomodoroLongBreak || 15) * 60;
     reset(time);
   }, [currentMode, settings, reset]);
 
   const switchMode = useCallback((mode: Mode) => {
     const time = mode === 'pomodoro' 
-      ? settings.pomodoroWork * 60 
+      ? (settings.pomodoroWork || 25) * 60 
       : mode === 'shortBreak' 
-        ? settings.pomodoroShortBreak * 60 
+        ? (settings.pomodoroShortBreak || 5) * 60 
         : mode === 'longBreak' 
-          ? settings.pomodoroLongBreak * 60
+          ? (settings.pomodoroLongBreak || 15) * 60
           : 25 * 60;
     setMode(mode, time);
   }, [settings, setMode]);
@@ -178,7 +200,9 @@ export function usePomodoroTimer() {
   const skipSession = useCallback(() => {
     pause();
     if (currentMode === 'pomodoro') {
-      const nextMode = pomodoroCount % (settings.pomodoroLongBreakInterval + 1) === 0 ? 'longBreak' : 'shortBreak';
+      const nextCount = pomodoroCount + 1;
+      const interval = settings.pomodoroLongBreakInterval || 4;
+      const nextMode = (nextCount % interval === 0) ? 'longBreak' : 'shortBreak';
       incrementPomodoroCount();
       switchMode(nextMode);
     } else {
@@ -204,11 +228,17 @@ export function usePomodoroTimer() {
     }
 
     if (isRunning && (currentMode === 'shortBreak' || currentMode === 'longBreak')) {
-      const sound = breakSounds.find(s => s.id === selectedBreakSoundId);
+      const safeBreakSounds = breakSounds || [];
+      const sound = safeBreakSounds.find(s => s?.id === selectedBreakSoundId);
       if (sound && audioRef.current) {
         if (audioRef.current.src !== sound.url || audioRef.current.paused) {
           audioRef.current.src = sound.url;
-          audioRef.current.play().catch(e => console.error("Mola sesi çalınamadı:", e));
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(e => {
+              console.warn("Mola sesi otomatik başlatılamadı (tarayıcı kısıtlaması):", e);
+            });
+          }
         }
       }
     } else if (audioRef.current) {

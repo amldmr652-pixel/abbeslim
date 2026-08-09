@@ -42,9 +42,8 @@ export default function PomodoroWidget({ onOpenMusicPanel, isDropdown = false }:
   return (
     <div
       id="pomodoro-panel"
-      className="flex flex-col overflow-y-auto overflow-x-hidden"
+      className="flex flex-col overflow-y-auto overflow-x-hidden w-full max-w-[360px]"
       style={{
-        width: isDropdown ? 360 : 360,
         maxHeight: isDropdown ? 'calc(100vh - 80px)' : 800,
         background: 'rgba(10,12,14,0.97)',
         backdropFilter: 'blur(20px)',

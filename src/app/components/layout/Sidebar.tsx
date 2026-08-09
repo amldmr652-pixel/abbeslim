@@ -80,26 +80,30 @@ export default function Sidebar() {
   const isPalestine = theme === 'palestine';
 
   useEffect(() => {
+    let isMounted = true;
     async function checkAdminStatus() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          if (isMounted) setIsAdmin(false);
+          return;
+        }
 
         // 1. User metadata check
-        if (user.user_metadata?.is_admin) {
-          setIsAdmin(true);
+        if (user.user_metadata?.is_admin || user.app_metadata?.is_admin || user.user_metadata?.role === 'admin') {
+          if (isMounted) setIsAdmin(true);
           return;
         }
 
         // 2. Direct Supabase query check
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_admin')
+          .select('is_admin, role')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (profile?.is_admin) {
-          setIsAdmin(true);
+        if (profile?.is_admin || profile?.role === 'admin') {
+          if (isMounted) setIsAdmin(true);
           return;
         }
 
@@ -107,15 +111,26 @@ export default function Sidebar() {
         const res = await apiClient('/api/admin/me');
         if (res.ok) {
           const p = await res.json();
-          if (p?.is_admin) {
-            setIsAdmin(true);
+          if (p?.is_admin || p?.role === 'admin') {
+            if (isMounted) setIsAdmin(true);
+            return;
           }
         }
       } catch (e) {
         // Silent fail for non-admins
       }
     }
+
     checkAdminStatus();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkAdminStatus();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {

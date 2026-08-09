@@ -217,11 +217,11 @@ export const useSettingsStore = create<SettingsState>()(
       setDashboardOrder: (dashboardOrder) => set({ dashboardOrder }),
       
       addCustomBreakSound: (sound) => set((state) => ({ 
-        breakSounds: [...state.breakSounds, { ...sound, isCustom: true }] 
+        breakSounds: [...(state.breakSounds || DEFAULT_BREAK_SOUNDS), { ...sound, isCustom: true }] 
       })),
       
       removeCustomBreakSound: (id) => set((state) => ({ 
-        breakSounds: state.breakSounds.filter(s => s.id !== id || !s.isCustom),
+        breakSounds: (state.breakSounds || DEFAULT_BREAK_SOUNDS).filter(s => s.id !== id || !s.isCustom),
         selectedBreakSoundId: state.selectedBreakSoundId === id ? 'forest' : state.selectedBreakSoundId
       })),
       

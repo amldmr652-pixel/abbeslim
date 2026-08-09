@@ -250,7 +250,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           )}
 
           {/* Sağ kenar yüzen radyal buton grubu */}
-          <div className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[9999] w-8 h-12 items-center justify-start">
+          <div className="flex fixed right-0 top-1/2 -translate-y-1/2 z-[9999] w-8 h-12 items-center justify-start">
             {/* Gelişmiş Odak Modu Butonu (Sol Üst - 135 derece) */}
             <button
               onClick={() => {
@@ -331,8 +331,6 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
           <FocusModeOverlay />
 
-
-
           {/* AI Chat Panel (Serbest Konumlandırılabilir) */}
           <div
             className={`z-[9998] transition-opacity duration-300 ease-out ${
@@ -346,7 +344,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
           {/* Pomodoro Panel (Yandan Açılan) */}
           <div
-            className={`fixed right-[130px] top-1/2 -translate-y-1/2 z-[9998] transition-all duration-300 ease-out origin-right ${
+            className={`fixed right-2 md:right-[130px] top-1/2 -translate-y-1/2 z-[9998] max-w-[calc(100vw-16px)] transition-all duration-300 ease-out origin-right ${
               activePanel === 'pomodoro'
                 ? 'opacity-100 scale-100 translate-x-0'
                 : 'opacity-0 scale-95 translate-x-4 pointer-events-none'

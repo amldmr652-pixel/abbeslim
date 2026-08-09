@@ -944,7 +944,7 @@ export default function SettingsPage() {
                     <h3 className="text-sm font-bold text-white mb-2">Mola Sesleri</h3>
                     <p className="text-xs text-gray-500 mb-4">Pomodoro seansı tamamlanıp mola başladığında çalacak rahatlatıcı doğa sesini seçin.</p>
                     <div className="space-y-2 mb-4">
-                      {settings.breakSounds.map(sound => (
+                      {(settings.breakSounds || []).map(sound => (
                         <div 
                           key={sound.id}
                           className={`flex items-center justify-between p-3 rounded-2xl border transition-all text-xs ${
