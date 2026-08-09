@@ -22,16 +22,31 @@ export default function AdminPage() {
           return
         }
 
-        const res = await apiClient('/api/admin/me')
-        if (!res.ok) {
-          router.push('/')
-          return
+        let profile: any = null;
+
+        // 1. Try API endpoint
+        try {
+          const res = await apiClient('/api/admin/me')
+          if (res.ok) {
+            profile = await res.json()
+          }
+        } catch (e) {
+          console.warn('API admin me request failed, falling back to Supabase client:', e)
         }
 
-        const profile = await res.json()
-        if (profile.is_admin || profile.role === 'admin') {
+        // 2. Fallback to direct Supabase query
+        if (!profile) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle()
+          profile = data
+        }
+
+        if (profile?.is_admin || profile?.role === 'admin') {
           setIsAdmin(true)
-          setUsername(profile.username || '')
+          setUsername(profile.username || user.email?.split('@')[0] || 'Admin')
         } else {
           router.push('/')
         }

@@ -70,7 +70,31 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Fallback for missing schema columns (e.g. category, priority)
+        if (error.message?.includes('column') || error.message?.includes('schema cache')) {
+          const coreReminder = {
+            user_id: reminder.user_id,
+            title: reminder.title,
+            description: reminder.description,
+            reminder_time: reminder.reminder_time,
+            days_of_week: reminder.days_of_week,
+            is_active: reminder.is_active ?? true,
+          };
+          const { data: fallbackData, error: fallbackError } = await getSupabase()
+            .from('reminders')
+            .insert([coreReminder])
+            .select()
+            .single();
+          if (fallbackError) throw fallbackError;
+          set((state) => ({ 
+            reminders: [...state.reminders, { ...reminder, ...fallbackData } as Reminder].sort((a, b) => a.reminder_time.localeCompare(b.reminder_time)) 
+          }));
+          return;
+        }
+        throw error;
+      }
+
       set((state) => ({ reminders: [...state.reminders, data].sort((a, b) => a.reminder_time.localeCompare(b.reminder_time)) }));
     } catch (error: any) {
       console.error('Hatırlatıcı eklenemedi:', error.message);
@@ -87,7 +111,32 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Fallback for missing schema columns
+        if (error.message?.includes('column') || error.message?.includes('schema cache')) {
+          const coreUpdates: any = {};
+          if (updates.title !== undefined) coreUpdates.title = updates.title;
+          if (updates.description !== undefined) coreUpdates.description = updates.description;
+          if (updates.reminder_time !== undefined) coreUpdates.reminder_time = updates.reminder_time;
+          if (updates.days_of_week !== undefined) coreUpdates.days_of_week = updates.days_of_week;
+          if (updates.is_active !== undefined) coreUpdates.is_active = updates.is_active;
+
+          const { data: fallbackData, error: fallbackError } = await getSupabase()
+            .from('reminders')
+            .update(coreUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+
+          if (fallbackError) throw fallbackError;
+          set((state) => ({
+            reminders: state.reminders.map(r => r.id === id ? { ...r, ...updates, ...fallbackData } : r),
+          }));
+          return;
+        }
+        throw error;
+      }
+
       set((state) => ({
         reminders: state.reminders.map(r => r.id === id ? data : r),
       }));

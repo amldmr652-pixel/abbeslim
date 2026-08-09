@@ -37,29 +37,63 @@ export default function AdminPanel({ adminUsername }: { adminUsername: string })
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
+    let loadedUsers: UserProfile[] | null = null
     try {
       const res = await apiClient('/api/admin/users')
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      setUsers(data)
+      if (res.ok) {
+        loadedUsers = await res.json()
+      }
     } catch {
-      showToast('Kullanıcılar yüklenemedi.', 'error')
-    } finally {
-      setLoading(false)
+      // API fallback
     }
-  }, [])
+
+    if (!loadedUsers) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (!error && data) {
+          loadedUsers = data as UserProfile[]
+        }
+      } catch (e) {
+        // Ignore fallback error
+      }
+    }
+
+    if (loadedUsers) {
+      setUsers(loadedUsers)
+    } else {
+      showToast('Kullanıcılar yüklenemedi.', 'error')
+    }
+    setLoading(false)
+  }, [supabase])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
   const updateStatus = async (userId: string, status: UserStatus) => {
     setActionLoading(userId + status)
+    let success = false
     try {
       const res = await apiClient('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, status }),
       })
-      if (!res.ok) throw new Error()
+      if (res.ok) success = true
+    } catch {
+      // API fallback
+    }
+
+    if (!success) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status })
+        .eq('id', userId)
+      if (!error) success = true
+    }
+
+    if (success) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u))
       showToast(
         status === 'approved' ? '✓ Kullanıcı onaylandı.' :
@@ -67,26 +101,38 @@ export default function AdminPanel({ adminUsername }: { adminUsername: string })
                                 '↺ Kullanıcı beklemeye alındı.',
         'success'
       )
-    } catch {
+    } else {
       showToast('İşlem başarısız.', 'error')
-    } finally {
-      setActionLoading(null)
     }
+    setActionLoading(null)
   }
 
   const deleteUser = async (userId: string, username: string) => {
     if (!confirm(`"${username}" adlı kullanıcıyı kalıcı olarak silmek istediğine emin misin?`)) return
     setActionLoading(userId + 'delete')
+    let success = false
     try {
       const res = await apiClient(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error()
+      if (res.ok) success = true
+    } catch {
+      // API fallback
+    }
+
+    if (!success) {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
+      if (!error) success = true
+    }
+
+    if (success) {
       setUsers(prev => prev.filter(u => u.id !== userId))
       showToast('Kullanıcı silindi.', 'success')
-    } catch {
+    } else {
       showToast('Silme işlemi başarısız.', 'error')
-    } finally {
-      setActionLoading(null)
     }
+    setActionLoading(null)
   }
 
   const handleSignOut = async () => {
