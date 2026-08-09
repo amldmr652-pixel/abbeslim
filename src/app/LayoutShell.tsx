@@ -15,8 +15,8 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useReminderEngine } from '@/app/hooks/useReminderEngine';
 import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
 
-// Auth & Genel Sayfalar — bu route'larda giriş zorunluluğu yok ve widget'lar gizlenir
-const AUTH_ROUTES = ['/login', '/register', '/pending-approval', '/download'];
+// Auth sayfaları — bu route'larda widget'lar gizlenir
+const AUTH_ROUTES = ['/login', '/register', '/pending-approval'];
 
 /**
  * Layout içinde client context'e erişip Sidebar + Widget'ları render eden sarmalayıcı.
