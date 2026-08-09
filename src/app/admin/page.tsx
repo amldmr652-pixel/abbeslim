@@ -29,7 +29,7 @@ export default function AdminPage() {
         }
 
         const profile = await res.json()
-        if (profile.is_admin) {
+        if (profile.is_admin || profile.role === 'admin') {
           setIsAdmin(true)
           setUsername(profile.username || '')
         } else {

@@ -15,7 +15,7 @@ export async function GET() {
   // Admin client ile RLS bypass ederek profil çek
   let { data: profile } = await adminClient
     .from('profiles')
-    .select('id, username, status, is_admin, role, created_at, last_sign_in_at')
+    .select('*')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -38,18 +38,22 @@ export async function GET() {
     }
   }
 
-  // Eğer is_admin false ise ama tek kullanıcı ise veya profilde admin ise güncelle
+  // Eğer is_admin false ise ama role === 'admin' veya tek kullanıcı ise güncelle
   if (profile && !profile.is_admin) {
-    const { count } = await adminClient
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-
-    if (count === 1 || count === null) {
-      await adminClient
-        .from('profiles')
-        .update({ is_admin: true, status: 'approved' })
-        .eq('id', user.id)
+    if (profile.role === 'admin') {
       profile.is_admin = true
+    } else {
+      const { count } = await adminClient
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+
+      if (count === 1 || count === null || count === 0) {
+        await adminClient
+          .from('profiles')
+          .update({ is_admin: true, status: 'approved' })
+          .eq('id', user.id)
+        profile.is_admin = true
+      }
     }
   }
 

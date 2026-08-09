@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, Plus, Trash2, Edit, Clock, AlertCircle, Tag, ShieldAlert, Volume2 } from 'lucide-react';
+import { Bell, BellOff, Plus, Trash2, Edit, Clock, AlertCircle, Tag, ShieldAlert, Volume2, CheckCircle2, Play } from 'lucide-react';
 import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useReminderStore, Reminder } from '@/stores/useReminderStore';
 import { createClient } from '@/utils/supabase/client';
+import { requestNotificationPermission, sendNotification } from '@/utils/notifications';
 
 const DAYS = [
   { label: 'Pzt', value: 1 },
@@ -47,6 +48,9 @@ export default function RemindersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Form states
   const [title, setTitle] = useState('');
@@ -60,6 +64,7 @@ export default function RemindersPage() {
   const [repeatType, setRepeatType] = useState<'once' | 'daily' | 'weekly' | 'monthly'>('daily');
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [testStatus, setTestStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -72,7 +77,33 @@ export default function RemindersPage() {
       setLoadingUser(false);
     };
     getUser();
+
+    // Check permission status
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setHasPermission(Notification.permission === 'granted');
+    }
   }, [fetchReminders]);
+
+  const handleRequestPermission = async () => {
+    const granted = await requestNotificationPermission();
+    setHasPermission(granted);
+    if (granted) {
+      setTestStatus('✓ Bildirim izni başarıyla verildi!');
+      setTimeout(() => setTestStatus(null), 3000);
+    } else {
+      setTestStatus('⚠️ Bildirim izni engellendi veya reddedildi.');
+      setTimeout(() => setTestStatus(null), 4000);
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    await sendNotification(
+      'Test Bildirimi 🔔',
+      'Hatırlatıcı bildirim sistemi cihazınızda aktif ve çalışıyor!'
+    );
+    setTestStatus('✓ Test bildirimi gönderildi!');
+    setTimeout(() => setTestStatus(null), 3000);
+  };
 
   const handleOpenAddModal = () => {
     setIsEditMode(false);
@@ -166,6 +197,13 @@ export default function RemindersPage() {
       .join(', ');
   };
 
+  const filteredReminders = reminders.filter(r => {
+    if (statusFilter === 'active' && !r.is_active) return false;
+    if (statusFilter === 'inactive' && r.is_active) return false;
+    if (categoryFilter !== 'all' && (r.category || 'general') !== categoryFilter) return false;
+    return true;
+  });
+
   if (loadingUser) {
     return (
       <div className="flex items-center justify-center h-[70vh] text-white">
@@ -185,29 +223,110 @@ export default function RemindersPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-out]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-out] space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Bell className="text-green-500" size={32} />
             {t('sidebar.reminders') || 'Hatırlatıcılar'}
           </h1>
-          <p className="text-gray-400 mt-2">Detaylı kategoriler, öncelikler ve esnek tekrarlarla alarmlarınızı özelleştirin</p>
+          <p className="text-gray-400 mt-1 text-sm">
+            Detaylı kategoriler, öncelikler ve esnek tekrarlarla alarmlarınızı özelleştirin
+          </p>
         </div>
         <Button onClick={handleOpenAddModal} className="flex items-center gap-2" size="md">
           <Plus size={16} /> Yeni Hatırlatıcı
         </Button>
       </div>
 
+      {/* Notification Status & Controls Bar */}
+      <div className="glass p-4 rounded-2xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {hasPermission ? (
+            <div className="flex items-center gap-2 text-xs font-semibold text-green-400 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20">
+              <CheckCircle2 size={14} />
+              <span>Bildirim İzni Aktif</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs font-semibold text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-500/20">
+              <AlertCircle size={14} />
+              <span>Bildirim İzni Verilmedi</span>
+            </div>
+          )}
+
+          {testStatus && (
+            <span className="text-xs font-medium text-gray-300 animate-pulse">{testStatus}</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {!hasPermission && (
+            <Button size="sm" variant="secondary" onClick={handleRequestPermission} className="w-full sm:w-auto text-xs">
+              <Bell size={14} className="mr-1.5" /> İznini Aç / İstet
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" onClick={handleSendTestNotification} className="w-full sm:w-auto text-xs">
+            <Volume2 size={14} className="mr-1.5" /> Test Bildirimi
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-center text-xs">
+        {/* Status Filters */}
+        <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 w-full sm:w-auto">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              statusFilter === 'all' ? 'bg-green-500 text-stone-950 font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Tümü ({reminders.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('active')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              statusFilter === 'active' ? 'bg-green-500 text-stone-950 font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Aktif ({reminders.filter(r => r.is_active).length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('inactive')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              statusFilter === 'inactive' ? 'bg-green-500 text-stone-950 font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Pasif ({reminders.filter(r => !r.is_active).length})
+          </button>
+        </div>
+
+        {/* Category Filter Dropdown */}
+        <div className="w-full sm:w-auto">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-full sm:w-auto bg-black/50 border border-green-900/50 rounded-xl p-2 px-3 text-white text-xs focus:border-green-500 focus:outline-none"
+          >
+            <option value="all" className="bg-stone-900">Tüm Kategoriler</option>
+            {CATEGORIES.map(c => (
+              <option key={c.id} value={c.id} className="bg-stone-900">{c.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Reminders List */}
       <div className="grid grid-cols-1 gap-4">
-        {reminders.length === 0 ? (
+        {filteredReminders.length === 0 ? (
           <div className="text-center text-gray-500 py-16 glass rounded-3xl">
             <BellOff size={48} className="mx-auto text-gray-600 mb-4" />
-            <p className="text-base font-semibold text-gray-400">Henüz hatırlatıcı eklenmedi.</p>
-            <p className="text-xs text-gray-500 mt-1">Hemen bir hatırlatıcı ekleyerek başlayın.</p>
+            <p className="text-base font-semibold text-gray-400">Hatırlatıcı bulunamadı.</p>
+            <p className="text-xs text-gray-500 mt-1">Filtrelerinizi değiştirin veya yeni bir hatırlatıcı ekleyin.</p>
           </div>
         ) : (
-          reminders.map((reminder) => {
+          filteredReminders.map((reminder) => {
             const categoryObj = CATEGORIES.find(c => c.id === reminder.category) || CATEGORIES[0];
             const priorityObj = PRIORITIES.find(p => p.id === reminder.priority) || PRIORITIES[1];
 

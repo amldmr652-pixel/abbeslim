@@ -27,7 +27,7 @@ export async function GET() {
 
   const { data: profiles, error } = await auth.adminClient
     .from('profiles')
-    .select('id, username, status, is_admin, created_at, last_sign_in_at')
+    .select('*')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
