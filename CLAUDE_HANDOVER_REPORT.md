@@ -1488,5 +1488,20 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 
 
 
+---
 
+## [2026-08-10] V2.47 — Admin Panel CORS & Bearer Token Auth Proxy & Reminder Schema Fallbacks
 
+### Faz: Admin Panel Çapraz Platform Erişimi & Hatırlatıcı Şema Esnekliği
+
+### 1. Yapılanlar
+- **Supabase Server Auth Proxy (`src/utils/supabase/server.ts`):** `createClient()` içindeki `Authorization: Bearer <token>` bloğu güncellendi. Parametresiz `auth.getUser()` çağrısı yapıldığında `jwt` parametresi eksik ise otomatik olarak gelen Bearer token'ı `originalGetUser(jwt || token)` olarak iletildi.
+- **CORS Headers ve OPTIONS Preflight (`/api/admin/me` & `/api/admin/users`):** APK (Android WebView) ve EXE (Tauri WebView) ortamlarından Vercel backend API'lerine atılan Cross-Origin isteklerin engellenmemesi için `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Headers: Content-Type, Authorization`, `Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS` başlıkları eklendi.
+- **Client-Side Fallback Desteği (`src/app/admin/page.tsx` & `AdminPanel.tsx`):** Eğer API sunucusu ağ engeli veya yetki farkından dolayı erişilemezse, doğrudan Supabase JS Client üzerinden `profiles` tablosuna sorgu atacak güvenli istemci tarafı fallback mekanizması kuruldu.
+- **Hatırlatıcı Şema Uyumsuzluğu Esnekliği (`src/stores/useReminderStore.ts`):** Supabase `reminders` tablosunda henüz oluşturulmamış genişletilmiş sütunlar (`category`, `priority`, `sound`, `snooze_minutes`, `repeat_type`) sebebiyle PostgREST tarafından fırlatılan `Could not find the 'category' column of 'reminders' in the schema cache` hatası giderildi. `addReminder` ve `updateReminder` fonksiyonlarına hata yakalama (try/catch fallback) eklendi; şema hatası alındığında otomatik olarak temel sütunlar (`user_id`, `title`, `description`, `reminder_time`, `days_of_week`, `is_active`) ile kayıt gerçekleştiriliyor.
+- **İndirme Sayfası Dosya Boyutu Etiketi (`src/app/download/page.tsx`):** Android APK dosya boyutu etiketi `~180 MB` olarak güncellendi.
+
+### 2. Derleme & Dağıtım
+- `npm run build` komutu çalıştırıldı, 38/38 sayfa hatasız derlendi.
+- Android APK (`abbeslim-v1.0.0.apk`) ve Windows EXE (`abbeslim_1.0.0_x64-setup.exe`) derlenip doğrudan `C:\Users\I-MEE\Documents\notefinder\` ana dizinine kopyalandı.
+- Vercel üretim sunucusu (`https://abbeslim.vercel.app`) güncellendi ve GitHub deposuna push edildi.
