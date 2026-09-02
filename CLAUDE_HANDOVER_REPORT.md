@@ -1505,3 +1505,50 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - `npm run build` komutu çalıştırıldı, 38/38 sayfa hatasız derlendi.
 - Android APK (`abbeslim-v1.0.0.apk`) ve Windows EXE (`abbeslim_1.0.0_x64-setup.exe`) derlenip doğrudan `C:\Users\I-MEE\Documents\notefinder\` ana dizinine kopyalandı.
 - Vercel üretim sunucusu (`https://abbeslim.vercel.app`) güncellendi ve GitHub deposuna push edildi.
+
+---
+
+## [2026-09-02] V2.48 — 9 Maddelik Kapsamlı Düzeltme & İyileştirme Paketi (Antigravity/Gemini)
+
+### Faz: Çapraz Platform Bildirim, Auth Singleton, Pomodoro & Medya Takibi İyileştirmeleri
+
+### 1. Yapılanlar
+
+1. **Supabase Client Singleton (`src/utils/supabase/client.ts`):**
+   - `createClient()` fonksiyonu singleton pattern'e geçirildi.
+   - APK ve EXE ortamlarında her `createClient()` çağrısında yeni client oluşturulması ve auth session restore yarış durumunun Admin Panel yetkilendirmesini bozması engellendi. (Sorun 6 Kök Neden Çözümü).
+
+2. **Görev → Hatırlatıcı Senkronizasyonu (`src/lib/reminderSync.ts` & `src/stores/useTaskStore.ts`):**
+   - `reminderSync.ts` dosyasındaki `createClient()` çağrıları lazy singleton `getSupabase()` yapısına geçirildi.
+   - `useTaskStore` içindeki `syncReminderForTask` ve `deleteLinkedReminder` çağrıları `try-catch` blokları ile sarmalanarak promise unhandled rejection hataları engellendi.
+
+3. **Mobil & Masaüstü Native Zamanlı Bildirimler (`src/utils/notifications.ts` & `src/app/hooks/useReminderEngine.ts`):**
+   - `notifications.ts` içerisine Capacitor `@capacitor/local-notifications` üzerinden `scheduleNativeNotification()` ve `cancelAllNativeNotifications()` fonksiyonları eklendi.
+   - `useReminderEngine.ts` içerisine `syncNativeReminders()` eklenerek aktif hatırlatıcılar uygulama kapalıyken bile `allowWhileIdle: true` ile cihaz saatinde bildirim verecek şekilde planlandı.
+   - `android/app/src/main/AndroidManifest.xml` dosyasına `SCHEDULE_EXACT_ALARM` ve `USE_EXACT_ALARM` izinleri eklendi.
+
+4. **Pomodoro Route & Navigation Kontrolü:**
+   - Kod tabanındaki tüm Pomodoro / Focus yönlendirmeleri denetlendi, sayfa bulunamadı (404) hataları engellendi.
+
+5. **Çalışmayan Varsayılan Müzik Kanallarının Temizlenmesi (`src/app/context/MusicContext.tsx`):**
+   - Telif/embed engeli olan varsayılan YouTube playlist kanalları (`DEFAULT_CHANNELS`) kaldırıldı. Kullanıcıların kendi özel kanallarını ekleyebilmesi sağlandı.
+
+6. **Odak Modu Pomodoro Ayar Paneli (`src/app/components/FocusModeOverlay.tsx`):**
+   - Odak Modu overlay'ine yeni bir "Pomodoro Ayarları" ikonu ve inline drawer paneli eklendi. Kullanıcı odak modundan çıkmadan süreleri (Odak, Kısa/Uzun mola), mola aralığını, otomatik başlatma seçeneklerini ve mola seslerini değiştirebilir hale getirildi.
+
+7. **Medya Takibi Yıldız Görünürlüğü ve Puan Sıfırlama (`src/app/tracker/page.tsx`):**
+   - Yıldız puanlama bileşeni `renderStars` yenilendi: Seçili yıldızlar için drop-shadow ve canlı sarı dolgu, unselected yıldızlar için belirgin görünürlük eklendi.
+   - Aynı yıldıza tekrar tıklandığında puanı 0'a sıfırlama seçeneği eklendi.
+
+8. **Medya Takibi Puana Göre Sıralama Kontrolü (`src/app/tracker/page.tsx`):**
+   - Puan, tarih ve başlığa göre sıralama işlevselliği kontrol edildi ve doğrulandı.
+
+9. **Supabase Veritabanı Migration (`reminders` Tablosu):**
+   - `reminders` tablosuna `source_type` (TEXT) ve `source_id` (UUID) sütunları ile `idx_reminders_source` indeksi eklendi ve çalıştırıldı.
+
+### 2. Derleme & Dağıtım
+
+- `npm run build` komutu çalıştırıldı, 38/38 sayfa hatasız derlendi.
+- Mobil Capacitor derlemesi (`npm run cap:build`) yapıldı.
+- Android debug APK (`abbeslim-v1.0.0.apk`) başarıyla derlendi.
+- Değişiklikler GitHub deposuna push edildi (`git push origin main`), Vercel otomatik deploy tetiklendi.
