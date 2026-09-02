@@ -6,17 +6,16 @@ import { usePomodoroTimer, MODE_LABELS } from '@/app/hooks/usePomodoroTimer';
 import { useMusicContext } from '@/app/context/MusicContext';
 import { useTaskStore } from '@/stores/useTaskStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
-import { useRouter } from 'next/navigation';
 import { 
-  Play, Pause, Square, SkipForward, SkipBack, X, Maximize, 
-  Music, Volume2, VolumeX, Radio, ChevronDown, Sparkles, Settings 
+  Play, Pause, Square, SkipForward, SkipBack, X, 
+  Music, Volume2, VolumeX, ChevronDown, Sparkles, Settings 
 } from 'lucide-react';
 
 export default function FocusModeOverlay() {
   const { isFocusModeActive, setFocusMode } = useFocusStore();
   const { 
     timeLeft, currentMode, isRunning, startTimer, pauseTimer, 
-    resetTimer, switchMode, skipSession, isFinished, isShaking,
+    resetTimer, switchMode, skipSession, isShaking,
     settings: pomodoroSettings, saveSettings
   } = usePomodoroTimer();
 
@@ -41,7 +40,6 @@ export default function FocusModeOverlay() {
   } = useMusicContext();
 
   const { tasks } = useTaskStore();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showMusicPanel, setShowMusicPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);

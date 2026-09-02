@@ -310,13 +310,13 @@ export default function TrackerPage() {
           <div className="flex gap-1.5 bg-black/40 p-1 rounded-full border border-stone-800 overflow-x-auto hide-scrollbar">
             <button 
               onClick={() => setActiveStatus('all')}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'all' ? 'bg-stone-750 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'all' ? 'bg-stone-700 text-white' : 'text-gray-400 hover:text-white'}`}
             >
               Tümü
             </button>
             <button 
               onClick={() => setActiveStatus('planned')}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'planned' ? 'bg-stone-750 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${activeStatus === 'planned' ? 'bg-stone-700 text-white' : 'text-gray-400 hover:text-white'}`}
             >
               {t('tracker.planned') || 'Planlandı'}
             </button>

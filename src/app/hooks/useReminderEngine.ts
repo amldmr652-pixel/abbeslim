@@ -113,9 +113,7 @@ export function useReminderEngine() {
 
   // Reminders güncellendiğinde native bildirimleri yenile
   useEffect(() => {
-    if (reminders.length > 0) {
-      syncNativeReminders(reminders);
-    }
+    syncNativeReminders(reminders);
   }, [reminders, syncNativeReminders]);
 
   const checkReminders = useCallback(() => {

@@ -31,7 +31,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   useReminderEngine();
   const isOnline = useOnlineStatus();
   const {
-    selectedChannelId, isMusicPlaying,
+    isMusicPlaying,
     activeChannel, activeTrack, currentSongTitle, currentSongArtist, currentTime,
     duration, volume, isMuted, setIsMusicPlaying, handlePrevTrack, handleNextTrack,
     setIsMuted, setVolume, seekTo, isLoadingTrack,
@@ -45,7 +45,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'ai'>('none');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { setFocusMode, toggleFocusMode } = useFocusStore();
-  const { theme, shortcuts, sidebarCollapsed, setSidebarCollapsed } = useSettingsStore();
+  const { shortcuts, sidebarCollapsed, setSidebarCollapsed } = useSettingsStore();
 
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
