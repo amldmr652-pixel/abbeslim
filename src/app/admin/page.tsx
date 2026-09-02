@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { apiClient } from '@/lib/apiClient'
 import AdminPanel from './AdminPanel'
 
 export default function AdminPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [username, setUsername] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -16,35 +14,25 @@ export default function AdminPage() {
   useEffect(() => {
     async function checkAdmin() {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
+        const supabase = createClient()
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError || !user) {
           router.push('/login')
           return
         }
 
-        let profile: any = null;
+        // Direct query to profiles table via client (works across web, mobile, desktop)
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle()
 
-        // 1. Try API endpoint
-        try {
-          const res = await apiClient('/api/admin/me')
-          if (res.ok) {
-            profile = await res.json()
-          }
-        } catch (e) {
-          console.warn('API admin me request failed, falling back to Supabase client:', e)
+        if (profileError) {
+          console.warn('Profile fetch error in AdminPage:', profileError)
         }
 
-        // 2. Fallback to direct Supabase query
-        if (!profile) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle()
-          profile = data
-        }
-
-        if (profile?.is_admin || profile?.role === 'admin') {
+        if (profile?.is_admin === true || profile?.role === 'admin') {
           setIsAdmin(true)
           setUsername(profile.username || user.email?.split('@')[0] || 'Admin')
         } else {
@@ -59,7 +47,7 @@ export default function AdminPage() {
     }
 
     checkAdmin()
-  }, [router, supabase])
+  }, [router])
 
   if (loading) {
     return (

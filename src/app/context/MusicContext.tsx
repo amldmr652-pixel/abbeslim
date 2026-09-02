@@ -350,6 +350,51 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [isMusicPlaying, currentSongTitle, currentSongArtist, activeChannel]);
 
+  // Sayfa tekrar görünür olduğunda müziği otomatik devam ettir (YouTube player auto-resume)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMusicPlaying) {
+        try {
+          const player = ytPlayerRef.current;
+          if (player && typeof player.getPlayerState === 'function') {
+            const state = player.getPlayerState();
+            // 2 = paused (YouTube tarafında arka planda kalındığı için durdurulduysa)
+            if (state === 2) {
+              player.playVideo();
+            }
+          }
+        } catch {}
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isMusicPlaying]);
+
+  // Arka planda tarayıcının meşgul kalmasını sağlamak için sessiz AudioContext keepalive
+  useEffect(() => {
+    if (!isMusicPlaying || typeof window === 'undefined') return;
+
+    let audioCtx: AudioContext | null = null;
+    let oscillator: OscillatorNode | null = null;
+
+    try {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0.0001; // Duyulamayacak derecede sessiz
+      gainNode.connect(audioCtx.destination);
+      oscillator = audioCtx.createOscillator();
+      oscillator.connect(gainNode);
+      oscillator.start();
+    } catch {}
+
+    return () => {
+      try {
+        oscillator?.stop();
+        audioCtx?.close();
+      } catch {}
+    };
+  }, [isMusicPlaying]);
+
   const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:') || !!src?.startsWith('yt-video:');
 
   const handleSelectChannel = (id: string) => {

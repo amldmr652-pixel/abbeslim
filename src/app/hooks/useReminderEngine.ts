@@ -127,8 +127,8 @@ export function useReminderEngine() {
     reminders.forEach(reminder => {
       if (!reminder.is_active) return;
 
-      // Gün kontrolü
-      if (reminder.days_of_week && !reminder.days_of_week.includes(currentDay)) return;
+      // Gün kontrolü - boş array veya null ise her gün geçerlidir
+      if (reminder.days_of_week && reminder.days_of_week.length > 0 && !reminder.days_of_week.includes(currentDay)) return;
 
       // Saat eşleşmesi (HH:MM)
       const reminderTime = reminder.reminder_time.slice(0, 5); // "07:00:00" → "07:00"

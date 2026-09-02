@@ -19,6 +19,7 @@ export default function TrackerPage() {
 
   const [activeTab, setActiveTab] = useState<MediaType>('movie');
   const [activeStatus, setActiveStatus] = useState<MediaStatus | 'all'>('all');
+  const [ratingFilter, setRatingFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'rating' | 'title' | 'date'>('date');
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
@@ -167,13 +168,16 @@ export default function TrackerPage() {
   // Filter items
   const filteredItems = items.filter(item => 
     item.media_type === activeTab && 
-    (activeStatus === 'all' || item.status === activeStatus)
+    (activeStatus === 'all' || item.status === activeStatus) &&
+    (ratingFilter === 'all' || 
+      (ratingFilter === 'unrated' ? (!item.rating || item.rating === 0) :
+       (item.rating || 0) >= parseInt(ratingFilter)))
   );
 
   // Sort items
   const sortedItems = [...filteredItems].sort((a, b) => {
     if (sortBy === 'rating') {
-      return b.rating - a.rating;
+      return (b.rating || 0) - (a.rating || 0);
     }
     if (sortBy === 'title') {
       return a.title.localeCompare(b.title);
@@ -306,6 +310,24 @@ export default function TrackerPage() {
             </select>
           </div>
 
+          {/* Rating filter */}
+          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-stone-800 text-xs text-gray-400">
+            <span className="font-semibold">Puan:</span>
+            <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value)}
+              className="bg-transparent text-white outline-none border-none pr-4 font-semibold cursor-pointer"
+            >
+              <option value="all" className="bg-stone-900 text-white">Tümü</option>
+              <option value="5" className="bg-stone-900 text-white">⭐ 5</option>
+              <option value="4" className="bg-stone-900 text-white">⭐ 4+</option>
+              <option value="3" className="bg-stone-900 text-white">⭐ 3+</option>
+              <option value="2" className="bg-stone-900 text-white">⭐ 2+</option>
+              <option value="1" className="bg-stone-900 text-white">⭐ 1+</option>
+              <option value="unrated" className="bg-stone-900 text-white">Puansız</option>
+            </select>
+          </div>
+
           {/* Status filters */}
           <div className="flex gap-1.5 bg-black/40 p-1 rounded-full border border-stone-800 overflow-x-auto hide-scrollbar">
             <button 
@@ -427,12 +449,19 @@ export default function TrackerPage() {
                   <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${getStatusColor(item.status)}`}>
                     {item.status === 'planned' ? t('tracker.planned') : item.status === 'active' ? t('tracker.active') : t('tracker.completed')}
                   </span>
-                  {item.rating > 0 && (
-                    <span className="text-xs text-yellow-400 flex items-center font-bold">
-                      <Star size={10} fill="currentColor" className="mr-0.5" />
-                      {item.rating}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-0.5" title={`${item.rating || 0}/5 Yıldız`}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={11}
+                        fill={s <= (item.rating || 0) ? 'currentColor' : 'none'}
+                        className={s <= (item.rating || 0)
+                          ? 'text-yellow-400 drop-shadow-[0_0_3px_rgba(250,204,21,0.5)]'
+                          : 'text-gray-600'
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

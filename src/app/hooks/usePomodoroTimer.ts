@@ -201,6 +201,8 @@ export function usePomodoroTimer() {
   // Pomodoro ile müzik senkronizasyonu
   useEffect(() => {
     if (!isMusicSynced || !selectedChannelId) return;
+    if (isFinished) return;
+
     if (currentMode === 'pomodoro') {
       setIsMusicPlaying(isRunning);
     } else {
@@ -208,7 +210,7 @@ export function usePomodoroTimer() {
         setIsMusicPlaying(false);
       }
     }
-  }, [isRunning, isMusicSynced, selectedChannelId, setIsMusicPlaying, currentMode, settings.pomodoroStopMusicOnBreak]);
+  }, [isRunning, isMusicSynced, selectedChannelId, setIsMusicPlaying, currentMode, settings.pomodoroStopMusicOnBreak, isFinished]);
 
   // Mola Sesleri
   useEffect(() => {

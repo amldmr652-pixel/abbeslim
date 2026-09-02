@@ -1594,4 +1594,28 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
    - `android/app/src/main/AndroidManifest.xml` dosyasına `FOREGROUND_SERVICE_MEDIA_PLAYBACK` izni eklendi.
    - `src/app/context/MusicContext.tsx` dosyasına `MediaSession API` metadata ve action handler'ları entegre edildi.
 
+---
+
+## [2026-09-02] V4.0: 5 Sorun Düzeltmesi (Tracker Yıldızlar & Filtre, Reminders, Admin Panel, Pomodoro Müzik, Background Audio)
+
+**Durum:** Başarılı (Tüm 5 sorun çözüldü, `npm run build` 38/38 sayfa hatasız derlendi).
+
+**Yapılan Değişiklikler:**
+1. **Tracker Yıldız Puanları & Puan Filtresi (`src/app/tracker/page.tsx`)**:
+   - Kart altı bilgi alanında her zaman görünen 5 mini yıldız (`Star` SVG) eklendi (`s <= item.rating`).
+   - Puan filtresi dropdown'ı (`ratingFilter`: Tümü, ⭐ 5, ⭐ 4+, ⭐ 3+, ⭐ 2+, ⭐ 1+, Puansız) eklendi.
+   - `sortBy === 'rating'` mantığı `(b.rating || 0) - (a.rating || 0)` olarak null-safe hale getirildi.
+2. **Hatırlatıcı Bildirim Mantığı Düzeltmesi (`src/app/hooks/useReminderEngine.ts`)**:
+   - `checkReminders` döngüsündeki `days_of_week` kontrolü `reminder.days_of_week && reminder.days_of_week.length > 0 && !reminder.days_of_week.includes(currentDay)` olarak güncellendi.
+   - `days_of_week` boş array `[]` olduğunda bildirimin tetiklenmemesi engellendi.
+3. **Admin Panel Mobil/Masaüstü Erişilebilirliği (`src/app/admin/page.tsx`)**:
+   - Cookie gerektiren ve Capacitor/Tauri webview ortamında başarısız olabilen `/api/admin/me` API çağrısı kaldırıldı.
+   - Doğrudan `createClient()` Supabase client ile `profiles` tablosundan `is_admin` ve `role` kontrolü yapan temiz ve güvenilir client-side auth mimarisine geçildi.
+4. **Pomodoro Molada Müzik Durma Bug'ı (`src/app/hooks/usePomodoroTimer.ts`)**:
+   - Müzik senkronizasyon effect'ine `if (isFinished) return;` şartı eklendi. Seans sonundaki 3 saniyelik geçiş esnasında `pause()` nedeniyle müziğin durdurulması engellendi.
+5. **Arka Plan Müzik Devam Ettirme & Keepalive (`src/app/context/MusicContext.tsx`)**:
+   - Tarayıcı/sekme tekrar görünür olduğunda YouTube player'ın durumunu kontrol edip otomatik devam ettiren `visibilitychange` dinleyicisi eklendi.
+   - Müzik çalarken tarayıcının sekme/uygulama uykusuna geçmesini önlemek için sessiz `AudioContext` (oscillator keepalive) entegre edildi.
+
+
 
