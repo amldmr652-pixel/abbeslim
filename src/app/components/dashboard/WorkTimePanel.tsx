@@ -63,13 +63,13 @@ export default function WorkTimePanel({ onClose }: WorkTimePanelProps) {
   const getWorkMinutesForPeriod = (startTime: number) => {
     return sessions
       .filter(s => new Date(s.created_at).getTime() >= startTime)
-      .reduce((sum, s) => sum + s.duration_minutes, 0);
+      .reduce((sum: number, s: any) => sum + s.duration_minutes, 0);
   };
 
   const todayMinutes = getWorkMinutesForPeriod(startOfToday);
   const thisWeekMinutes = getWorkMinutesForPeriod(startOfThisWeek);
   const thisMonthMinutes = getWorkMinutesForPeriod(startOfThisMonth);
-  const totalMinutes = sessions.reduce((sum, s) => sum + s.duration_minutes, 0);
+  const totalMinutes = sessions.reduce((sum: number, s: any) => sum + s.duration_minutes, 0);
 
   // Daily and weekly goal progress
   const todayProgress = Math.min(100, (todayMinutes / dailyGoal) * 100);
@@ -90,7 +90,7 @@ export default function WorkTimePanel({ onClose }: WorkTimePanelProps) {
         return time >= startOfDay && time < endOfDay;
       });
 
-      const dayMins = daySessions.reduce((sum, s) => sum + s.duration_minutes, 0);
+      const dayMins = daySessions.reduce((sum: number, s: any) => sum + s.duration_minutes, 0);
       data.push({
         dayName: daysName[d.getDay()],
         minutes: dayMins,

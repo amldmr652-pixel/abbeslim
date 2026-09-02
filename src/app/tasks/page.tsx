@@ -54,9 +54,10 @@ export default function TasksPage() {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (data.user) {
+    supabase.auth.getUser().then((res: any) => {
+      const data = res?.data;
+      setUser(data?.user || null);
+      if (data?.user) {
         fetchTasks();
       }
     });

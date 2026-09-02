@@ -200,15 +200,21 @@ export default function TrackerPage() {
             disabled={!interactive}
             onClick={(e) => {
               e.stopPropagation();
-              if (interactive && onRate) onRate(star);
+              if (interactive && onRate) {
+                // Tapping the same star resets rating to 0
+                onRate(star === currentRating ? 0 : star);
+              }
             }}
-            className={`p-1.5 transition-all touch-manipulation min-w-[36px] min-h-[36px] md:min-w-[32px] md:min-h-[32px] flex items-center justify-center rounded-xl ${
-              interactive ? 'cursor-pointer hover:scale-125 active:scale-95 bg-white/5 hover:bg-white/10 border border-white/5' : 'cursor-default'
+            className={`p-1.5 transition-all touch-manipulation min-w-[32px] min-h-[32px] flex items-center justify-center rounded-xl ${
+              interactive ? 'cursor-pointer hover:scale-110 active:scale-95 bg-white/10 hover:bg-white/20 border border-white/10' : 'cursor-default'
             } ${
-              star <= currentRating ? 'text-yellow-400' : 'text-gray-500 hover:text-yellow-200'
+              star <= currentRating
+                ? 'text-yellow-400 fill-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]'
+                : 'text-gray-400 opacity-60 hover:opacity-100 hover:text-yellow-300'
             }`}
+            title={interactive ? (star === currentRating ? 'Puanı Sıfırla' : `${star} Yıldız Ver`) : undefined}
           >
-            <Star size={interactive ? 22 : 16} fill={star <= currentRating ? 'currentColor' : 'none'} className="shrink-0" />
+            <Star size={interactive ? 20 : 15} fill={star <= currentRating ? 'currentColor' : 'none'} className="shrink-0" />
           </button>
         ))}
       </div>

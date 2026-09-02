@@ -126,7 +126,8 @@ export function usePomodoroTimer() {
 
     // Log seansı
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((res: any) => {
+      const user = res?.data?.user;
       if (user) {
         const duration = currentMode === 'pomodoro' 
           ? settings.pomodoroWork 
@@ -138,8 +139,8 @@ export function usePomodoroTimer() {
           user_id: user.id,
           duration_minutes: duration,
           mode: currentMode
-        }]).then(({ error }) => {
-          if (error) console.error("Pomodoro log error:", error);
+        }]).then((res: any) => {
+          if (res?.error) console.error("Pomodoro log error:", res.error);
         });
       }
     });

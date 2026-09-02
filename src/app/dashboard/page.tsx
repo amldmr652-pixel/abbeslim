@@ -102,7 +102,7 @@ function DashboardContent() {
         .eq('mode', 'pomodoro'); // sadece odaklanma süresi
 
       if (sessions) {
-        const totalMin = sessions.reduce((sum, s) => sum + s.duration_minutes, 0);
+        const totalMin = sessions.reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
         setTotalWorkMinutes(totalMin);
       }
     };

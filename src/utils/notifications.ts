@@ -90,3 +90,53 @@ export async function sendNotification(title: string, body: string): Promise<voi
     console.error('Error sending notification:', e);
   }
 }
+
+/**
+ * İleri tarihli native bildirim planla (Mobil Capacitor için)
+ */
+export async function scheduleNativeNotification(
+  numericId: number,
+  title: string,
+  body: string,
+  atDate: Date
+): Promise<void> {
+  try {
+    if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+      const perms = await LocalNotifications.checkPermissions();
+      if (perms.display !== 'granted') {
+        const req = await LocalNotifications.requestPermissions();
+        if (req.display !== 'granted') return;
+      }
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: numericId,
+            title,
+            body,
+            schedule: { at: atDate, allowWhileIdle: true },
+          },
+        ],
+      });
+    }
+  } catch (err) {
+    console.warn('Capacitor scheduleNativeNotification error:', err);
+  }
+}
+
+/**
+ * Bekleyen tüm native bildirimleri iptal et
+ */
+export async function cancelAllNativeNotifications(): Promise<void> {
+  try {
+    if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
+      const pending = await LocalNotifications.getPending();
+      if (pending.notifications.length > 0) {
+        await LocalNotifications.cancel(pending);
+      }
+    }
+  } catch (err) {
+    console.warn('Capacitor cancelAllNativeNotifications error:', err);
+  }
+}
+

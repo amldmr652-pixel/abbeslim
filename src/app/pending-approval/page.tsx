@@ -38,7 +38,7 @@ export default function PendingApprovalPage() {
             table: 'profiles',
             filter: `id=eq.${user.id}`,
           },
-          (payload) => {
+          (payload: any) => {
             if (payload.new?.status === 'approved') {
               goToHome()
             }

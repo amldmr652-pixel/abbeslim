@@ -2,7 +2,21 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useReminderStore } from '@/stores/useReminderStore';
-import { sendNotification, requestNotificationPermission } from '@/utils/notifications';
+import {
+  sendNotification,
+  requestNotificationPermission,
+  cancelAllNativeNotifications,
+  scheduleNativeNotification
+} from '@/utils/notifications';
+
+function getNumericId(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 2147483647;
+}
 
 // Basit alarm sesi üret (Web Audio API)
 async function playAlarmSound(soundType = 'beep') {
@@ -48,6 +62,44 @@ export function useReminderEngine() {
   const triggeredRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
 
+  // Mobil bildirimleri senkronize et
+  const syncNativeReminders = useCallback(async (activeReminders: typeof reminders) => {
+    try {
+      await cancelAllNativeNotifications();
+      const now = new Date();
+
+      for (const reminder of activeReminders) {
+        if (!reminder.is_active) continue;
+
+        const timeParts = reminder.reminder_time.slice(0, 5).split(':');
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+
+        const daysOfWeek = reminder.days_of_week && reminder.days_of_week.length > 0
+          ? reminder.days_of_week
+          : [0, 1, 2, 3, 4, 5, 6];
+
+        for (let dayOffset = 0; dayOffset <= 7; dayOffset++) {
+          const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, hours, minutes, 0, 0);
+          if (targetDate <= now) continue;
+
+          if (daysOfWeek.includes(targetDate.getDay())) {
+            const numericId = getNumericId(`${reminder.id}-${dayOffset}`);
+            await scheduleNativeNotification(
+              numericId,
+              `🔔 ${reminder.title}`,
+              reminder.description || 'Hatırlatıcı zamanı geldi!',
+              targetDate
+            );
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Native bildirim senkronizasyon hatası:', e);
+    }
+  }, []);
+
   // İlk yüklemede hatırlatıcıları çek ve bildirim izni iste
   useEffect(() => {
     if (!initializedRef.current) {
@@ -58,6 +110,13 @@ export function useReminderEngine() {
       requestNotificationPermission().catch(() => {});
     }
   }, [fetchReminders]);
+
+  // Reminders güncellendiğinde native bildirimleri yenile
+  useEffect(() => {
+    if (reminders.length > 0) {
+      syncNativeReminders(reminders);
+    }
+  }, [reminders, syncNativeReminders]);
 
   const checkReminders = useCallback(() => {
     const now = new Date();

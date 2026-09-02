@@ -67,7 +67,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({ tasks: [data, ...state.tasks] }));
 
       // Hatırlatıcı senkronizasyonu
-      syncReminderForTask(data);
+      try {
+        await syncReminderForTask(data);
+      } catch (err) {
+        console.error('Error syncing reminder for added task:', err);
+      }
     } catch (error: any) {
       console.error('Error adding task:', error.message);
       throw error;
@@ -89,7 +93,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
 
       // Hatırlatıcı senkronizasyonu
-      syncReminderForTask(data);
+      try {
+        await syncReminderForTask(data);
+      } catch (err) {
+        console.error('Error syncing reminder for updated task:', err);
+      }
     } catch (error: any) {
       console.error('Error updating task:', error.message);
       throw error;
@@ -105,7 +113,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
 
       // Hatırlatıcı silme
-      deleteLinkedReminder('task', id);
+      try {
+        await deleteLinkedReminder('task', id);
+      } catch (err) {
+        console.error('Error deleting linked reminder for task:', err);
+      }
     } catch (error: any) {
       console.error('Error deleting task:', error.message);
       throw error;
@@ -140,7 +152,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       // Hatırlatıcı senkronizasyonu (tamamlandıysa siler, tamamlanmadıysa tekrar ekler)
       const targetTask = get().tasks.find(t => t.id === id);
       if (targetTask) {
-        syncReminderForTask(targetTask);
+        try {
+          await syncReminderForTask(targetTask);
+        } catch (err) {
+          console.error('Error syncing reminder for toggled task:', err);
+        }
       }
     } catch (error: any) {
       console.error('Error toggling task:', error.message);

@@ -53,7 +53,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     const supabase = createClient();
     
     // İlk kontrol
-    supabase.auth.getUser().then(({ data, error }) => {
+    supabase.auth.getUser().then((res: any) => {
+      const data = res?.data;
       const loggedIn = !!data?.user;
       setIsAuthenticated(loggedIn);
       setAuthChecked(true);
@@ -69,7 +70,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     });
 
     // Oturum değişikliklerini dinle (logout, token expire vb.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       const loggedIn = !!session?.user;
       setIsAuthenticated(loggedIn);
       

@@ -47,9 +47,10 @@ export default function NotesPage() {
   });
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (data.user) {
+    supabase.auth.getUser().then((res: any) => {
+      const data = res?.data;
+      setUser(data?.user || null);
+      if (data?.user) {
         fetchNotes();
       }
     });

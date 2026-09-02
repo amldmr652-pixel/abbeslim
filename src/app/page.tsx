@@ -27,9 +27,10 @@ export default function HomePage() {
     setQuoteIndex(Math.floor(Math.random() * SPIRITUAL_QUOTES.length));
 
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserName(data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Kullanıcı');
+    supabase.auth.getUser().then((res: any) => {
+      const u = res?.data?.user;
+      if (u) {
+        setUserName(u.user_metadata?.full_name || u.email?.split('@')[0] || 'Kullanıcı');
       }
     });
 

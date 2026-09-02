@@ -5,18 +5,22 @@ import { useFocusStore } from '@/stores/useFocusStore';
 import { usePomodoroTimer, MODE_LABELS } from '@/app/hooks/usePomodoroTimer';
 import { useMusicContext } from '@/app/context/MusicContext';
 import { useTaskStore } from '@/stores/useTaskStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useRouter } from 'next/navigation';
 import { 
   Play, Pause, Square, SkipForward, SkipBack, X, Maximize, 
-  Music, Volume2, VolumeX, Radio, ChevronDown, Sparkles 
+  Music, Volume2, VolumeX, Radio, ChevronDown, Sparkles, Settings 
 } from 'lucide-react';
 
 export default function FocusModeOverlay() {
   const { isFocusModeActive, setFocusMode } = useFocusStore();
   const { 
     timeLeft, currentMode, isRunning, startTimer, pauseTimer, 
-    resetTimer, switchMode, skipSession, isFinished, isShaking 
+    resetTimer, switchMode, skipSession, isFinished, isShaking,
+    settings: pomodoroSettings, saveSettings
   } = usePomodoroTimer();
+
+  const settingsStore = useSettingsStore();
 
   const {
     channels,
@@ -40,6 +44,7 @@ export default function FocusModeOverlay() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showMusicPanel, setShowMusicPanel] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -94,9 +99,12 @@ export default function FocusModeOverlay() {
             ))}
           </div>
 
-          {/* Focus Music Toggle Button — DOES NOT EXIT FOCUS MODE */}
+          {/* Focus Music Toggle Button */}
           <button 
-            onClick={() => setShowMusicPanel(!showMusicPanel)}
+            onClick={() => {
+              setShowMusicPanel(!showMusicPanel);
+              if (!showMusicPanel) setShowSettingsPanel(false);
+            }}
             className={`px-4 py-2 rounded-full text-xs md:text-sm font-semibold transition-all flex items-center gap-2 border ${
               showMusicPanel 
                 ? 'bg-green-500 text-stone-950 border-green-400 font-bold shadow-lg shadow-green-500/20' 
@@ -110,6 +118,23 @@ export default function FocusModeOverlay() {
             )}
             <ChevronDown size={14} className={`transition-transform ${showMusicPanel ? 'rotate-180' : ''}`} />
           </button>
+
+          {/* Pomodoro Settings Button */}
+          <button
+            onClick={() => {
+              setShowSettingsPanel(!showSettingsPanel);
+              if (!showSettingsPanel) setShowMusicPanel(false);
+            }}
+            className={`px-4 py-2 rounded-full text-xs md:text-sm font-semibold transition-all flex items-center gap-2 border ${
+              showSettingsPanel
+                ? 'bg-green-500 text-stone-950 border-green-400 font-bold shadow-lg shadow-green-500/20'
+                : 'bg-white/5 text-gray-300 border-white/10 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Settings size={16} />
+            <span>Pomodoro Ayarları</span>
+            <ChevronDown size={14} className={`transition-transform ${showSettingsPanel ? 'rotate-180' : ''}`} />
+          </button>
         </div>
 
         {/* Exit Focus Mode Button */}
@@ -122,11 +147,10 @@ export default function FocusModeOverlay() {
         </button>
       </div>
 
-      {/* Inline Focus Music Panel (Drawer directly inside Focus Overlay) */}
+      {/* Inline Focus Music Panel */}
       {showMusicPanel && (
         <div className="z-30 px-4 md:px-6 max-w-2xl mx-auto w-full animate-[slideDown_0.3s_ease-out]">
           <div className="glass p-5 rounded-3xl border border-green-500/20 bg-stone-950/90 backdrop-blur-xl shadow-2xl space-y-4">
-            {/* Header / Active Track Info */}
             <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-2xl bg-green-500/20 text-green-400 flex items-center justify-center font-bold text-lg shrink-0">
@@ -138,7 +162,6 @@ export default function FocusModeOverlay() {
                 </div>
               </div>
 
-              {/* Close Music Panel */}
               <button 
                 onClick={() => setShowMusicPanel(false)}
                 className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-all"
@@ -147,7 +170,6 @@ export default function FocusModeOverlay() {
               </button>
             </div>
 
-            {/* Channels Selection Pills */}
             <div>
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Radyo & Ses Kanalı Seçin</p>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -174,9 +196,7 @@ export default function FocusModeOverlay() {
               </div>
             </div>
 
-            {/* Playback Controls & Volume Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1">
-              {/* Prev / Play / Next Controls */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={handlePrevTrack}
@@ -206,7 +226,6 @@ export default function FocusModeOverlay() {
                 </button>
               </div>
 
-              {/* Volume Controls */}
               <div className="flex items-center gap-3 w-full sm:w-48">
                 <button
                   onClick={() => setIsMuted(!isMuted)}
@@ -227,6 +246,115 @@ export default function FocusModeOverlay() {
                   className="w-full accent-green-500 h-1.5 bg-stone-800 rounded-lg cursor-pointer"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Focus Pomodoro Settings Panel */}
+      {showSettingsPanel && (
+        <div className="z-30 px-4 md:px-6 max-w-2xl mx-auto w-full animate-[slideDown_0.3s_ease-out]">
+          <div className="glass p-5 rounded-3xl border border-green-500/20 bg-stone-950/90 backdrop-blur-xl shadow-2xl space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Settings size={18} className="text-green-500" />
+                <h4 className="text-sm font-bold text-white">Pomodoro Zaman Ayarları</h4>
+              </div>
+              <button 
+                onClick={() => setShowSettingsPanel(false)}
+                className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 block mb-1">Odak (Dakika)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={pomodoroSettings.pomodoro}
+                  onChange={(e) => saveSettings({ ...pomodoroSettings, pomodoro: Math.max(1, parseInt(e.target.value) || 25) })}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-green-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-400 block mb-1">Kısa Mola (Dakika)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={pomodoroSettings.shortBreak}
+                  onChange={(e) => saveSettings({ ...pomodoroSettings, shortBreak: Math.max(1, parseInt(e.target.value) || 5) })}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-green-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-400 block mb-1">Uzun Mola (Dakika)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={pomodoroSettings.longBreak}
+                  onChange={(e) => saveSettings({ ...pomodoroSettings, longBreak: Math.max(1, parseInt(e.target.value) || 15) })}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-green-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/5">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 block mb-1">Uzun Mola Aralığı (Pomodoro Sayısı)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={pomodoroSettings.longBreakInterval}
+                  onChange={(e) => saveSettings({ ...pomodoroSettings, longBreakInterval: Math.max(1, parseInt(e.target.value) || 3) })}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-green-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-400 block mb-1">Mola Sesi</label>
+                <select
+                  value={settingsStore.selectedBreakSoundId}
+                  onChange={(e) => settingsStore.setSelectedBreakSoundId(e.target.value)}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl p-2.5 text-sm text-white focus:border-green-500 outline-none cursor-pointer"
+                >
+                  {(settingsStore.breakSounds || []).map(sound => (
+                    <option key={sound.id} value={sound.id} className="bg-stone-900">
+                      {sound.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <label className="flex items-center gap-3 cursor-pointer text-xs text-gray-300 font-medium">
+                <input
+                  type="checkbox"
+                  checked={pomodoroSettings.autoStartBreaks}
+                  onChange={(e) => saveSettings({ ...pomodoroSettings, autoStartBreaks: e.target.checked })}
+                  className="w-4 h-4 accent-green-500 rounded cursor-pointer"
+                />
+                <span>Molaları Otomatik Başlat</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer text-xs text-gray-300 font-medium">
+                <input
+                  type="checkbox"
+                  checked={pomodoroSettings.autoStartPomodoros}
+                  onChange={(e) => saveSettings({ ...pomodoroSettings, autoStartPomodoros: e.target.checked })}
+                  className="w-4 h-4 accent-green-500 rounded cursor-pointer"
+                />
+                <span>Pomodoro'ları Otomatik Başlat</span>
+              </label>
             </div>
           </div>
         </div>

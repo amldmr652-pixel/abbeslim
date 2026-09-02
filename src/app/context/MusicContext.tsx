@@ -28,13 +28,7 @@ export interface LikedSong {
   created_at: string;
 }
 
-export const DEFAULT_CHANNELS: Channel[] = [
-  { id: 'lofi-default', name: 'Lofi Hip Hop', icon: '🎵', coverBg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', tracks: [{ title: 'Lofi Hip Hop Radio', artist: 'ChilledCow', audioSrc: 'yt-playlist:PLOzDu-MXXLliO9fBNZOQTBDddoA3FzZUo' }] },
-  { id: 'jazz-default', name: 'Jazz Chill', icon: '🎷', coverBg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', tracks: [{ title: 'Jazz Radio', artist: 'Cafe Music BGM', audioSrc: 'yt-playlist:PLOzDu-MXXLlhEpXLsKv-zYgMFssl8qjBI' }] },
-  { id: 'classical-default', name: 'Klasik Müzik', icon: '🎻', coverBg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', tracks: [{ title: 'Classical Music', artist: 'Various', audioSrc: 'yt-playlist:PLVXcpYgR8su4cPp7U3BFLfGJMZOsvq6vn' }] },
-  { id: 'rain-default', name: 'Yağmur Sesleri', icon: '🌧️', coverBg: 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)', tracks: [{ title: 'Rain Sounds', artist: 'Nature', audioSrc: 'yt-playlist:PLOzDu-MXXLlhJawMCxqEfiBeSJR1G4vBy' }] },
-  { id: 'nature-default', name: 'Doğa Sesleri', icon: '🌿', coverBg: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', tracks: [{ title: 'Nature Sounds', artist: 'Nature', audioSrc: 'yt-playlist:PLOzDu-MXXLlhJCYpUMFH1eFsCGQJB_djE' }] },
-];
+export const DEFAULT_CHANNELS: Channel[] = [];
 
 export const INITIAL_CHANNELS: Channel[] = DEFAULT_CHANNELS;
 

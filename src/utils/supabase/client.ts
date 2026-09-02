@@ -1,7 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { createClient as createBaseClient } from '@supabase/supabase-js'
+import { createClient as createBaseClient, type SupabaseClient } from '@supabase/supabase-js'
+
+let clientInstance: SupabaseClient | any = null;
 
 export function createClient() {
+  if (clientInstance) return clientInstance;
+
   // Mobil (Capacitor) ve Masaüstü (Tauri) ortamları:
   // Cookie tabanlı SSR auth bu ortamlarda çalışmaz,
   // localStorage tabanlı auth kullanılmalı.
@@ -9,7 +13,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_IS_MOBILE === 'true' ||
     process.env.NEXT_PUBLIC_IS_DESKTOP === 'true'
   ) {
-    return createBaseClient(
+    clientInstance = createBaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -20,10 +24,12 @@ export function createClient() {
         },
       }
     )
+  } else {
+    clientInstance = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
   }
 
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  return clientInstance;
 }

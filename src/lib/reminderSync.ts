@@ -5,9 +5,15 @@ import { CalendarEvent } from '@/stores/useCalendarStore'
 import { Task } from '@/stores/useTaskStore'
 import { Habit } from '@/stores/useHabitStore'
 
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createClient();
+  return _supabase;
+}
+
 export async function deleteLinkedReminder(sourceType: string, sourceId: string): Promise<void> {
   try {
-    const supabase = createClient()
+    const supabase = getSupabase()
     await supabase
       .from('reminders')
       .delete()
@@ -23,7 +29,7 @@ export async function deleteLinkedReminder(sourceType: string, sourceId: string)
 
 export async function syncReminderForCalendarEvent(event: CalendarEvent): Promise<void> {
   try {
-    const supabase = createClient()
+    const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -93,7 +99,7 @@ export async function syncReminderForTask(task: Task): Promise<void> {
       return
     }
 
-    const supabase = createClient()
+    const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -151,7 +157,7 @@ export async function syncReminderForHabit(habit: Habit): Promise<void> {
       return
     }
 
-    const supabase = createClient()
+    const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 

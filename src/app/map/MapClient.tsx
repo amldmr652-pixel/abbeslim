@@ -162,8 +162,8 @@ export default function MapClient() {
   useEffect(() => {
     fetchPins();
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id);
+    supabase.auth.getUser().then((res: any) => {
+      if (res?.data?.user) setUserId(res.data.user.id);
     });
   }, [fetchPins]);
 

@@ -26,8 +26,8 @@ export default function QuickNoteWidget() {
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    supabase.auth.getUser().then((res: any) => {
+      setUser(res?.data?.user || null);
     });
   }, []);
 
