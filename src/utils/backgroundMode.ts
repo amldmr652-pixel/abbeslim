@@ -13,17 +13,17 @@ export async function enableBackgroundMode() {
   if (!Capacitor.isNativePlatform() || backgroundModeEnabled) return;
 
   try {
-    // Dynamic import — sadece native platformda çalışır
-    // @ts-ignore — Dynamic import, build sırasında resolve edilmeyebilir
-    const mod = await import('@anuradev/capacitor-background-mode');
-    const BackgroundMode = mod.BackgroundMode;
-    await BackgroundMode.enable();
-    await BackgroundMode.setSettings({
+    const { BackgroundMode } = await import('@anuradev/capacitor-background-mode');
+    await BackgroundMode.enable({
       title: 'abbeslim.',
       text: 'Müzik çalınıyor...',
       icon: 'ic_launcher',
       channelName: 'Müzik Çalma',
       channelDescription: 'Arka planda müzik çalma bildirimi',
+      silent: false,
+      hidden: false,
+      resume: true,
+      disableWebViewOptimization: true,
     });
     backgroundModeEnabled = true;
   } catch (e) {
@@ -38,9 +38,7 @@ export async function disableBackgroundMode() {
   if (!Capacitor.isNativePlatform() || !backgroundModeEnabled) return;
 
   try {
-    // @ts-ignore — Dynamic import, build sırasında resolve edilmeyebilir
-    const mod = await import('@anuradev/capacitor-background-mode');
-    const BackgroundMode = mod.BackgroundMode;
+    const { BackgroundMode } = await import('@anuradev/capacitor-background-mode');
     await BackgroundMode.disable();
     backgroundModeEnabled = false;
   } catch (e) {
