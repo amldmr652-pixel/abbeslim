@@ -1552,3 +1552,18 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - Mobil Capacitor derlemesi (`npm run cap:build`) yapıldı.
 - Android debug APK (`abbeslim-v1.0.0.apk`) başarıyla derlendi.
 - Değişiklikler GitHub deposuna push edildi (`git push origin main`), Vercel otomatik deploy tetiklendi.
+
+---
+
+## [2026-09-02] V2.49: Reminder Engine Edge Case, Code Cleanup & CSS Standardization
+
+**Durum:** Başarılı (9 ana düzeltme denetlendi, tespit edilen 3 ikincil pürüz giderildi, build 38/38 geçildi ve Vercel'e push edildi).
+
+**Yapılan Değişiklikler:**
+1. **Reminder Engine Edge Case Düzeltmesi (`src/app/hooks/useReminderEngine.ts`)**: `reminders.length > 0` kontrolü kaldırıldı. Artık kullanıcı tüm hatırlatıcıları sildiğinde veya kapattığında `syncNativeReminders(reminders)` çağrılarak cihazdaki tüm zamanlanmış native bildirimlerin temizlenmesi sağlandı.
+2. **Kullanılmayan Import & Tanım Temizliği**:
+   - `src/app/components/FocusModeOverlay.tsx`: `useRouter`, `Maximize`, `Radio`, `isFinished` ve `const router = useRouter();` kaldırıldı.
+   - `src/app/LayoutShell.tsx`: Kullanılmayan `theme` ve `selectedChannelId` destructure tanımları temizlendi.
+3. **Tracker CSS Sınıfı Standartlaştırması (`src/app/tracker/page.tsx`)**: Non-standard `bg-stone-750` sınıfı standart Tailwind v4 sınıfı olan `bg-stone-700` ile değiştirildi.
+4. **Derleme & Git Deployment**: `npm run build` ile 38/38 sayfanın hatasız derlendiği doğrulandı ve `git push origin main` ile depoya aktarıldı.
+
