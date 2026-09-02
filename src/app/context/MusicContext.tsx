@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { enableBackgroundMode, disableBackgroundMode } from '@/utils/backgroundMode';
 
 export interface Track {
   title: string;
@@ -245,6 +246,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // İlk render geçti mi (mount sonrası save'i engelle)
   const initialLoadDoneRef = useRef(false);
 
+  // ── Arka plan müzik: Native audio fallback ──
+  const nativeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [nativeAudioUrl, setNativeAudioUrl] = useState<string | null>(null);
+  const nativeAudioActiveRef = useRef(false); // Arka planda native audio aktif mi
+
   // ── Supabase: sayfa açılınca kullanıcının kanallarını yükle ──
   useEffect(() => {
     const loadFromCloud = async () => {
@@ -395,6 +401,91 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
   }, [isMusicPlaying]);
 
+  // ── Arka plan müzik: Video değiştiğinde Invidious'tan direkt audio URL al ──
+  const fetchNativeAudioUrl = useCallback(async (videoId: string) => {
+    try {
+      const res = await fetch(`/api/music/stream?videoId=${videoId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.audioUrl) {
+        setNativeAudioUrl(data.audioUrl);
+      }
+    } catch (e) {
+      console.warn('[NativeAudio] Stream URL alınamadı:', e);
+    }
+  }, []);
+
+  // Video ID değiştiğinde native audio URL'ini güncelle
+  useEffect(() => {
+    const videoId = getCurrentVideoId();
+    if (videoId && isMusicPlaying) {
+      fetchNativeAudioUrl(videoId);
+    } else {
+      setNativeAudioUrl(null);
+    }
+  }, [currentSongTitle, isMusicPlaying, directVideo, selectedChannelId, currentTrackIndex]);
+
+  // ── Arka plan müzik: Visibility change handler — ön plan / arka plan geçişi ──
+  useEffect(() => {
+    const handleBgSwitch = () => {
+      const audio = nativeAudioRef.current;
+      if (!audio || !nativeAudioUrl) return;
+
+      if (document.visibilityState === 'hidden' && isMusicPlaying) {
+        // Arka plana geçildi — native audio'yu duyulur yap, YouTube zaten duracak
+        audio.src = nativeAudioUrl;
+        audio.volume = volume;
+        audio.play().catch(() => {});
+        nativeAudioActiveRef.current = true;
+      } else if (document.visibilityState === 'visible') {
+        // Ön plana dönüldü — native audio sessiz, YouTube devam
+        if (nativeAudioActiveRef.current) {
+          audio.pause();
+          audio.removeAttribute('src');
+          nativeAudioActiveRef.current = false;
+          // YouTube player'ı resume et
+          try {
+            const player = ytPlayerRef.current;
+            if (player && typeof player.playVideo === 'function') {
+              player.playVideo();
+            }
+          } catch {}
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleBgSwitch);
+    return () => document.removeEventListener('visibilitychange', handleBgSwitch);
+  }, [isMusicPlaying, nativeAudioUrl, volume]);
+
+  // ── Arka plan müzik: Native audio volume sync ──
+  useEffect(() => {
+    const audio = nativeAudioRef.current;
+    if (audio && nativeAudioActiveRef.current) {
+      audio.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
+  // ── Arka plan müzik: Müzik durdurulduğunda native audio'yu da durdur ──
+  useEffect(() => {
+    if (!isMusicPlaying) {
+      const audio = nativeAudioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+        nativeAudioActiveRef.current = false;
+      }
+    }
+  }, [isMusicPlaying]);
+
+  // ── Capacitor: Müzik çalarken background mode etkinleştir ──
+  useEffect(() => {
+    if (isMusicPlaying) {
+      enableBackgroundMode();
+    } else {
+      disableBackgroundMode();
+    }
+  }, [isMusicPlaying]);
+
   const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:') || !!src?.startsWith('yt-video:');
 
   const handleSelectChannel = (id: string) => {
@@ -509,6 +600,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       setShuffleMode, setRepeatMode, clearSeekRequest,
       likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, playDirectVideo
     }}>
+      {/* Arka plan müzik: gizli native audio elementi */}
+      <audio ref={nativeAudioRef} preload="none" style={{ display: 'none' }} />
       {children}
     </MusicContext.Provider>
   );

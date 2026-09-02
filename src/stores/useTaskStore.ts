@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
+import { syncReminderForTask, deleteLinkedReminder } from '@/lib/reminderSync';
 
 // Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -64,6 +65,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       if (error) throw error;
       set((state) => ({ tasks: [data, ...state.tasks] }));
+      // Otomatik hatırlatıcı senkronizasyonu
+      try { await syncReminderForTask(data); } catch (e) { console.warn(e); }
     } catch (error: any) {
       console.error('Error adding task:', error.message);
       throw error;
@@ -83,6 +86,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === id ? data : t)),
       }));
+      // Otomatik hatırlatıcı senkronizasyonu
+      try { await syncReminderForTask(data); } catch (e) { console.warn(e); }
     } catch (error: any) {
       console.error('Error updating task:', error.message);
       throw error;
@@ -96,6 +101,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== id),
       }));
+      // Bağlı hatırlatıcıyı sil
+      try { await deleteLinkedReminder('task', id); } catch (e) { console.warn(e); }
     } catch (error: any) {
       console.error('Error deleting task:', error.message);
       throw error;
@@ -125,6 +132,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           ),
         }));
         throw error;
+      }
+      // Görev durumu değiştiğinde hatırlatıcıyı güncelle
+      const updatedTask = get().tasks.find(t => t.id === id);
+      if (updatedTask) {
+        try { await syncReminderForTask(updatedTask); } catch (e) { console.warn(e); }
       }
     } catch (error: any) {
       console.error('Error toggling task:', error.message);
