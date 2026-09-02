@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { enableBackgroundMode, disableBackgroundMode } from '@/utils/backgroundMode';
+import { apiClient } from '@/lib/apiClient';
 
 export interface Track {
   title: string;
@@ -404,7 +405,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // ── Arka plan müzik: Video değiştiğinde Invidious'tan direkt audio URL al ──
   const fetchNativeAudioUrl = useCallback(async (videoId: string) => {
     try {
-      const res = await fetch(`/api/music/stream?videoId=${videoId}`);
+      // apiClient kullanılır — Capacitor APK'da NEXT_PUBLIC_API_BASE_URL (Vercel) prefix'i eklenir
+      const res = await apiClient(`/api/music/stream?videoId=${videoId}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.audioUrl) {
