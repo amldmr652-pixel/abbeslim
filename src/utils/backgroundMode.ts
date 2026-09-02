@@ -14,6 +14,8 @@ export async function enableBackgroundMode() {
 
   try {
     const { BackgroundMode } = await import('@anuradev/capacitor-background-mode');
+    
+    // Foreground service başlat
     await BackgroundMode.enable({
       title: 'abbeslim.',
       text: 'Müzik çalınıyor...',
@@ -25,7 +27,23 @@ export async function enableBackgroundMode() {
       resume: true,
       disableWebViewOptimization: true,
     });
+
+    // WebView optimizasyonlarını kapat — arka planda audio çalmayı sağlar
+    try {
+      await BackgroundMode.disableWebViewOptimizations();
+    } catch (e) {
+      console.warn('[BackgroundMode] WebView optimizasyonları kapatılamadı:', e);
+    }
+
+    // Pil optimizasyonunu devre dışı bırakma isteği (opsiyonel)
+    try {
+      await BackgroundMode.requestDisableBatteryOptimizations();
+    } catch (e) {
+      console.warn('[BackgroundMode] Pil optimizasyonu devre dışı bırakılamadı:', e);
+    }
+
     backgroundModeEnabled = true;
+    console.log('[BackgroundMode] ✅ Etkinleştirildi');
   } catch (e) {
     console.warn('[BackgroundMode] Etkinleştirilemedi:', e);
   }
@@ -39,8 +57,15 @@ export async function disableBackgroundMode() {
 
   try {
     const { BackgroundMode } = await import('@anuradev/capacitor-background-mode');
+    
+    // WebView optimizasyonlarını geri aç
+    try {
+      await BackgroundMode.enableWebViewOptimizations();
+    } catch {}
+    
     await BackgroundMode.disable();
     backgroundModeEnabled = false;
+    console.log('[BackgroundMode] ⏹ Devre dışı bırakıldı');
   } catch (e) {
     console.warn('[BackgroundMode] Devre dışı bırakılamadı:', e);
   }

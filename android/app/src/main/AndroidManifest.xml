@@ -56,6 +56,9 @@
     <!-- Ağ durumu (çevrimdışı algılama) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
+    <!-- Arka plan müzik için pil optimizasyonu bypass -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
     <!-- Sesli arama ve sesli not için mikrofon -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />

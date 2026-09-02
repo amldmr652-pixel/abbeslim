@@ -403,27 +403,68 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   }, [isMusicPlaying]);
 
   // ── Arka plan müzik: Video değiştiğinde Invidious'tan direkt audio URL al ──
+  const startNativeAudio = useCallback((audioUrl: string) => {
+    setNativeAudioUrl(audioUrl);
+    const audio = nativeAudioRef.current;
+    if (audio && isMusicPlaying) {
+      audio.src = audioUrl;
+      audio.volume = 0.01; // Çok düşük ama OS tarafından "çalıyor" sayılacak seviyede
+      audio.loop = true;
+      audio.play().then(() => {
+        console.log('[NativeAudio] ✅ Sessiz arka plan audio başlatıldı');
+      }).catch((err) => {
+        console.warn('[NativeAudio] play() başarısız:', err);
+      });
+    }
+  }, [isMusicPlaying]);
+
   const fetchNativeAudioUrl = useCallback(async (videoId: string) => {
+    // 1. Önce Vercel API'yi dene
     try {
-      // apiClient kullanılır — Capacitor APK'da NEXT_PUBLIC_API_BASE_URL (Vercel) prefix'i eklenir
       const res = await apiClient(`/api/music/stream?videoId=${videoId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.audioUrl) {
-        setNativeAudioUrl(data.audioUrl);
-        // URL alındığında hemen sessiz olarak başlat (autoplay kısıtlamasını aşmak için)
-        const audio = nativeAudioRef.current;
-        if (audio && isMusicPlaying) {
-          audio.src = data.audioUrl;
-          audio.volume = 0.001; // Neredeyse sessiz — ama çalıyor
-          audio.loop = true;
-          audio.play().catch(() => {});
+      if (res.ok) {
+        const data = await res.json();
+        if (data.audioUrl) {
+          startNativeAudio(data.audioUrl);
+          return;
         }
       }
     } catch (e) {
-      console.warn('[NativeAudio] Stream URL alınamadı:', e);
+      console.warn('[NativeAudio] API başarısız, direkt Invidious deneniyor...', e);
     }
-  }, [isMusicPlaying]);
+
+    // 2. Fallback: Direkt Invidious instance'larını dene (API route bypass)
+    const instances = [
+      'https://inv.nadeko.net',
+      'https://invidious.nerdvpn.de',
+      'https://vid.puffyan.us',
+      'https://iv.datura.network',
+      'https://invidious.privacyredirect.com',
+    ];
+
+    for (const instance of instances) {
+      try {
+        const res = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const audioFormats = (data.adaptiveFormats || [])
+          .filter((f: any) => f.type?.startsWith('audio/'))
+          .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
+
+        if (audioFormats.length > 0) {
+          console.log('[NativeAudio] ✅ Invidious direkt URL alındı:', instance);
+          startNativeAudio(audioFormats[0].url);
+          return;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    console.warn('[NativeAudio] ❌ Hiçbir kaynaktan audio URL alınamadı');
+  }, [startNativeAudio]);
 
   // Video ID değiştiğinde native audio URL'ini güncelle
   useEffect(() => {
