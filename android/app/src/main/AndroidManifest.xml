@@ -27,6 +27,12 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Arka plan müzik çalma servisi (Android 14+ zorunlu) -->
+        <service
+            android:name="dev.anuradev.backgroundmode.BackgroundModeService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->

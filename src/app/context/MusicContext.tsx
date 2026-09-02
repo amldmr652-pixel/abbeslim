@@ -411,11 +411,19 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (data.audioUrl) {
         setNativeAudioUrl(data.audioUrl);
+        // URL alındığında hemen sessiz olarak başlat (autoplay kısıtlamasını aşmak için)
+        const audio = nativeAudioRef.current;
+        if (audio && isMusicPlaying) {
+          audio.src = data.audioUrl;
+          audio.volume = 0.001; // Neredeyse sessiz — ama çalıyor
+          audio.loop = true;
+          audio.play().catch(() => {});
+        }
       }
     } catch (e) {
       console.warn('[NativeAudio] Stream URL alınamadı:', e);
     }
-  }, []);
+  }, [isMusicPlaying]);
 
   // Video ID değiştiğinde native audio URL'ini güncelle
   useEffect(() => {
@@ -424,40 +432,83 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       fetchNativeAudioUrl(videoId);
     } else {
       setNativeAudioUrl(null);
+      const audio = nativeAudioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+      }
     }
   }, [currentSongTitle, isMusicPlaying, directVideo, selectedChannelId, currentTrackIndex]);
 
-  // ── Arka plan müzik: Visibility change handler — ön plan / arka plan geçişi ──
-  useEffect(() => {
-    const handleBgSwitch = () => {
-      const audio = nativeAudioRef.current;
-      if (!audio || !nativeAudioUrl) return;
+  // ── Arka plan müzik: Ön plan / arka plan geçiş yönetimi ──
+  // Hem Capacitor App listener (mobil) hem de visibilitychange (web) kullanılır
+  const handleAppToBackground = useCallback(() => {
+    const audio = nativeAudioRef.current;
+    if (!audio || !isMusicPlaying) return;
 
-      if (document.visibilityState === 'hidden' && isMusicPlaying) {
-        // Arka plana geçildi — native audio'yu duyulur yap, YouTube zaten duracak
-        audio.src = nativeAudioUrl;
-        audio.volume = volume;
-        audio.play().catch(() => {});
-        nativeAudioActiveRef.current = true;
-      } else if (document.visibilityState === 'visible') {
-        // Ön plana dönüldü — native audio sessiz, YouTube devam
-        if (nativeAudioActiveRef.current) {
-          audio.pause();
-          audio.removeAttribute('src');
-          nativeAudioActiveRef.current = false;
-          // YouTube player'ı resume et
-          try {
-            const player = ytPlayerRef.current;
-            if (player && typeof player.playVideo === 'function') {
-              player.playVideo();
-            }
-          } catch {}
+    // Native audio zaten sessiz çalıyorsa, sesini aç
+    if (nativeAudioUrl && audio.src) {
+      audio.volume = isMuted ? 0 : volume;
+      nativeAudioActiveRef.current = true;
+    }
+  }, [isMusicPlaying, nativeAudioUrl, volume, isMuted]);
+
+  const handleAppToForeground = useCallback(() => {
+    const audio = nativeAudioRef.current;
+
+    if (nativeAudioActiveRef.current && audio) {
+      // Ön plana dönüldü — native audio'yu tekrar sessizleştir
+      audio.volume = 0.001;
+      nativeAudioActiveRef.current = false;
+
+      // YouTube player'ı resume et
+      try {
+        const player = ytPlayerRef.current;
+        if (player && typeof player.playVideo === 'function') {
+          player.playVideo();
         }
+      } catch {}
+    }
+  }, []);
+
+  // Capacitor App state listener (Android/iOS — en güvenilir yöntem)
+  useEffect(() => {
+    let appListener: any = null;
+
+    const setupCapacitorListener = async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+        appListener = await App.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) {
+            handleAppToBackground();
+          } else {
+            handleAppToForeground();
+          }
+        });
+      } catch {
+        // Capacitor yok (web ortamı) — visibilitychange kullan
       }
     };
-    document.addEventListener('visibilitychange', handleBgSwitch);
-    return () => document.removeEventListener('visibilitychange', handleBgSwitch);
-  }, [isMusicPlaying, nativeAudioUrl, volume]);
+
+    setupCapacitorListener();
+
+    // Web fallback: visibilitychange (tarayıcı sekmesi için)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        handleAppToBackground();
+      } else if (document.visibilityState === 'visible') {
+        handleAppToForeground();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (appListener && typeof appListener.remove === 'function') {
+        appListener.remove();
+      }
+    };
+  }, [handleAppToBackground, handleAppToForeground]);
 
   // ── Arka plan müzik: Native audio volume sync ──
   useEffect(() => {
