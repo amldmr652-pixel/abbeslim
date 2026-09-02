@@ -1567,3 +1567,31 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 3. **Tracker CSS Sınıfı Standartlaştırması (`src/app/tracker/page.tsx`)**: Non-standard `bg-stone-750` sınıfı standart Tailwind v4 sınıfı olan `bg-stone-700` ile değiştirildi.
 4. **Derleme & Git Deployment**: `npm run build` ile 38/38 sayfanın hatasız derlendiği doğrulandı ve `git push origin main` ile depoya aktarıldı.
 
+---
+
+## [2026-09-02] V3.0: 7 Bug Fixes + Background Music Feature
+
+**Durum:** Başarılı (Tüm 7 sorun çözüldü, 1 yeni özellik eklendi, build 38/38 geçildi, GitHub & Vercel'e push edildi).
+
+**Yapılan Değişiklikler:**
+1. **Admin Panel Middleware Yönlendirme Düzeltmesi (`src/utils/supabase/middleware.ts`)**: Satır 41'deki kontrol `!isApiRoute` şartı ile güncellendi. Çerez taşımayan Capacitor/Tauri API isteklerinin `/login`'e yönlendirilip CORS/Auth hatası vermesi engellendi.
+2. **Otomatik Hatırlatıcı Senkronizasyonunun Kaldırılması**:
+   - `src/lib/reminderSync.ts` dosyası tamamen silindi.
+   - `useTaskStore.ts`, `useCalendarStore.ts` ve `useHabitStore.ts` içerisindeki tüm `syncReminderFor...` ve `deleteLinkedReminder` çağrıları temizlendi.
+3. **Çift Bildirim Engellemesi (`src/app/hooks/useReminderEngine.ts`)**: `checkReminders` polling döngüsünde native platform kontrolü (`!Capacitor.isNativePlatform()`) eklendi. Mobil cihazlarda aynı anda hem OS scheduled hem in-app bildirim tetiklenmesi önlendi.
+4. **Pomodoro Duraklatınca Süre Sıfırlanma Bug'ı (`src/stores/usePomodoroStore.ts`, `src/app/hooks/usePomodoroTimer.ts`)**:
+   - Store'a `isPaused` durum değişkeni eklendi.
+   - Timer hook'undaki settings sync `useEffect`'ine `!isPaused` şartı eklendi.
+5. **Pomodoro Atlama (Skip) Sayacı Düzeltmesi (`src/stores/usePomodoroStore.ts`)**: `pomodoroCount` başlangıç değeri `1`'den `0`'a çekildi.
+6. **Molada Müzik Durma Ayarı (`src/stores/useSettingsStore.ts`, `src/app/hooks/usePomodoroTimer.ts`, `src/app/components/FocusModeOverlay.tsx`)**:
+   - `pomodoroStopMusicOnBreak` ayarı eklendi (varsayılan `true`).
+   - Odak Modu ayar çekmecesine "Molada Müziği Durdur" onay kutusu eklendi.
+7. **PC (Tauri) Masaüstü Bildirim Desteği**:
+   - `@tauri-apps/plugin-notification` npm paketi kuruldu.
+   - `src-tauri/Cargo.toml`, `src-tauri/src/lib.rs` ve `src-tauri/capabilities/default.json` dosyalarına notification eklentisi ve izinleri kaydedildi.
+   - `src/utils/notifications.ts` içerisine `isTauri()` algılaması ve Tauri API çağrıları entegre edildi.
+8. **Mobil Arka Plan Müzik ve MediaSession Desteği**:
+   - `android/app/src/main/AndroidManifest.xml` dosyasına `FOREGROUND_SERVICE_MEDIA_PLAYBACK` izni eklendi.
+   - `src/app/context/MusicContext.tsx` dosyasına `MediaSession API` metadata ve action handler'ları entegre edildi.
+
+
