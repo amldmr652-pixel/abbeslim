@@ -1617,5 +1617,47 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
    - Tarayıcı/sekme tekrar görünür olduğunda YouTube player'ın durumunu kontrol edip otomatik devam ettiren `visibilitychange` dinleyicisi eklendi.
    - Müzik çalarken tarayıcının sekme/uygulama uykusuna geçmesini önlemek için sessiz `AudioContext` (oscillator keepalive) entegre edildi.
 
+---
 
+## [2026-09-02] V5.0: Arka Plan Müzik Çalma + Hatırlatıcı Senkronizasyonu Geri Getirme
+
+**Durum:** Tamamlandı.
+
+### Yapılan Değişiklikler
+
+#### 1. Arka Plan Müzik Çalma (Background Audio Fallback)
+**Sorun:** YouTube iframe, Capacitor Android uygulaması arka plana alındığında çalmayı durduruyor — WebView lifecycle ve YouTube ToS kısıtlaması.
+
+**Çözüm — Hibrit yaklaşım:**
+- **`src/utils/backgroundMode.ts` [YENİ]:** Capacitor `@anuradev/capacitor-background-mode` plugin entegrasyonu. Müzik çalarken Android foreground service başlatır, uygulama arka planda canlı tutulur.
+- **`src/app/context/MusicContext.tsx` [GÜNCELLEME]:**
+  - Gizli `<audio>` elementi eklendi (native audio fallback).
+  - Video değiştiğinde `/api/music/stream` Invidious API'den direkt audio stream URL'i alınır.
+  - `visibilitychange` handler: Arka plana geçildiğinde `<audio>` elementi duyulur yapılır (YouTube iframe duracağı için). Ön plana dönüldüğünde `<audio>` sessizleştirilip YouTube player resume edilir.
+  - Volume sync ve play/pause senkronizasyonu eklendi.
+  - `enableBackgroundMode()` / `disableBackgroundMode()` müzik çalarken/dururken çağrılır.
+
+**Kurulu paket:** `@anuradev/capacitor-background-mode`
+
+#### 2. Otomatik Hatırlatıcı Senkronizasyonu (Geri Getirme)
+**Sorun:** V3.0'da çift bildirim sorununu çözmek için kaldırılan `reminderSync.ts` kullanıcı tarafından geri istendi.
+
+**Çözüm:**
+- **`src/lib/reminderSync.ts` [YENİ]:** Git geçmişinden (commit `dfa89a8`) kurtarılan orijinal dosya yeniden oluşturuldu. 4 fonksiyon:
+  - `syncReminderForTask(task)` — Görev CRUD sonrası otomatik hatırlatıcı.
+  - `syncReminderForHabit(habit)` — Alışkanlık CRUD sonrası otomatik hatırlatıcı.
+  - `syncReminderForCalendar(event)` — Takvim CRUD sonrası otomatik hatırlatıcı.
+  - `deleteLinkedReminder(sourceType, sourceId)` — Silme sonrası bağlı hatırlatıcıyı temizle.
+- **`src/stores/useTaskStore.ts` [GÜNCELLEME]:** `addTask`, `updateTask`, `deleteTask`, `toggleTaskCompletion` fonksiyonlarına sync çağrıları eklendi.
+- **`src/stores/useHabitStore.ts` [GÜNCELLEME]:** `addHabit`, `updateHabit`, `deleteHabit` fonksiyonlarına sync çağrıları eklendi.
+- **`src/stores/useCalendarStore.ts` [GÜNCELLEME]:** `addEvent`, `updateEvent`, `deleteEvent` fonksiyonlarına sync çağrıları eklendi.
+
+### Kritik Kararlar
+1. YouTube iframe'in arka planda çalışmaması sorunu, direkt ses stream'i çıkararak (Invidious API) ve gizli `<audio>` elementi ile çözüldü.
+2. Reminder sync çağrıları fire-and-forget (asenkron, hata loglanır ama ana işlem engellenmez).
+3. `useSettingsStore.reminderDefaults` ile kullanıcı sync'i devre dışı bırakabilir (önceki V2 davranışı korundu).
+
+### Sonraki Adımlar
+- Mobil APK yeniden derlenmeli (`npx cap sync android` + Android Studio build).
+- Masaüstü EXE yeniden derlenmeli (`npm run tauri:build`).
 
