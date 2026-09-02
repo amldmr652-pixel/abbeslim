@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
-import { syncReminderForTask, deleteLinkedReminder } from '@/lib/reminderSync';
 
 // Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -65,13 +64,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       if (error) throw error;
       set((state) => ({ tasks: [data, ...state.tasks] }));
-
-      // Hatırlatıcı senkronizasyonu
-      try {
-        await syncReminderForTask(data);
-      } catch (err) {
-        console.error('Error syncing reminder for added task:', err);
-      }
     } catch (error: any) {
       console.error('Error adding task:', error.message);
       throw error;
@@ -91,13 +83,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === id ? data : t)),
       }));
-
-      // Hatırlatıcı senkronizasyonu
-      try {
-        await syncReminderForTask(data);
-      } catch (err) {
-        console.error('Error syncing reminder for updated task:', err);
-      }
     } catch (error: any) {
       console.error('Error updating task:', error.message);
       throw error;
@@ -111,13 +96,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== id),
       }));
-
-      // Hatırlatıcı silme
-      try {
-        await deleteLinkedReminder('task', id);
-      } catch (err) {
-        console.error('Error deleting linked reminder for task:', err);
-      }
     } catch (error: any) {
       console.error('Error deleting task:', error.message);
       throw error;
@@ -147,16 +125,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           ),
         }));
         throw error;
-      }
-
-      // Hatırlatıcı senkronizasyonu (tamamlandıysa siler, tamamlanmadıysa tekrar ekler)
-      const targetTask = get().tasks.find(t => t.id === id);
-      if (targetTask) {
-        try {
-          await syncReminderForTask(targetTask);
-        } catch (err) {
-          console.error('Error syncing reminder for toggled task:', err);
-        }
       }
     } catch (error: any) {
       console.error('Error toggling task:', error.message);

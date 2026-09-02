@@ -24,7 +24,7 @@ export const MODE_LABELS: Record<Mode, string> = {
 
 export function usePomodoroTimer() {
   const {
-    currentMode, timeLeft, isRunning, endTime, pomodoroCount, isFinished, isShaking,
+    currentMode, timeLeft, isRunning, isPaused, endTime, pomodoroCount, isFinished, isShaking,
     start, pause, reset, tick, setMode, setFinished, setShaking, incrementPomodoroCount, setTimeLeft
   } = usePomodoroStore();
 
@@ -41,13 +41,13 @@ export function usePomodoroTimer() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync settings back to timeLeft when timer is idle and not finished
+  // Sync settings back to timeLeft when timer is idle, not finished, and not paused
   const currentWorkTime = settings.pomodoroWork || 25;
   const currentShortTime = settings.pomodoroShortBreak || 5;
   const currentLongTime = settings.pomodoroLongBreak || 15;
 
   useEffect(() => {
-    if (!isRunning && !isFinished) {
+    if (!isRunning && !isFinished && !isPaused) {
       const duration = currentMode === 'pomodoro'
         ? currentWorkTime * 60
         : currentMode === 'shortBreak'
@@ -55,7 +55,7 @@ export function usePomodoroTimer() {
           : currentLongTime * 60;
       setTimeLeft(duration);
     }
-  }, [currentMode, currentWorkTime, currentShortTime, currentLongTime, isRunning, isFinished, setTimeLeft]);
+  }, [currentMode, currentWorkTime, currentShortTime, currentLongTime, isRunning, isFinished, isPaused, setTimeLeft]);
 
   // Tick timer & mobile visibility sync
   useEffect(() => {
@@ -97,11 +97,13 @@ export function usePomodoroTimer() {
       const interval = settings.pomodoroLongBreakInterval || 4;
       nextMode = (nextCount % interval === 0) ? 'longBreak' : 'shortBreak';
       incrementPomodoroCount();
-      // Molaya geçilince otomatik müzik çal
-      try {
-        setIsMusicPlaying(true);
-      } catch (e) {
-        // MusicContext fallback
+      // Molaya geçilince durdurma ayarı kapalıysa müzik çalsın
+      if (!settings.pomodoroStopMusicOnBreak) {
+        try {
+          setIsMusicPlaying(true);
+        } catch (e) {
+          // MusicContext fallback
+        }
       }
     } else {
       nextMode = 'pomodoro';
@@ -202,9 +204,11 @@ export function usePomodoroTimer() {
     if (currentMode === 'pomodoro') {
       setIsMusicPlaying(isRunning);
     } else {
-      setIsMusicPlaying(false);
+      if (settings.pomodoroStopMusicOnBreak) {
+        setIsMusicPlaying(false);
+      }
     }
-  }, [isRunning, isMusicSynced, selectedChannelId, setIsMusicPlaying, currentMode]);
+  }, [isRunning, isMusicSynced, selectedChannelId, setIsMusicPlaying, currentMode, settings.pomodoroStopMusicOnBreak]);
 
   // Mola Sesleri
   useEffect(() => {

@@ -42,9 +42,10 @@
     <!-- Alarm titreşimi -->
     <uses-permission android:name="android.permission.VIBRATE" />
     
-    <!-- Pomodoro arka planda çalışma -->
+    <!-- Pomodoro ve Müzik arka planda çalışma -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     
     <!-- Ağ durumu (çevrimdışı algılama) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

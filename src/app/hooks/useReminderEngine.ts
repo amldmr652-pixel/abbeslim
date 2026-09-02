@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useReminderStore } from '@/stores/useReminderStore';
 import {
   sendNotification,
@@ -143,11 +144,13 @@ export function useReminderEngine() {
       // Alarm sesi çal
       playAlarmSound(reminder.sound || 'beep');
 
-      // Bildirim gönder (Web/Mobil/Tauri)
-      sendNotification(
-        `🔔 ${reminder.title}`,
-        reminder.description || 'Hatırlatıcı zamanı geldi!'
-      );
+      // Bildirim gönder (Sadece web/desktop, çünkü native platformda OS scheduled notification var)
+      if (!Capacitor.isNativePlatform()) {
+        sendNotification(
+          `🔔 ${reminder.title}`,
+          reminder.description || 'Hatırlatıcı zamanı geldi!'
+        );
+      }
     });
   }, [reminders]);
 

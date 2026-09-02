@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
   const isApiRoute     = path.startsWith('/api')
 
   // Giriş yapılmamışsa ve korumalı bir sayfaysa → login'e yönlendir
-  if (!user && !isAuthRoute && !isPendingRoute) {
+  if (!user && !isAuthRoute && !isPendingRoute && !isApiRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

@@ -6,6 +6,7 @@ interface PomodoroState {
   currentMode: Mode;
   timeLeft: number;
   isRunning: boolean;
+  isPaused: boolean;
   endTime: number | null;
   pomodoroCount: number;
   isFinished: boolean;
@@ -26,14 +27,16 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   currentMode: 'pomodoro',
   timeLeft: 25 * 60,
   isRunning: false,
+  isPaused: false,
   endTime: null,
-  pomodoroCount: 1,
+  pomodoroCount: 0,
   isFinished: false,
   isShaking: false,
 
   start: (timeToRun) => {
     set({
       isRunning: true,
+      isPaused: false,
       endTime: Date.now() + timeToRun * 1000,
       timeLeft: timeToRun
     });
@@ -42,6 +45,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   pause: () => {
     set({
       isRunning: false,
+      isPaused: true,
       endTime: null
     });
   },
@@ -49,6 +53,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   reset: (timeToReset) => {
     set({
       isRunning: false,
+      isPaused: false,
       endTime: null,
       isFinished: false,
       timeLeft: timeToReset
@@ -67,6 +72,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       currentMode,
       timeLeft: time,
       isRunning: false,
+      isPaused: false,
       endTime: null,
       isFinished: false
     });

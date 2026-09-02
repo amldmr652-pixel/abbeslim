@@ -325,6 +325,31 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     }
   }, [activeTrack, activeChannel]);
 
+  // MediaSession API — Arka planda müzik çalma ve kilit ekranı/bildirim kontrolleri
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
+
+    if (isMusicPlaying && currentSongTitle) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSongTitle,
+        artist: currentSongArtist || 'abbeslim.',
+        album: activeChannel?.name || 'Odak Müzikleri',
+        artwork: [
+          { src: '/favicon.ico', sizes: '96x96', type: 'image/png' },
+        ]
+      });
+
+      navigator.mediaSession.playbackState = 'playing';
+
+      navigator.mediaSession.setActionHandler('play', () => setIsMusicPlaying(true));
+      navigator.mediaSession.setActionHandler('pause', () => setIsMusicPlaying(false));
+      navigator.mediaSession.setActionHandler('previoustrack', () => handlePrevTrack());
+      navigator.mediaSession.setActionHandler('nexttrack', () => handleNextTrack());
+    } else {
+      navigator.mediaSession.playbackState = 'paused';
+    }
+  }, [isMusicPlaying, currentSongTitle, currentSongArtist, activeChannel]);
+
   const isYTPlaylist = (src?: string | null) => !!src?.startsWith('yt-playlist:') || !!src?.startsWith('yt-video:');
 
   const handleSelectChannel = (id: string) => {

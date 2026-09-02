@@ -353,6 +353,16 @@ export default function FocusModeOverlay() {
                 />
                 <span>Pomodoro'ları Otomatik Başlat</span>
               </label>
+
+              <label className="flex items-center gap-3 cursor-pointer text-xs text-gray-300 font-medium">
+                <input
+                  type="checkbox"
+                  checked={settingsStore.pomodoroStopMusicOnBreak ?? true}
+                  onChange={(e) => settingsStore.updateSettings({ pomodoroStopMusicOnBreak: e.target.checked })}
+                  className="w-4 h-4 accent-green-500 rounded cursor-pointer"
+                />
+                <span>Molada Müziği Durdur</span>
+              </label>
             </div>
           </div>
         </div>

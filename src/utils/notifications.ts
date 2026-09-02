@@ -7,11 +7,30 @@
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && ('__TAURI__' in window || '__TAURI_INTERNALS__' in window);
+}
+
 /**
  * Bildirim izni iste (platform bağımsız)
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   try {
+    // 0. Tauri Desktop (Windows/Mac/Linux)
+    if (isTauri()) {
+      try {
+        const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification');
+        let granted = await isPermissionGranted();
+        if (!granted) {
+          const perm = await requestPermission();
+          granted = perm === 'granted';
+        }
+        return granted;
+      } catch (err) {
+        console.warn('Tauri notification permission error:', err);
+      }
+    }
+
     // 1. Mobil Native Platform (Android / iOS)
     if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
       try {
@@ -26,7 +45,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
       }
     }
 
-    // 2. Web / Tauri / Chrome WebView Fallback
+    // 2. Web / Chrome WebView Fallback
     if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined') {
       if (Notification.permission === 'granted') {
         return true;
@@ -48,6 +67,17 @@ let notificationIdCounter = 1;
 
 export async function sendNotification(title: string, body: string): Promise<void> {
   try {
+    // 0. Tauri Desktop (Windows/Mac/Linux)
+    if (isTauri()) {
+      try {
+        const { sendNotification: tauriNotify } = await import('@tauri-apps/plugin-notification');
+        tauriNotify({ title, body });
+        return;
+      } catch (err) {
+        console.warn('Tauri notification send error:', err);
+      }
+    }
+
     // 1. Mobil Native Platform (Android / iOS)
     if (Capacitor.isNativePlatform() || Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios') {
       try {
@@ -73,7 +103,7 @@ export async function sendNotification(title: string, body: string): Promise<voi
       }
     }
 
-    // 2. Web / Tauri WebView Fallback
+    // 2. Web / Chrome WebView Fallback
     if (
       typeof window !== 'undefined' &&
       'Notification' in window &&

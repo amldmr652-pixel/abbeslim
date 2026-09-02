@@ -81,6 +81,7 @@ interface SettingsState {
   pomodoroLongBreakInterval: number; // default 3
   pomodoroAutoStartBreaks: boolean;  // default true
   pomodoroAutoStartPomodoros: boolean; // default false
+  pomodoroStopMusicOnBreak: boolean; // default true
 
   // ── YENİ: Takvim Ayarları ──
   calendarDefaultView: 'month' | 'week'; // default 'month'
@@ -170,6 +171,7 @@ export const useSettingsStore = create<SettingsState>()(
       pomodoroLongBreakInterval: 3,
       pomodoroAutoStartBreaks: true,
       pomodoroAutoStartPomodoros: false,
+      pomodoroStopMusicOnBreak: true,
 
       calendarDefaultView: 'month',
       calendarFirstDayOfWeek: 1,

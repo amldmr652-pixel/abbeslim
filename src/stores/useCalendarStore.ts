@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
-import { syncReminderForCalendarEvent, deleteLinkedReminder } from '@/lib/reminderSync';
 
 // Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -65,9 +64,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
       if (error) throw error;
       set((state) => ({ events: [...state.events, data] }));
-      
-      // Otomatik hatırlatıcı senkronizasyonu
-      syncReminderForCalendarEvent(data);
     } catch (error: any) {
       console.error('Error adding calendar event:', error.message);
       throw error;
@@ -87,9 +83,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       set((state) => ({
         events: state.events.map((e) => (e.id === id ? data : e)),
       }));
-
-      // Otomatik hatırlatıcı senkronizasyonu
-      syncReminderForCalendarEvent(data);
     } catch (error: any) {
       console.error('Error updating calendar event:', error.message);
       throw error;
@@ -103,9 +96,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       set((state) => ({
         events: state.events.filter((e) => e.id !== id),
       }));
-
-      // Otomatik hatırlatıcı silme
-      deleteLinkedReminder('calendar', id);
     } catch (error: any) {
       console.error('Error deleting calendar event:', error.message);
       throw error;
