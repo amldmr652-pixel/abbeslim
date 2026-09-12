@@ -1767,4 +1767,25 @@ V6.1 — Chat PDF, Supabase race condition fix, performans
 3. Global auth store ile 26 dosyadaki tekrarlanan getUser çağrıları tek noktaya indirildi
 4. Store'lara 30sn TTL cache eklenerek gereksiz network istekleri engellendi
 
+---
+
+## V6.2 — Hızlı Sayfa Yükleme, Chat Geçmişi Yerel/Uzak Hibrit Senkronizasyonu, PDF İndirme Fallback (2026-09-12)
+
+### Faz
+V6.2 — Instant page navigation (F5 freeze fix), chat history localStorage restore, robust PDF export
+
+### Değiştirilen Dosyalar
+- `src/stores/useAuthStore.ts` — Bloke eden promise queue kaldırıldı, getSession() ve global auth dinleyicisi ile 0ms önbelleğe geçildi
+- `src/app/LayoutShell.tsx` — onAuthStateChange dinleyicisi pathname bağımlılığından kurtarıldı, tek seferlik mount'a çekildi; route guard ağ çağrısı yapmadan yerel state üzerinden çalışır hale getirildi
+- `src/app/tasks/page.tsx`, `notes/page.tsx`, `calendar/page.tsx`, `finance/page.tsx` — Sayfa açılışında `user = null` yerine `useAuthStore.user` ile başlatıldı, sayfa geçişlerindeki "Giriş Gerekli" ekranı ve F5 ihtiyacı ortadan kaldırıldı
+- `src/stores/useConversationStore.ts` — Zustand `persist` middleware'i geri eklendi (`lifeos-chat-conversations`), önceki tüm sohbetler anında yüklendi, Supabase ile çift yönlü hibrit senkronizasyon sağlandı (0ms açılış)
+- `src/utils/pdfExport.ts` — Font toleransı eklendi, detaylı sunucu hata yakalama ve kütüphaneye yüklenemediğinde dosyayı doğrudan cihaza indiren fallback entegre edildi
+- `src/lib/apiClient.ts` — useAuthStore üzerinden hızlı token erişimi ve `credentials: 'include'` eklendi
+
+### Kritik Kararlar
+1. Sayfa geçişlerinde F5 gereksiniminin kök nedeni, LayoutShell'in pathname değiştikçe auth dinleyicisini silip tekrar Supabase network isteği atması ve sayfaların user=null başlamasıydı. useAuthStore ile anlık bellekten okunması sağlandı.
+2. Chat geçmişinin görünmemesi, persist'in kaldırılması ve önceki localStorage verilerinin yok sayılmasından kaynaklanıyordu; persist geri getirilip Supabase ile hibrit birleştirme yapıldı.
+3. PDF kaydetmede ağ veya yetki hatası oluştuğunda kullanıcının notunun kaybolmaması için doğrudan cihaza indirme (doc.save) emniyet kemeri eklendi.
+
+
 

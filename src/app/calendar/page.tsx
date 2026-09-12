@@ -9,6 +9,7 @@ import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, AlertCircle, Clock, Trash2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 type ViewMode = 'month' | 'week';
 
@@ -20,7 +21,8 @@ export default function CalendarPage() {
   const { events, isLoading, fetchEvents, addEvent, updateEvent, deleteEvent } = useCalendarStore();
   const { tasks, fetchTasks } = useTaskStore();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [user, setUser] = useState<User | null>(null);
+  const authUser = useAuthStore(state => state.user);
+  const [user, setUser] = useState<User | null>(authUser);
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const supabase = createClient();
 
@@ -49,15 +51,20 @@ export default function CalendarPage() {
   const [editColor, setEditColor] = useState('#22c55e');
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => {
-      const data = res?.data;
-      setUser(data?.user || null);
-      if (data?.user) {
-        fetchEvents();
-        fetchTasks();
-      }
-    });
-  }, [fetchEvents, fetchTasks]);
+    if (authUser) {
+      setUser(authUser);
+      fetchEvents();
+      fetchTasks();
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        setUser(u);
+        if (u) {
+          fetchEvents();
+          fetchTasks();
+        }
+      });
+    }
+  }, [authUser, fetchEvents, fetchTasks]);
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();

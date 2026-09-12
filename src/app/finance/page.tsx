@@ -7,6 +7,7 @@ import { useTranslation } from '@/app/hooks/useTranslation';
 import { useFinanceStore, Transaction } from '@/stores/useFinanceStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export default function FinancePage() {
   const { t, language } = useTranslation();
@@ -16,8 +17,9 @@ export default function FinancePage() {
     getBalance, getTotalIncome, getTotalExpense 
   } = useFinanceStore();
   
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const authUser = useAuthStore(state => state.user);
+  const [userId, setUserId] = useState<string | null>(authUser?.id || null);
+  const [loadingUser, setLoadingUser] = useState(!authUser);
 
   const locale = language === 'ar' ? 'ar-SA' : language === 'en' ? 'en-US' : 'tr-TR';
 
@@ -42,17 +44,20 @@ export default function FinancePage() {
   const [editDate, setEditDate] = useState('');
 
   useEffect(() => {
-    const getUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        fetchTransactions();
-      }
+    if (authUser) {
+      setUserId(authUser.id);
       setLoadingUser(false);
-    };
-    getUser();
-  }, [fetchTransactions]);
+      fetchTransactions();
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) {
+          setUserId(user.id);
+          fetchTransactions();
+        }
+        setLoadingUser(false);
+      });
+    }
+  }, [authUser, fetchTransactions]);
 
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();

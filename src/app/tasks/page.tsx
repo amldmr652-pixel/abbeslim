@@ -8,6 +8,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { CheckCircle2, Circle, Plus, Calendar, Trash2, AlertCircle, Edit, ListTodo, CheckSquare, Square } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface Subtask {
   id: string;
@@ -22,7 +23,6 @@ export default function TasksPage() {
     tasks, isLoading, fetchTasks, addTask, toggleTaskCompletion, deleteTask, updateTask 
   } = useTaskStore();
   
-  const [user, setUser] = useState<User | null>(null);
   const supabase = createClient();
 
   // Filters & Sorting states
@@ -53,15 +53,20 @@ export default function TasksPage() {
   const [editSubtasks, setEditSubtasks] = useState<Subtask[]>([]);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
+  const authUser = useAuthStore(state => state.user);
+  const [user, setUser] = useState<User | null>(authUser);
+
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => {
-      const data = res?.data;
-      setUser(data?.user || null);
-      if (data?.user) {
-        fetchTasks();
-      }
-    });
-  }, [fetchTasks]);
+    if (authUser) {
+      setUser(authUser);
+      fetchTasks();
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        setUser(u);
+        if (u) fetchTasks();
+      });
+    }
+  }, [authUser, fetchTasks]);
 
   // JSON Description Parser & Serializer helpers
   const parseDescription = (desc: string | null) => {

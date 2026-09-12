@@ -8,6 +8,7 @@ import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { StickyNote, Plus, AlertCircle, Pin, Trash2, Mic, Square, Save, Loader2, BookOpen, Clock, X, Menu, ChevronLeft } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from '@/stores/useAuthStore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -17,7 +18,8 @@ export default function NotesPage() {
   const { t, language } = useTranslation();
   const settings = useSettingsStore();
   const { notes, isLoading, fetchNotes, addNote, updateNote, deleteNote, togglePin, uploadAudio } = useNoteStore();
-  const [user, setUser] = useState<User | null>(null);
+  const authUser = useAuthStore(state => state.user);
+  const [user, setUser] = useState<User | null>(authUser);
   const supabase = createClient();
 
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -59,14 +61,16 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => {
-      const data = res?.data;
-      setUser(data?.user || null);
-      if (data?.user) {
-        fetchNotes();
-      }
-    });
-  }, [fetchNotes]);
+    if (authUser) {
+      setUser(authUser);
+      fetchNotes();
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        setUser(u);
+        if (u) fetchNotes();
+      });
+    }
+  }, [authUser, fetchNotes]);
 
   // Debounced auto-save effect
   useEffect(() => {

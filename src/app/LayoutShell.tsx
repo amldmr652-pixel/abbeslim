@@ -50,40 +50,30 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
+  // 1. Tek seferlik oturum dinleyicisi (sayfa değişimlerinde tekrar tekrar çalışmaz)
   useEffect(() => {
-    const supabase = createClient();
-    
-    // İlk kontrol — global auth store'u da güncelle
     useAuthStore.getState().fetchUser().then((user) => {
-      const loggedIn = !!user;
-      setIsAuthenticated(loggedIn);
-      setAuthChecked(true);
-      
-      // Giriş yapmamış ve auth sayfasında değilse → login'e yönlendir (yalnızca internet varsa)
-      if (!loggedIn && navigator.onLine && !AUTH_ROUTES.some(r => pathname.startsWith(r))) {
-        router.replace('/login');
-      }
-    }).catch(() => {
-      // Offline fallback: allow app to stay rendered
-      setIsAuthenticated(true);
+      setIsAuthenticated(!!user);
       setAuthChecked(true);
     });
 
-    // Oturum değişikliklerini dinle (logout, token expire vb.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-      const loggedIn = !!session?.user;
-      setIsAuthenticated(loggedIn);
-      useAuthStore.setState({ user: session?.user || null, isChecked: true });
-      
-      if (event === 'SIGNED_OUT') {
-        router.replace('/login');
-      }
+    const unsubscribe = useAuthStore.subscribe((state) => {
+      setIsAuthenticated(!!state.user);
+      setAuthChecked(state.isChecked);
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
-  }, [pathname, router]);
+  }, []);
+
+  // 2. Sayfa değiştiğinde sadece rota koruma kontrolü (ağ isteği atmaz)
+  useEffect(() => {
+    if (!authChecked) return;
+    if (!isAuthenticated && navigator.onLine && !AUTH_ROUTES.some(r => pathname.startsWith(r))) {
+      router.replace('/login');
+    }
+  }, [authChecked, isAuthenticated, pathname, router]);
 
   // Giriş yapıldıktan sonra bildirim izni iste (çapraz platform: Web/Capacitor/Tauri)
   useEffect(() => {
