@@ -33,18 +33,27 @@ export default function NotesPage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const contentBeforeSpeechRef = useRef('');
 
-  // Speech Recognition Hook
-  const { listening, startListening, stopListening, isSimulatingMic, setIsSimulatingMic, simulatedQuery, setSimulatedQuery } = useSpeechRecognition({
+  // Speech Recognition Hook (Söylenen şeyi metne dökme)
+  const { listening, startListening, stopListening, micError } = useSpeechRecognition({
     onTranscriptChange: (text) => {
       if (!text.trim()) return;
-      setContent(prev => {
-        const base = prev ? (prev.endsWith('\n') ? prev : prev + '\n') : '';
-        return base + '🎤 ' + text.trim();
-      });
+      const base = contentBeforeSpeechRef.current;
+      const separator = base ? (base.endsWith('\n') ? '' : '\n') : '';
+      setContent(base + separator + text.trim());
     },
     onSearch: () => {},
   });
+
+  const handleToggleSpeech = () => {
+    if (listening) {
+      stopListening();
+    } else {
+      contentBeforeSpeechRef.current = content;
+      startListening();
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then((res: any) => {
@@ -312,15 +321,16 @@ export default function NotesPage() {
                 <div className="flex items-center gap-2">
                   {isEditing && (
                     <button
-                      onClick={isRecording ? stopRecording : startRecording}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                        isRecording 
+                      onClick={handleToggleSpeech}
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        listening 
                           ? 'bg-red-500 text-white animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' 
                           : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
                       }`}
+                      title={listening ? 'Konuşmayı bitir' : 'Sesinizi metne dökmek için tıklayın'}
                     >
-                      {isRecording ? (
-                        <><Square size={14} className="fill-current" /> {listening ? 'Dinleniyor...' : 'Durdur'}</>
+                      {listening ? (
+                        <><Square size={14} className="fill-current" /> Dinleniyor...</>
                       ) : (
                         <><Mic size={14} /> Sesle Yaz</>
                       )}

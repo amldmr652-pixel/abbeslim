@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Play, Pause, SkipForward, SkipBack, Volume2, VolumeX,
-  Heart, Search, Shuffle, Repeat, Music, Plus, Trash2, Clock, AlertCircle
+  Heart, Search, Shuffle, Repeat, Music, Plus, Trash2, Clock, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { useMusicContext } from '@/app/context/MusicContext';
 import { useTranslation } from '@/app/hooks/useTranslation';
@@ -21,8 +21,10 @@ export default function MusicPage() {
     setIsMusicPlaying, setIsMusicSynced, setVolume, setIsMuted,
     addChannel, removeChannel, toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer,
     setShuffleMode, setRepeatMode,
-    likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, playDirectVideo
+    likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, refreshChannels, playDirectVideo
   } = useMusicContext();
+
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -145,14 +147,31 @@ export default function MusicPage() {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 animate-[fadeIn_0.5s_ease-out]">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400">
-          <Music size={24} />
+      <div className="flex items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400">
+            <Music size={24} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-wide">Odak Müzik</h1>
+            <p className="text-gray-400 text-sm">Çalışırken odaklanmanı sağlayacak kişisel radyolar ve oynatma listeleri.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-wide">Odak Müzik</h1>
-          <p className="text-gray-400 text-sm">Çalışırken odaklanmanı sağlayacak kişisel radyolar ve oynatma listeleri.</p>
-        </div>
+
+        <button
+          onClick={async () => {
+            setIsSyncing(true);
+            await refreshChannels();
+            await fetchLikedSongs();
+            setTimeout(() => setIsSyncing(false), 600);
+          }}
+          disabled={isSyncing}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold transition-all disabled:opacity-50"
+          title="Telefondaki ve buluttaki listeleri senkronize et"
+        >
+          <RefreshCw size={14} className={isSyncing ? 'animate-spin text-green-400' : 'text-green-400'} />
+          <span className="hidden sm:inline">{isSyncing ? 'Senkronize Ediliyor...' : 'Bulutla Senkronize Et'}</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

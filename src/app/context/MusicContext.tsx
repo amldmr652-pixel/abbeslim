@@ -85,6 +85,7 @@ interface MusicContextType {
   isCurrentSongLiked: boolean;
   toggleLikeSong: () => Promise<void>;
   fetchLikedSongs: () => Promise<void>;
+  refreshChannels: () => Promise<void>;
   playDirectVideo: (videoId: string, title: string, artist: string) => void;
 }
 
@@ -252,46 +253,75 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [nativeAudioUrl, setNativeAudioUrl] = useState<string | null>(null);
   const nativeAudioActiveRef = useRef(false); // Arka planda native audio aktif mi
 
-  // ── Supabase: sayfa açılınca kullanıcının kanallarını yükle ──
-  useEffect(() => {
-    const loadFromCloud = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return; // Giriş yapılmamışsa localStorage yeterli
+  // ── Supabase: buluttan kanalları çek ve yerel özel kanallarla harmanla ──
+  const loadFromCloud = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return; // Giriş yapılmamışsa localStorage yeterli
 
-        const { data, error } = await supabase
-          .from('user_channels')
-          .select('channels_data')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from('user_channels')
+        .select('channels_data')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (error) { console.warn('Kanal yüklenemedi:', error.message); return; }
+      if (error) { 
+        console.warn('Kanal yüklenemedi:', error.message); 
+        return; 
+      }
 
-        if (data?.channels_data) {
-          const cloud: Channel[] = data.channels_data;
-          const mergedMap = new Map<string, Channel>();
-          DEFAULT_CHANNELS.forEach(c => mergedMap.set(c.id, c));
+      if (data?.channels_data && Array.isArray(data.channels_data)) {
+        const cloud: Channel[] = data.channels_data;
+        const mergedMap = new Map<string, Channel>();
+        DEFAULT_CHANNELS.forEach(c => mergedMap.set(c.id, c));
+
+        setChannels(prev => {
+          // Mevcut yerel state'deki kullanıcının eklediği özel listeleri koru
+          prev.forEach(c => {
+            if (c.id.startsWith('custom-')) mergedMap.set(c.id, c);
+          });
+          // Buluttan gelen kanalları ekle / güncelle
           cloud.forEach(c => mergedMap.set(c.id, c));
           const merged = Array.from(mergedMap.values());
-          setChannels(merged);
           localStorage.setItem(LS_KEY, JSON.stringify(merged));
-        }
-      } catch (e) {
-        console.warn('Supabase kanal yükleme hatası:', e);
-      } finally {
-        supabaseLoadedRef.current = true;
+          return merged;
+        });
       }
-    };
-
-    loadFromCloud();
-    fetchLikedSongs();
+    } catch (e) {
+      console.warn('Supabase kanal yükleme hatası:', e);
+    } finally {
+      supabaseLoadedRef.current = true;
+    }
   }, []);
 
-  // ── Supabase + localStorage: kanallar değişince kaydet (debounced) ──
+  // Sayfa açıldığında ve sekme/uygulama odağa geldiğinde otomatik senkronize et
   useEffect(() => {
-    if (!initialLoadDoneRef.current) {
-      initialLoadDoneRef.current = true;
+    loadFromCloud();
+    fetchLikedSongs();
+
+    const handleSync = () => {
+      loadFromCloud();
+      fetchLikedSongs();
+    };
+
+    window.addEventListener('focus', handleSync);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        handleSync();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleSync);
+    };
+  }, [loadFromCloud, fetchLikedSongs]);
+
+  // ── Supabase + localStorage: kanallar değişince kaydet (debounced & korumalı) ──
+  useEffect(() => {
+    // İlk render veya henüz cloud'dan veri gelmediyse bulutu ezmeyi engelle!
+    if (!initialLoadDoneRef.current || !supabaseLoadedRef.current) {
+      if (!initialLoadDoneRef.current) initialLoadDoneRef.current = true;
       return;
     }
 
@@ -313,7 +343,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn('Supabase kanal kaydetme hatası:', e);
       }
-    }, 800); // 800ms debounce
+    }, 1200); // 1.2s debounce
   }, [channels]);
 
   // Song info auto fallback
@@ -619,10 +649,38 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setCurrentTrackIndex(i => (i + 1) % activeChannel.tracks.length);
   };
 
-  const addChannel = (channel: Channel) => setChannels(prev => [...prev, channel]);
+  const saveChannelsDirectly = async (updatedChannels: Channel[]) => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from('user_channels')
+        .upsert(
+          { user_id: user.id, channels_data: updatedChannels, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        );
+    } catch (err) {
+      console.warn('Kanal anlık kaydedilemedi:', err);
+    }
+  };
+
+  const addChannel = (channel: Channel) => {
+    setChannels(prev => {
+      const next = [...prev, channel];
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+      saveChannelsDirectly(next);
+      return next;
+    });
+  };
 
   const removeChannel = (id: string) => {
-    setChannels(prev => prev.filter(c => c.id !== id));
+    setChannels(prev => {
+      const next = prev.filter(c => c.id !== id);
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+      saveChannelsDirectly(next);
+      return next;
+    });
     if (selectedChannelId === id) { setSelectedChannelId(null); setIsMusicPlaying(false); }
   };
 
@@ -692,7 +750,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       addChannel, removeChannel, registerYTPlayer,
       toggleFavorite, seekTo, startSleepTimer, cancelSleepTimer, updateSongInfo, updateProgress,
       setShuffleMode, setRepeatMode, clearSeekRequest,
-      likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, playDirectVideo
+      likedSongs, isCurrentSongLiked, toggleLikeSong, fetchLikedSongs, refreshChannels: loadFromCloud, playDirectVideo
     }}>
       {/* Arka plan müzik: gizli native audio elementi */}
       <audio ref={nativeAudioRef} preload="none" style={{ display: 'none' }} />

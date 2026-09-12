@@ -1661,3 +1661,56 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - Mobil APK yeniden derlenmeli (`npx cap sync android` + Android Studio build).
 - Masaüstü EXE yeniden derlenmeli (`npm run tauri:build`).
 
+---
+
+## [2026-09-12] V5.1: 7 Sorun Çözümü, Harita Tile Provider, Müzik & AI Senkronizasyonu
+
+**Durum:** Tamamlandı (`npm run build` 38/38 sayfa hatasız derlendi).
+
+### Yapılan Değişiklikler
+
+#### 1. AI Chat JSON Parse Hatası Çözümü (`src/app/chat/page.tsx` & `src/app/api/chat/route.ts`)
+- **Sorun:** Chat sayfasında `fetch('/api/chat')` doğrudan relative çağrıldığı için mobil / Capacitor APK ortamında yerel dosya sistemindeki `index.html` dosyasını çekiyor ve `Unexpected token '<', "<!DOCTYPE ... is not valid JSON"` hatası veriyordu. Ayrıca `route.ts` içinde geçersiz model `gemini-3.5-flash` çağrısı yapılıyordu.
+- **Çözüm:**
+  - `chat/page.tsx` içinde `fetch` yerine `apiClient('/api/chat')` ve `apiClient('/api/notes')` kullanıldı. Bu sayede mobil ortamda API istekleri otomatik olarak `NEXT_PUBLIC_API_BASE_URL` (Vercel) üzerine yönlendirilir ve Supabase Bearer token eklenir.
+  - JSON parse öncesi `res.headers.get('content-type')` doğrulaması eklenerek HTML dönüşlerinde kullanıcı dostu hata mesajı üretildi.
+  - `route.ts` içindeki model fallback listesi gerçek ve aktif modellere güncellendi: `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-2.5-pro`, `gemini-1.5-flash`.
+  - `scripts/build-mobile.js` içerisine eksik olan `NEXT_PUBLIC_API_BASE_URL` ortam değişkeni eklenerek APK çıktısında API isteklerinin kaybolması önlendi.
+
+#### 2. Harita "API KEY REQUIRED" Filigranı Çözümü (`src/app/map/MapClient.tsx` & `src/app/globals.css`)
+- **Sorun:** CARTO basemap ücretsiz katmanları politika değişikliği nedeniyle tüm tile'lara filigran basmaya başlamıştı.
+- **Çözüm:**
+  - Koyu ve Açık harita katmanları OpenStreetMap (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`) ile güncellendi.
+  - Koyu tema için Leaflet TileLayer katmanına `.map-dark-tiles` CSS filtresi (`invert(100%) hue-rotate(180deg) brightness(90%) contrast(95%)`) uygulandı.
+  - Sıfır API key, sıfır filigran, Türkçe sokak/şehir isimleri ve kesintisiz kararlı harita görünümü sağlandı.
+
+#### 3. Müzik Mobil-Canlı Senkronizasyonu (`src/app/context/MusicContext.tsx` & `src/app/music/page.tsx`)
+- **Sorun:** Telefondan eklenen çalma listeleri / kanallar Supabase'e kaydedilmeden önce sekme kapanabiliyor ya da canlı sitedeki yerel kanallar bulutu ezebiliyordu.
+- **Çözüm:**
+  - `loadFromCloud`: Buluttan veri çekilirken yerel `custom-` kanalları ezilmeden korunup birleştirilecek güvenli Map stratejisi kuruldu.
+  - `addChannel` ve `removeChannel` fonksiyonları çağrıldığında Supabase'e debounced bekleme olmadan ANLIK (`saveChannelsDirectly`) kayıt eklendi.
+  - Sekme odağa geldiğinde (`focus` ve `visibilitychange`) otomatik senkronizasyon tetikleyicisi eklendi.
+  - `useMusicContext` dışa aktarımına `refreshChannels` fonksiyonu eklendi; `/music` sayfasına tek tıkla canlı senkronizasyon sağlayan "Bulutla Senkronize Et" butonu yerleştirildi.
+
+#### 4. Odak Modunda Görevlerin Görünmemesi (`src/app/components/FocusModeOverlay.tsx` & `src/stores/useSettingsStore.ts`)
+- **Sorun:** Odak modu tam ekran açıldığında `tasks` okunuyor ancak `fetchTasks()` çağrılmadığı için görev listesi boş kalıyordu.
+- **Çözüm:**
+  - `FocusModeOverlay.tsx` içine `useEffect` ile odak modu aktif olduğunda `fetchTasks()` çağrısı eklendi.
+  - `useSettingsStore` içerisine `focusShowTasks: boolean` (varsayılan: `true`) ayarı eklendi.
+  - Pomodoro Ayarları açılır paneline "Aşağıda Bekleyen Görevleri Göster" toggle checkbox'ı eklendi; görevler bu tercihe göre koşullu render edilecek şekilde yapılandırıldı.
+
+#### 5. Notlar Modülünde Sesle Yazma (Speech-to-Text) Düzeltmesi (`src/app/notes/page.tsx`)
+- **Sorun:** "Sesle Yaz" butonuna basıldığında `MediaRecorder` başlatılıp mikrofon donanımı kilitleniyor, bu sebeple `SpeechRecognition` API'si mikrofon hatası veriyordu; ayrıca ara sonuçlar üst üste kopyalanarak metin bozuluyordu.
+- **Çözüm:**
+  - `contentBeforeSpeechRef` referansı eklenerek konuşma başlangıcındaki metin korundu.
+  - `onTranscriptChange` callback'i mevcut metne konuşulan metni temiz ve akıcı bir şekilde birleştirecek biçimde revize edildi.
+  - Donanım çakışmasını önlemek amacıyla `SpeechRecognition` tekil ve kararlı şekilde `handleToggleSpeech` üzerinden çalıştırıldı.
+
+### Kritik Kararlar
+1. Haritada API key gerektiren üçüncü parti harici servisler (Stadia/Carto) yerine OpenStreetMap standart katmanları CSS filtreli dark mode ile kullanıldı; bu sayede gelecekteki olası kota/key iptallerinin önüne geçildi.
+2. Mobil export derlemesinde (`scripts/build-mobile.js`) Vercel ana domain'i `NEXT_PUBLIC_API_BASE_URL` olarak derleme env'sine gömüldü.
+
+### Sonraki Adımlar
+- Değişiklikler git ile commit edilip `git push` ile `abbeslim.vercel.app` üzerine deploy edilecek.
+- Mobil ve PC paketleri güncellenecek (`npm run cap:build`, `npm run tauri:build`).
+

@@ -5,6 +5,7 @@ import { Plus, Trash2, MessageSquare, Bot, Sparkles, FileText, Brain, Send, Load
 import { useConversationStore } from '@/stores/useConversationStore';
 import { ChatMessageList } from '@/app/components/chat/ChatMessageList';
 import { ChatInput } from '@/app/components/chat/ChatInput';
+import { apiClient } from '@/lib/apiClient';
 
 export default function ChatPage() {
   const {
@@ -54,13 +55,13 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // 2. API'ye gönder
+      // 2. API'ye gönder (apiClient ile mobil & web uyumlu)
       const history = activeConv.messages.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }]
       }));
 
-      const res = await fetch('/api/chat', {
+      const res = await apiClient('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -69,6 +70,11 @@ export default function ChatPage() {
           history
         })
       });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Sunucu beklenmeyen bir formatta yanıt verdi. Lütfen internet bağlantınızı kontrol edin.');
+      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'AI yanıt veremedi');
@@ -104,7 +110,7 @@ export default function ChatPage() {
   const handleCreateNote = async (text: string, msgId: string) => {
     setNoteStates(prev => ({ ...prev, [msgId]: 'saving' }));
     try {
-      const res = await fetch('/api/notes', {
+      const res = await apiClient('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

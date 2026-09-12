@@ -299,3 +299,8 @@ body.capacitor [contenteditable] {
   }
 }
 
+/* Harita Koyu Tema (OpenStreetMap için API keysiz temiz dark mode filtresi) */
+.map-dark-tiles {
+  filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(95%);
+}
+

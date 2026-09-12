@@ -39,7 +39,7 @@ export default function FocusModeOverlay() {
     handlePrevTrack,
   } = useMusicContext();
 
-  const { tasks } = useTaskStore();
+  const { tasks, fetchTasks } = useTaskStore();
   const [mounted, setMounted] = useState(false);
   const [showMusicPanel, setShowMusicPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
@@ -50,6 +50,7 @@ export default function FocusModeOverlay() {
 
   useEffect(() => {
     if (isFocusModeActive) {
+      fetchTasks();
       // Enter Fullscreen if possible
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
@@ -60,7 +61,7 @@ export default function FocusModeOverlay() {
         document.exitFullscreen().catch(() => {});
       }
     }
-  }, [isFocusModeActive]);
+  }, [isFocusModeActive, fetchTasks]);
 
   if (!mounted || !isFocusModeActive) return null;
 
@@ -363,6 +364,16 @@ export default function FocusModeOverlay() {
                 />
                 <span>Molada Müziği Durdur</span>
               </label>
+
+              <label className="flex items-center gap-3 cursor-pointer text-xs text-gray-300 font-medium">
+                <input
+                  type="checkbox"
+                  checked={settingsStore.focusShowTasks ?? true}
+                  onChange={(e) => settingsStore.updateSettings({ focusShowTasks: e.target.checked })}
+                  className="w-4 h-4 accent-green-500 rounded cursor-pointer"
+                />
+                <span>Aşağıda Bekleyen Görevleri Göster</span>
+              </label>
             </div>
           </div>
         </div>
@@ -413,22 +424,24 @@ export default function FocusModeOverlay() {
         </div>
       </div>
 
-      {/* Bottom Bar: Urgent Tasks */}
-      <div className="p-6 z-10 flex flex-col items-center opacity-75 hover:opacity-100 transition-opacity">
-        <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">Öncelikli Görevler</h3>
-        {urgentTasks.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-3">
-            {urgentTasks.map(task => (
-              <div key={task.id} className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-xs flex items-center gap-2 text-gray-200">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                {task.title}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 text-xs">Bekleyen görev yok.</p>
-        )}
-      </div>
+      {/* Bottom Bar: Urgent Tasks (Ayar açık ise göster) */}
+      {(settingsStore.focusShowTasks ?? true) && (
+        <div className="p-6 z-10 flex flex-col items-center opacity-75 hover:opacity-100 transition-opacity">
+          <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-3">Öncelikli Görevler</h3>
+          {urgentTasks.length > 0 ? (
+            <div className="flex flex-wrap justify-center gap-3">
+              {urgentTasks.map(task => (
+                <div key={task.id} className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-xs flex items-center gap-2 text-gray-200">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  {task.title}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-xs">Bekleyen görev yok.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

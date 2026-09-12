@@ -32,8 +32,8 @@ const CATEGORIES: { id: PinCategory; label: string; emoji: string }[] = [
 ];
 
 const TILE_LAYERS = {
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  dark: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  light: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
 
@@ -246,8 +246,8 @@ export default function MapClient() {
             onChange={(e) => settings.updateSettings({ mapTileStyle: e.target.value as any })}
             className="w-full bg-black/50 border border-green-900/50 rounded-xl p-2.5 text-white text-xs outline-none cursor-pointer"
           >
-            <option value="dark" className="bg-stone-950 text-white">Koyu Tema (CARTO)</option>
-            <option value="light" className="bg-stone-950 text-white">Açık Tema (CARTO)</option>
+            <option value="dark" className="bg-stone-950 text-white">Koyu Tema (OpenStreetMap)</option>
+            <option value="light" className="bg-stone-950 text-white">Açık Tema (OpenStreetMap)</option>
             <option value="satellite" className="bg-stone-950 text-white">Uydu Görünümü (ArcGIS)</option>
           </select>
         </div>
@@ -400,8 +400,9 @@ export default function MapClient() {
         >
           <TileLayer
             key={tileStyle} // Force re-render tile layer on style change
-            attribution='&copy; <a href="https://carto.com">CARTO</a> / ArcGIS'
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> / ArcGIS'
             url={tileUrl}
+            className={tileStyle === 'dark' ? 'map-dark-tiles' : ''}
           />
           <ClickHandler onMapClick={handleMapClick} />
           <MapViewUpdater center={mapCenter} zoom={currentZoom} />
