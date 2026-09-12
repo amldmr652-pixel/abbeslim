@@ -22,7 +22,8 @@ interface FinanceState {
   transactions: Transaction[];
   isLoading: boolean;
   error: string | null;
-  fetchTransactions: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchTransactions: (force?: boolean) => Promise<void>;
   addTransaction: (transaction: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
@@ -35,9 +36,16 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   transactions: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchTransactions: async () => {
-    set({ isLoading: true, error: null });
+  fetchTransactions: async (force = false) => {
+    const state = get();
+    if (!force && state.transactions.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.transactions.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('transactions')
@@ -45,7 +53,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         .order('date', { ascending: false });
 
       if (error) throw error;
-      set({ transactions: data || [] });
+      set({ transactions: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching transactions:', error.message);
       set({ error: error.message });

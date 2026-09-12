@@ -25,7 +25,8 @@ interface TaskState {
   tasks: Task[];
   isLoading: boolean;
   error: string | null;
-  fetchTasks: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchTasks: (force?: boolean) => Promise<void>;
   addTask: (task: Partial<Task>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -36,9 +37,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchTasks: async () => {
-    set({ isLoading: true, error: null });
+  fetchTasks: async (force = false) => {
+    const state = get();
+    if (!force && state.tasks.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.tasks.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('tasks')
@@ -46,7 +54,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      set({ tasks: data || [] });
+      set({ tasks: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching tasks:', error.message);
       set({ error: error.message });

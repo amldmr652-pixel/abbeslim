@@ -6,8 +6,7 @@ import { useConversationStore } from '@/stores/useConversationStore';
 import { ChatMessageList } from '@/app/components/chat/ChatMessageList';
 import { ChatInput } from '@/app/components/chat/ChatInput';
 import { apiClient } from '@/lib/apiClient';
-import { useNoteStore } from '@/stores/useNoteStore';
-import { createClient } from '@/utils/supabase/client';
+import { saveChatAsPDF } from '@/utils/pdfExport';
 
 export default function ChatPage() {
   const {
@@ -121,27 +120,18 @@ export default function ChatPage() {
     }
   };
 
-  const handleCreateNote = async (text: string, msgId: string) => {
+  const handleSaveAsPDF = async (msgId: string, question: string, answer: string, title?: string) => {
     setNoteStates(prev => ({ ...prev, [msgId]: 'saving' }));
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Giriş yapılmamış');
-
-      await useNoteStore.getState().addNote({
-        user_id: user.id,
-        title: `AI Notu (${new Date().toLocaleDateString('tr-TR')})`,
-        content: text,
-        is_pinned: false
-      });
-
+      await saveChatAsPDF(question, answer, title || 'AI_Notu');
       setNoteStates(prev => ({ ...prev, [msgId]: 'saved' }));
       setTimeout(() => {
         setNoteStates(prev => ({ ...prev, [msgId]: 'idle' }));
       }, 3000);
     } catch (err) {
-      console.error('Not kaydetme hatası:', err);
+      console.error('PDF kaydetme hatası:', err);
       setNoteStates(prev => ({ ...prev, [msgId]: 'idle' }));
+      alert(err instanceof Error ? err.message : 'PDF kaydedilirken bir hata oluştu.');
     }
   };
 
@@ -258,7 +248,7 @@ export default function ChatPage() {
             }))}
             isLoading={isLoading}
             noteStates={noteStates}
-            onSaveAsPDF={(msgId, q, a, title) => handleCreateNote(a, msgId)}
+            onSaveAsPDF={(msgId, q, a, title) => handleSaveAsPDF(msgId, q, a, title)}
             messagesEndRef={messagesEndRef}
           />
         </div>

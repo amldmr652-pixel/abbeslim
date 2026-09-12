@@ -26,7 +26,8 @@ interface CalendarState {
   events: CalendarEvent[];
   isLoading: boolean;
   error: string | null;
-  fetchEvents: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchEvents: (force?: boolean) => Promise<void>;
   addEvent: (event: Partial<CalendarEvent>) => Promise<void>;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -36,9 +37,16 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   events: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchEvents: async () => {
-    set({ isLoading: true, error: null });
+  fetchEvents: async (force = false) => {
+    const state = get();
+    if (!force && state.events.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.events.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('calendar_events')
@@ -46,7 +54,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         .order('start_time', { ascending: true });
 
       if (error) throw error;
-      set({ events: data || [] });
+      set({ events: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching calendar events:', error.message);
       set({ error: error.message });

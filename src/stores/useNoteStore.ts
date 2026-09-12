@@ -23,7 +23,8 @@ interface NoteState {
   notes: Note[];
   isLoading: boolean;
   error: string | null;
-  fetchNotes: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchNotes: (force?: boolean) => Promise<void>;
   addNote: (note: Partial<Note>) => Promise<Note>;
   updateNote: (id: string, updates: Partial<Note>) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
@@ -35,9 +36,16 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   notes: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchNotes: async () => {
-    set({ isLoading: true, error: null });
+  fetchNotes: async (force = false) => {
+    const state = get();
+    if (!force && state.notes.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.notes.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('notes')
@@ -46,7 +54,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      set({ notes: data || [] });
+      set({ notes: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching notes:', error.message);
       set({ error: error.message });

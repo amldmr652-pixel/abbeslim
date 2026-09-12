@@ -1743,3 +1743,28 @@ V6.0 Kapsamlı Düzeltme — APK/EXE + Web sorunları
 - Chat geçmişi Supabase üzerinden cihazlar arası senkronize
 - Notlarda sesle yazma dili Türkçe'ye sabitlendi (ileride dil seçici eklenebilir)
 
+---
+
+## V6.1 — PDF Kaydetme, Chat Geçmişi Düzeltmesi, Hız Optimizasyonu (2026-09-12)
+
+### Faz
+V6.1 — Chat PDF, Supabase race condition fix, performans
+
+### Değiştirilen Dosyalar
+- `src/utils/pdfExport.ts` — [YENİ] useChat.ts'ten extract edilmiş bağımsız PDF oluşturma + kütüphaneye yükleme utility'si
+- `src/app/chat/page.tsx` — handleCreateNote → handleSaveAsPDF (PDF+Kütüphane), onSaveAsPDF prop düzeltmesi
+- `src/stores/useConversationStore.ts` — addMessage'da update→upsert, timeout 100→500ms, Supabase error kontrolü
+- `src/stores/useAuthStore.ts` — [YENİ] Global auth state, tek seferlik getUser çağrısı
+- `src/app/LayoutShell.tsx` — useAuthStore.fetchUser entegrasyonu
+- `src/stores/useTaskStore.ts` — _lastFetched + 30sn TTL cache
+- `src/stores/useNoteStore.ts` — _lastFetched + 30sn TTL cache
+- `src/stores/useCalendarStore.ts` — _lastFetched + 30sn TTL cache
+- `src/stores/useFinanceStore.ts` — _lastFetched + 30sn TTL cache
+
+### Kritik Kararlar
+1. PDF kaydetme useChat.ts'teki orijinal mantıktan extract edildi (jsPDF + Roboto font + Supabase Storage upload)
+2. addMessage'da update yerine upsert kullanılarak race condition çözüldü
+3. Global auth store ile 26 dosyadaki tekrarlanan getUser çağrıları tek noktaya indirildi
+4. Store'lara 30sn TTL cache eklenerek gereksiz network istekleri engellendi
+
+

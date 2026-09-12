@@ -15,6 +15,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useReminderEngine } from '@/app/hooks/useReminderEngine';
 import { requestNotificationPermission } from '@/utils/notifications';
 import { useOnlineStatus } from '@/app/hooks/useOnlineStatus';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // Auth sayfaları — bu route'larda widget'lar gizlenir
 const AUTH_ROUTES = ['/login', '/register', '/pending-approval'];
@@ -52,10 +53,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   useEffect(() => {
     const supabase = createClient();
     
-    // İlk kontrol
-    supabase.auth.getUser().then((res: any) => {
-      const data = res?.data;
-      const loggedIn = !!data?.user;
+    // İlk kontrol — global auth store'u da güncelle
+    useAuthStore.getState().fetchUser().then((user) => {
+      const loggedIn = !!user;
       setIsAuthenticated(loggedIn);
       setAuthChecked(true);
       
@@ -73,6 +73,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       const loggedIn = !!session?.user;
       setIsAuthenticated(loggedIn);
+      useAuthStore.setState({ user: session?.user || null, isChecked: true });
       
       if (event === 'SIGNED_OUT') {
         router.replace('/login');

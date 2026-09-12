@@ -110,12 +110,12 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
       activeConversationId: id
     }));
 
-    // Supabase'e kaydet (arka planda)
+    // Supabase'e kaydet — INSERT tamamlanmadan addMessage çağrılmamalı
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('chat_conversations').insert({
+        const { error } = await supabase.from('chat_conversations').insert({
           id,
           user_id: user.id,
           title: initialTitle,
@@ -124,6 +124,9 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
           created_at: now,
           updated_at: now,
         });
+        if (error) {
+          console.error('Supabase INSERT hatası:', error.message, error.details);
+        }
       }
     } catch (err) {
       console.error('Sohbet oluşturma Supabase hatası:', err);
@@ -200,21 +203,30 @@ export const useConversationStore = create<ConversationState>()((set, get) => ({
       return { conversations: convs };
     });
 
-    // Supabase'e kaydet (arka planda)
+    // Supabase'e kaydet (arka planda) — upsert ile race condition önlenir
     setTimeout(async () => {
       try {
         const conv = get().conversations.find(c => c.id === conversationId);
         if (!conv) return;
         const supabase = createClient();
-        await supabase.from('chat_conversations').update({
-          messages: conv.messages,
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase.from('chat_conversations').upsert({
+          id: conversationId,
+          user_id: user.id,
           title: conv.title,
+          mode: conv.mode,
+          messages: conv.messages,
           updated_at: nowIso,
-        }).eq('id', conversationId);
+        });
+        if (error) {
+          console.error('Mesaj kaydetme Supabase hatası:', error.message, error.details);
+        }
       } catch (err) {
         console.error('Mesaj kaydetme hatası:', err);
       }
-    }, 100);
+    }, 500);
   },
 
   updateConversationTitle: (id, title) => {
