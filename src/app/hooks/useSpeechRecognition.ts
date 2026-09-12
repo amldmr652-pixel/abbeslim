@@ -37,6 +37,7 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
   const shouldRestartRef = useRef(false);
   const networkRetryCount = useRef(0);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accumulatedFinalRef = useRef('');
 
   // Tarayıcı desteği kontrolü
   useEffect(() => {
@@ -61,6 +62,7 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
     if (!isRestart) {
       setMicError('');
       networkRetryCount.current = 0;
+      accumulatedFinalRef.current = '';
     }
 
     // Dil değiştiğinde veya yeni oturum başladığında biriken metni sıfırla
@@ -97,23 +99,49 @@ export function useSpeechRecognition({ onTranscriptChange, onSearch, speechLang 
       }
     };
 
-    // Her ses tanıma sonucunda çalışır — hem geçici hem kesinleşmiş
+    // Her ses tanıma sonucunda çalışır — kesinleşmiş ve geçici sonuçlar ayrıştırılır
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       networkRetryCount.current = 0; // Ses algılandı, sayacı sıfırla
-      let fullText = '';
+      let finalText = '';
+      let interimText = '';
 
       for (let i = 0; i < event.results.length; i++) {
-        fullText += event.results[i][0].transcript;
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          // Kesinleşmiş sonuçlar arasına boşluk ekle
+          if (finalText && !finalText.endsWith(' ') && !transcript.startsWith(' ')) {
+            finalText += ' ';
+          }
+          finalText += transcript;
+        } else {
+          // Geçici sonuçlar arasına boşluk ekle
+          if (interimText && !interimText.endsWith(' ') && !transcript.startsWith(' ')) {
+            interimText += ' ';
+          }
+          interimText += transcript;
+        }
       }
 
-      currentTranscriptRef.current = fullText;
-      onTranscriptChange(fullText);
+      // Kesinleşmiş metni birikmiş metne ekle
+      if (finalText) {
+        const prev = accumulatedFinalRef.current;
+        accumulatedFinalRef.current = prev
+          ? prev + (prev.endsWith(' ') ? '' : ' ') + finalText
+          : finalText;
+      }
+
+      // Kesinleşmiş + geçici metni birleştir
+      const combined = accumulatedFinalRef.current +
+        (accumulatedFinalRef.current && interimText ? ' ' : '') + interimText;
+
+      currentTranscriptRef.current = combined;
+      onTranscriptChange(combined);
 
       // CANLI ARAMA: Kullanıcı konuşurken anında aramayı tetikle
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = setTimeout(() => {
-        if (fullText.trim()) {
-          onSearch(fullText);
+        if (combined.trim()) {
+          onSearch(combined);
         }
       }, 400);
     };

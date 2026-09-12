@@ -1714,3 +1714,32 @@ Bu dosya, proje üzerinde çalışan AI asistanlar (Claude, Gemini vb.) arasınd
 - Değişiklikler git ile commit edilip `git push` ile `abbeslim.vercel.app` üzerine deploy edilecek.
 - Mobil ve PC paketleri güncellenecek (`npm run cap:build`, `npm run tauri:build`).
 
+---
+
+## V6.0 — Native App Auth, CORS, Chat Sync, Speech Fix (2026-09-12)
+
+### Faz
+V6.0 Kapsamlı Düzeltme — APK/EXE + Web sorunları
+
+### Değiştirilen Dosyalar
+- `src/utils/supabase/client.ts` — Runtime platform algılama (build-time env var yerine window objesi kontrolü)
+- `src/proxy.ts` — Global CORS header'ları + OPTIONS preflight handler
+- `src/app/chat/page.tsx` — Not kaydetme apiClient→useNoteStore, fetchConversations entegrasyonu
+- `src/stores/useConversationStore.ts` — localStorage→Supabase tam geçiş, optimistic update + arka plan sync
+- `src/app/hooks/useSpeechRecognition.ts` — final/interim ayırma, accumulatedFinalRef, kelimeler arası boşluk
+- `src/app/notes/page.tsx` — speechLang: 'tr' eklendi, handleToggleSpeech ref güncellemesi
+- `scripts/build-mobile.js` — NEXT_PUBLIC_IS_MOBILE env var eklendi
+- `scripts/build-desktop.js` — NEXT_PUBLIC_IS_DESKTOP env var eklendi
+
+### Kritik Kararlar
+1. Supabase client'ta build-time env var kontrolü yerine runtime window objesi kontrolüne geçildi (Capacitor/Tauri algılama)
+2. CORS origin whitelist: Capacitor (https://localhost, capacitor://localhost) ve Tauri (http://tauri.localhost, tauri://localhost)
+3. Chat geçmişi localStorage'dan Supabase `chat_conversations` tablosuna taşındı — cross-device sync sağlandı
+4. Chat'ten not kaydetme: var olmayan `/api/notes` route yerine doğrudan `useNoteStore.getState().addNote()` kullanılıyor
+5. Speech recognition: final/interim sonuçlar ayrıştırıldı, accumulatedFinalRef ile restart'larda metin kaybı önlendi
+
+### Bırakılan Durum
+- Tüm platformlarda (Web, APK, EXE) auth, CRUD, chat ve sesle yazma çalışır durumda
+- Chat geçmişi Supabase üzerinden cihazlar arası senkronize
+- Notlarda sesle yazma dili Türkçe'ye sabitlendi (ileride dil seçici eklenebilir)
+

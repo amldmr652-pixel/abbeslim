@@ -6,6 +6,8 @@ import { useConversationStore } from '@/stores/useConversationStore';
 import { ChatMessageList } from '@/app/components/chat/ChatMessageList';
 import { ChatInput } from '@/app/components/chat/ChatInput';
 import { apiClient } from '@/lib/apiClient';
+import { useNoteStore } from '@/stores/useNoteStore';
+import { createClient } from '@/utils/supabase/client';
 
 export default function ChatPage() {
   const {
@@ -15,7 +17,8 @@ export default function ChatPage() {
     deleteConversation,
     setActiveConversation,
     addMessage,
-    getActiveConversation
+    getActiveConversation,
+    fetchConversations
   } = useConversationStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -26,12 +29,23 @@ export default function ChatPage() {
 
   // Eğer hiç conversation yoksa otomatik bir tane oluştur
   useEffect(() => {
-    if (conversations.length === 0) {
-      createConversation('hybrid');
-    } else if (!activeConversationId) {
-      setActiveConversation(conversations[0].id);
+    if (fetchConversations) {
+      fetchConversations().then(() => {
+        const state = useConversationStore.getState();
+        if (state.conversations.length === 0) {
+          createConversation('hybrid');
+        } else if (!state.activeConversationId) {
+          setActiveConversation(state.conversations[0].id);
+        }
+      });
+    } else {
+      if (conversations.length === 0) {
+        createConversation('hybrid');
+      } else if (!activeConversationId) {
+        setActiveConversation(conversations[0].id);
+      }
     }
-  }, [conversations, activeConversationId, createConversation, setActiveConversation]);
+  }, []);
 
   const activeConv = getActiveConversation() || conversations[0];
 
@@ -110,21 +124,23 @@ export default function ChatPage() {
   const handleCreateNote = async (text: string, msgId: string) => {
     setNoteStates(prev => ({ ...prev, [msgId]: 'saving' }));
     try {
-      const res = await apiClient('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `AI Notu (${new Date().toLocaleDateString('tr-TR')})`,
-          content: text
-        })
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Giriş yapılmamış');
+
+      await useNoteStore.getState().addNote({
+        user_id: user.id,
+        title: `AI Notu (${new Date().toLocaleDateString('tr-TR')})`,
+        content: text,
+        is_pinned: false
       });
-      if (!res.ok) throw new Error('Not kaydedilemedi');
+
       setNoteStates(prev => ({ ...prev, [msgId]: 'saved' }));
       setTimeout(() => {
         setNoteStates(prev => ({ ...prev, [msgId]: 'idle' }));
       }, 3000);
     } catch (err) {
-      console.error(err);
+      console.error('Not kaydetme hatası:', err);
       setNoteStates(prev => ({ ...prev, [msgId]: 'idle' }));
     }
   };

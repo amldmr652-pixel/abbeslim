@@ -44,11 +44,14 @@ export default function NotesPage() {
       setContent(base + separator + text.trim());
     },
     onSearch: () => {},
+    speechLang: 'tr',
   });
 
   const handleToggleSpeech = () => {
     if (listening) {
       stopListening();
+      // Durdurulduğunda mevcut metni base olarak güncelle (yeniden başlatmada kaybolmasın)
+      contentBeforeSpeechRef.current = content;
     } else {
       contentBeforeSpeechRef.current = content;
       startListening();

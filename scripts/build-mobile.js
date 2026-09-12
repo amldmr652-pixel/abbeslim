@@ -40,6 +40,7 @@ try {
     env: {
       ...process.env,
       BUILD_TARGET: 'mobile',
+      NEXT_PUBLIC_IS_MOBILE: 'true',
       NEXT_PUBLIC_API_BASE_URL: 'https://abbeslim.vercel.app',
       NEXT_PUBLIC_SUPABASE_URL: 'https://clsoofovxkpmwfltbeyk.supabase.co',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsc29vZm92eGtwbXdmbHRiZXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjA1MTAsImV4cCI6MjA5ODMzNjUxMH0.cFLlMRubYnPdQAJHR4bsewLxSGcYc382cYKeP0sCGKY',
