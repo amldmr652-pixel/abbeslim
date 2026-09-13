@@ -8,12 +8,14 @@ import {
 } from 'lucide-react';
 import { SPIRITUAL_QUOTES, SpiritualQuote } from '@/data/verses';
 import { useTranslation } from '@/app/hooks/useTranslation';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 
 export default function HomePage() {
   const { language } = useTranslation();
 
-  const [userName, setUserName] = useState<string>('Kullanıcı');
+  const authUser = useAuthStore(state => state.user);
+  const [userName, setUserName] = useState<string>(authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Kullanıcı');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [formattedDate, setFormattedDate] = useState<string>('');
   
@@ -26,13 +28,15 @@ export default function HomePage() {
     // Initial random quote
     setQuoteIndex(Math.floor(Math.random() * SPIRITUAL_QUOTES.length));
 
-    const supabase = createClient();
-    supabase.auth.getUser().then((res: any) => {
-      const u = res?.data?.user;
-      if (u) {
-        setUserName(u.user_metadata?.full_name || u.email?.split('@')[0] || 'Kullanıcı');
-      }
-    });
+    if (authUser) {
+      setUserName(authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Kullanıcı');
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        if (u) {
+          setUserName(u.user_metadata?.full_name || u.email?.split('@')[0] || 'Kullanıcı');
+        }
+      });
+    }
 
     const updateClock = () => {
       const now = new Date();

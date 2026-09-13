@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 import { 
   Timer as TimerIcon, BarChart2, Target, Calendar
@@ -21,17 +22,16 @@ export default function StudyPage() {
   const [weeklyGoal, setWeeklyGoal] = useState(settings.workTimeWeeklyGoal || 10);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const authUser = useAuthStore(state => state.user);
+
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSessions = async (uid: string) => {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
         const { data } = await supabase
           .from('pomodoro_sessions')
           .select('duration_minutes, created_at')
-          .eq('user_id', user.id)
+          .eq('user_id', uid)
           .eq('mode', 'pomodoro')
           .order('created_at', { ascending: false });
 
@@ -44,8 +44,16 @@ export default function StudyPage() {
         setLoadingStats(false);
       }
     };
-    fetchSessions();
-  }, []);
+
+    if (authUser) {
+      fetchSessions(authUser.id);
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        if (u) fetchSessions(u.id);
+        else setLoadingStats(false);
+      });
+    }
+  }, [authUser]);
 
   // Time calculations for stats
   const now = new Date();

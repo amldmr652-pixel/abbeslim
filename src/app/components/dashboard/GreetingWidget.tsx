@@ -3,27 +3,30 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Cloud, Sun, CloudRain, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/app/hooks/useTranslation';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 
 export default function GreetingWidget() {
   const { t, language } = useTranslation();
+  const authUser = useAuthStore(state => state.user);
   const [currentTime, setCurrentTime] = useState('');
   const [weather, setWeather] = useState<{ temp: number; desc: string; icon: string; city?: string; humidity?: number; wind?: number; } | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [formattedDate, setFormattedDate] = useState('');
   const [greeting, setGreeting] = useState('');
-  const [userName, setUserName] = useState<string>('Kullanıcı');
+  const [userName, setUserName] = useState<string>(authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Kullanıcı');
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı');
-      }
-    };
-    fetchUser();
-  }, []);
+    if (authUser) {
+      setUserName(authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Kullanıcı');
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) {
+          setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı');
+        }
+      });
+    }
+  }, [authUser]);
 
   useEffect(() => {
     // Saat ve Tarih Güncellemesi

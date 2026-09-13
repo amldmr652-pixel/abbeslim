@@ -27,7 +27,8 @@ interface HabitState {
   habits: Habit[];
   isLoading: boolean;
   error: string | null;
-  fetchHabits: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchHabits: (force?: boolean) => Promise<void>;
   addHabit: (habit: Partial<Habit>) => Promise<void>;
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
@@ -39,9 +40,16 @@ export const useHabitStore = create<HabitState>((set, get) => ({
   habits: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchHabits: async () => {
-    set({ isLoading: true, error: null });
+  fetchHabits: async (force = false) => {
+    const state = get();
+    if (!force && state.habits.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.habits.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('habits')
@@ -105,7 +113,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         return habit;
       }));
 
-      set({ habits: updatedHabits });
+      set({ habits: updatedHabits, _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching habits:', error.message);
       set({ error: error.message });

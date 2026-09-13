@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from './useAuthStore';
 
 interface GamesState {
   timePlayedToday: number; // in seconds
@@ -66,10 +67,10 @@ export const useGamesStore = create<GamesState>()(
 
       fetchCloudTime: async () => {
         try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+          const user = useAuthStore.getState().user || (await useAuthStore.getState().fetchUser());
           if (!user) return;
 
+          const supabase = createClient();
           const today = new Date().toISOString().split('T')[0];
           const { data } = await supabase
             .from('game_sessions')
@@ -93,9 +94,9 @@ export const useGamesStore = create<GamesState>()(
 
       syncCloudTime: async () => {
         try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+          const user = useAuthStore.getState().user || (await useAuthStore.getState().fetchUser());
           if (!user) return;
+          const supabase = createClient();
 
           const today = get().lastPlayedDate;
           const seconds = get().timePlayedToday;

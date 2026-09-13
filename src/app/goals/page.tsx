@@ -6,6 +6,7 @@ import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useGoalStore, Goal } from '@/stores/useGoalStore';
 import { useHabitStore, Habit } from '@/stores/useHabitStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 
 export default function GoalsPage() {
@@ -14,8 +15,9 @@ export default function GoalsPage() {
   const { habits, fetchHabits, addHabit, updateHabit, checkInHabit, deleteHabit } = useHabitStore();
   
   const [activeTab, setActiveTab] = useState<'goals' | 'habits'>('goals');
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const authUser = useAuthStore(state => state.user);
+  const [userId, setUserId] = useState<string | null>(authUser?.id || null);
+  const [loadingUser, setLoadingUser] = useState(!authUser);
 
   // New Modals
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
@@ -51,18 +53,22 @@ export default function GoalsPage() {
   const [goalError, setGoalError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        fetchGoals();
-        fetchHabits();
-      }
+    if (authUser) {
+      setUserId(authUser.id);
       setLoadingUser(false);
-    };
-    getUser();
-  }, [fetchGoals, fetchHabits]);
+      fetchGoals();
+      fetchHabits();
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) {
+          setUserId(user.id);
+          fetchGoals();
+          fetchHabits();
+        }
+        setLoadingUser(false);
+      });
+    }
+  }, [authUser, fetchGoals, fetchHabits]);
 
   const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();

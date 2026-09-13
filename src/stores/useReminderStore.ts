@@ -32,7 +32,8 @@ interface ReminderState {
   reminders: Reminder[];
   isLoading: boolean;
   error: string | null;
-  fetchReminders: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchReminders: (force?: boolean) => Promise<void>;
   addReminder: (reminder: Partial<Reminder>) => Promise<void>;
   updateReminder: (id: string, updates: Partial<Reminder>) => Promise<void>;
   deleteReminder: (id: string) => Promise<void>;
@@ -43,9 +44,16 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
   reminders: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchReminders: async () => {
-    set({ isLoading: true, error: null });
+  fetchReminders: async (force = false) => {
+    const state = get();
+    if (!force && state.reminders.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.reminders.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('reminders')
@@ -53,7 +61,7 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
         .order('reminder_time', { ascending: true });
 
       if (error) throw error;
-      set({ reminders: data || [] });
+      set({ reminders: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Hatırlatıcılar yüklenemedi:', error.message);
       set({ error: error.message });

@@ -23,6 +23,7 @@ import { useTaskStore } from '@/stores/useTaskStore';
 import { useGoalStore } from '@/stores/useGoalStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useFinanceStore } from '@/stores/useFinanceStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 function SortableWidgetWrapper({ id, children }: { id: string, children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({id});
@@ -64,21 +65,21 @@ function DashboardContent() {
   const totalTasks = tasks.length;
   const activeGoalsCount = goals.length;
 
+  const authUser = useAuthStore(state => state.user);
+
   useEffect(() => {
     fetchGoals();
     fetchTransactions();
     fetchTasks();
     
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (uid: string) => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
       // Son 5 dosyayı çek
       const { data: files } = await supabase
         .from('files')
         .select('id, name, url, createdAt')
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .eq('isDeleted', false)
         .order('createdAt', { ascending: false })
         .limit(5);
@@ -98,7 +99,7 @@ function DashboardContent() {
       const { data: sessions } = await supabase
         .from('pomodoro_sessions')
         .select('duration_minutes')
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .eq('mode', 'pomodoro'); // sadece odaklanma süresi
 
       if (sessions) {
@@ -107,8 +108,14 @@ function DashboardContent() {
       }
     };
 
-    fetchDashboardData();
-  }, [fetchGoals, fetchTransactions, fetchTasks]);
+    if (authUser) {
+      fetchDashboardData(authUser.id);
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        if (u) fetchDashboardData(u.id);
+      });
+    }
+  }, [authUser, fetchGoals, fetchTransactions, fetchTasks]);
 
   const workTimeHours = Math.floor(totalWorkMinutes / 60);
   const workTimeMinutes = totalWorkMinutes % 60;

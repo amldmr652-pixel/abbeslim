@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { isWeb } from '@/utils/platform';
 import { apiClient } from '@/lib/apiClient';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 import { useTranslation } from '@/app/hooks/useTranslation';
 import type { Language } from '@/stores/useI18nStore';
@@ -83,7 +84,7 @@ export default function Sidebar() {
     let isMounted = true;
     async function checkAdminStatus() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = useAuthStore.getState().user || (await useAuthStore.getState().fetchUser());
         if (!user) {
           if (isMounted) setIsAdmin(false);
           return;

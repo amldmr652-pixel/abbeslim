@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useMapStore, MapPin, PinCategory, PinStatus } from '@/stores/useMapStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Trash2, Edit2, Plus, Settings, Search, X } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -76,7 +77,8 @@ function MapViewUpdater({ center, zoom }: { center: [number, number]; zoom: numb
 export default function MapClient() {
   const settings = useSettingsStore();
   const { pins, isLoading, fetchPins, addPin, updatePin, removePin } = useMapStore();
-  const [userId, setUserId] = useState<string | null>(null);
+  const authUser = useAuthStore(state => state.user);
+  const [userId, setUserId] = useState<string | null>(authUser?.id || null);
   const [selectedCategory, setSelectedCategory] = useState<PinCategory | 'all'>('all');
 
   // Arama Durumları
@@ -161,11 +163,14 @@ export default function MapClient() {
 
   useEffect(() => {
     fetchPins();
-    const supabase = createClient();
-    supabase.auth.getUser().then((res: any) => {
-      if (res?.data?.user) setUserId(res.data.user.id);
-    });
-  }, [fetchPins]);
+    if (authUser) {
+      setUserId(authUser.id);
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) setUserId(user.id);
+      });
+    }
+  }, [authUser, fetchPins]);
 
   const handleMapClick = (e: L.LeafletMouseEvent) => {
     if (!isAddMode) return;

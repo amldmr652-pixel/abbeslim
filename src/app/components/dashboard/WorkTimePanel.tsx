@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, Button, Input } from '@/app/components/ui';
 import { Clock, Target, Calendar, BarChart2, Settings, X, Check } from 'lucide-react';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 
 interface WorkTimePanelProps {
@@ -21,17 +22,16 @@ export default function WorkTimePanel({ onClose }: WorkTimePanelProps) {
   const [weeklyGoal, setWeeklyGoal] = useState(settings.workTimeWeeklyGoal || 10);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const authUser = useAuthStore(state => state.user);
+
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSessions = async (uid: string) => {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
         const { data } = await supabase
           .from('pomodoro_sessions')
           .select('duration_minutes, created_at')
-          .eq('user_id', user.id)
+          .eq('user_id', uid)
           .eq('mode', 'pomodoro')
           .order('created_at', { ascending: false });
 
@@ -44,8 +44,16 @@ export default function WorkTimePanel({ onClose }: WorkTimePanelProps) {
         setLoading(false);
       }
     };
-    fetchSessions();
-  }, []);
+
+    if (authUser) {
+      fetchSessions(authUser.id);
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        if (u) fetchSessions(u.id);
+        else setLoading(false);
+      });
+    }
+  }, [authUser]);
 
   // Time calculations
   const now = new Date();

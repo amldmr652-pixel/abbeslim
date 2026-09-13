@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from './useAuthStore';
 
 // Lazy singleton — modül yüklendiğinde değil, ilk kullanımda oluşturulur
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -158,7 +159,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       const supabase = getSupabase();
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${(await supabase.auth.getUser()).data.user?.id}/${fileName}`;
+      const user = useAuthStore.getState().user || (await useAuthStore.getState().fetchUser());
+      const filePath = `${user?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('audio_notes')

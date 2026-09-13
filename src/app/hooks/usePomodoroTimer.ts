@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useMusicContext } from '../context/MusicContext';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { usePomodoroStore, Mode as PomodoroMode } from '@/stores/usePomodoroStore';
 import { sendNotification, requestNotificationPermission } from '@/utils/notifications';
@@ -127,25 +128,23 @@ export function usePomodoroTimer() {
     }, 3000);
 
     // Log seansı
-    const supabase = createClient();
-    supabase.auth.getUser().then((res: any) => {
-      const user = res?.data?.user;
-      if (user) {
-        const duration = currentMode === 'pomodoro' 
-          ? settings.pomodoroWork 
-          : currentMode === 'shortBreak' 
-            ? settings.pomodoroShortBreak 
-            : settings.pomodoroLongBreak;
+    const user = useAuthStore.getState().user;
+    if (user) {
+      const duration = currentMode === 'pomodoro' 
+        ? settings.pomodoroWork 
+        : currentMode === 'shortBreak' 
+          ? settings.pomodoroShortBreak 
+          : settings.pomodoroLongBreak;
 
-        supabase.from('pomodoro_sessions').insert([{
-          user_id: user.id,
-          duration_minutes: duration,
-          mode: currentMode
-        }]).then((res: any) => {
-          if (res?.error) console.error("Pomodoro log error:", res.error);
-        });
-      }
-    });
+      const supabase = createClient();
+      supabase.from('pomodoro_sessions').insert([{
+        user_id: user.id,
+        duration_minutes: duration,
+        mode: currentMode
+      }]).then((res: any) => {
+        if (res?.error) console.error("Pomodoro log error:", res.error);
+      });
+    }
   }, [currentMode, pomodoroCount, settings, pause, setFinished, setShaking, incrementPomodoroCount, setMode, start, setIsMusicPlaying]);
 
   // Handle completion check

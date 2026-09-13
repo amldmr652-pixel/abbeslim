@@ -4,6 +4,9 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { createClient } from '@/utils/supabase/client';
 import { enableBackgroundMode, disableBackgroundMode } from '@/utils/backgroundMode';
 import { apiClient } from '@/lib/apiClient';
+import { useAuthStore } from '@/stores/useAuthStore';
+
+const getAuthUser = async () => useAuthStore.getState().user || (await useAuthStore.getState().fetchUser());
 
 export interface Track {
   title: string;
@@ -180,9 +183,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const fetchLikedSongs = async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getAuthUser();
       if (!user) return;
+      const supabase = createClient();
 
       const { data, error } = await supabase
         .from('liked_songs')
@@ -200,9 +203,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const toggleLikeSong = async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getAuthUser();
       if (!user) return;
+      const supabase = createClient();
 
       const videoId = getCurrentVideoId();
       if (!videoId) return;
@@ -256,9 +259,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // ── Supabase: buluttan kanalları çek ve yerel özel kanallarla harmanla ──
   const loadFromCloud = useCallback(async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getAuthUser();
       if (!user) return; // Giriş yapılmamışsa localStorage yeterli
+      const supabase = createClient();
 
       const { data, error } = await supabase
         .from('user_channels')
@@ -330,9 +333,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getAuthUser();
         if (!user) return;
+        const supabase = createClient();
 
         await supabase
           .from('user_channels')
@@ -651,9 +654,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const saveChannelsDirectly = async (updatedChannels: Channel[]) => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getAuthUser();
       if (!user) return;
+      const supabase = createClient();
       await supabase
         .from('user_channels')
         .upsert(

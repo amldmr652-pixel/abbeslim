@@ -6,6 +6,7 @@ import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useTrackerStore, MediaItem, MediaType, MediaStatus } from '@/stores/useTrackerStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 import { apiClient } from '@/lib/apiClient';
 
@@ -14,8 +15,9 @@ export default function TrackerPage() {
   const settings = useSettingsStore();
   const { items, fetchItems, addItem, updateItem, deleteItem } = useTrackerStore();
   
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const authUser = useAuthStore(state => state.user);
+  const [userId, setUserId] = useState<string | null>(authUser?.id || null);
+  const [loadingUser, setLoadingUser] = useState(!authUser);
 
   const [activeTab, setActiveTab] = useState<MediaType>('movie');
   const [activeStatus, setActiveStatus] = useState<MediaStatus | 'all'>('all');
@@ -51,17 +53,20 @@ export default function TrackerPage() {
   const [editMediaType, setEditMediaType] = useState<MediaType>('movie');
 
   useEffect(() => {
-    const getUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        fetchItems();
-      }
+    if (authUser) {
+      setUserId(authUser.id);
       setLoadingUser(false);
-    };
-    getUser();
-  }, [fetchItems]);
+      fetchItems();
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) {
+          setUserId(user.id);
+          fetchItems();
+        }
+        setLoadingUser(false);
+      });
+    }
+  }, [authUser, fetchItems]);
 
   useEffect(() => {
     const searchApi = async () => {

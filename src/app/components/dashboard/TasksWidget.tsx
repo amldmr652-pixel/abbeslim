@@ -6,24 +6,27 @@ import { Calendar, ChevronRight } from 'lucide-react';
 import { Card } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useTaskStore } from '@/stores/useTaskStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
 export default function TasksWidget() {
   const { t } = useTranslation();
   const { tasks, isLoading, fetchTasks, toggleTaskCompletion } = useTaskStore();
-  const [user, setUser] = useState<User | null>(null);
-  const supabase = createClient();
+  const authUser = useAuthStore(state => state.user);
+  const [user, setUser] = useState<User | null>(authUser);
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => {
-      const data = res?.data;
-      setUser(data?.user || null);
-      if (data?.user) {
-        fetchTasks();
-      }
-    });
-  }, [fetchTasks]);
+    if (authUser) {
+      setUser(authUser);
+      fetchTasks();
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        setUser(u);
+        if (u) fetchTasks();
+      });
+    }
+  }, [authUser, fetchTasks]);
 
   const today = new Date().toISOString().split('T')[0];
   

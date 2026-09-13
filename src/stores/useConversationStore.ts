@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createClient } from '@/utils/supabase/client';
+import { useAuthStore } from './useAuthStore';
+
+async function getAuthUser() {
+  return useAuthStore.getState().user || (await useAuthStore.getState().fetchUser());
+}
 
 export interface ChatMessage {
   id: string;
@@ -57,12 +62,12 @@ export const useConversationStore = create<ConversationState>()(
       fetchConversations: async () => {
         set({ isLoading: true });
         try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+          const user = await getAuthUser();
           if (!user) {
             set({ isLoading: false });
             return;
           }
+          const supabase = createClient();
 
           const { data, error } = await supabase
             .from('chat_conversations')
@@ -159,9 +164,9 @@ export const useConversationStore = create<ConversationState>()(
 
         // Supabase'e arka planda kaydet
         try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+          const user = await getAuthUser();
           if (user) {
+            const supabase = createClient();
             const { error } = await supabase.from('chat_conversations').upsert({
               id,
               user_id: user.id,
@@ -207,9 +212,9 @@ export const useConversationStore = create<ConversationState>()(
         set({ conversations: [], activeConversationId: null });
 
         try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+          const user = await getAuthUser();
           if (user) {
+            const supabase = createClient();
             await supabase.from('chat_conversations').delete().eq('user_id', user.id);
           }
         } catch (err) {
@@ -253,9 +258,9 @@ export const useConversationStore = create<ConversationState>()(
           try {
             const conv = (get().conversations || []).find(c => c.id === conversationId);
             if (!conv) return;
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await getAuthUser();
             if (!user) return;
+            const supabase = createClient();
 
             const { error } = await supabase.from('chat_conversations').upsert({
               id: conversationId,

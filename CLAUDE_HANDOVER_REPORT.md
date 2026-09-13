@@ -1787,5 +1787,45 @@ V6.2 — Instant page navigation (F5 freeze fix), chat history localStorage rest
 2. Chat geçmişinin görünmemesi, persist'in kaldırılması ve önceki localStorage verilerinin yok sayılmasından kaynaklanıyordu; persist geri getirilip Supabase ile hibrit birleştirme yapıldı.
 3. PDF kaydetmede ağ veya yetki hatası oluştuğunda kullanıcının notunun kaybolmaması için doğrudan cihaza indirme (doc.save) emniyet kemeri eklendi.
 
+---
+
+## V6.3 — Tüm Panellerde Anında Yükleme (0ms), "Giriş Gerekli" / F5 Kilidinin Kalıcı Çözümü (2026-09-13)
+
+### Faz
+V6.3 — Zero-Latency Panel Navigation across all remaining pages, 30s Zustand Smart Caching, eliminating F5 & loginRequired freezes
+
+### Değiştirilen Dosyalar
+- `src/app/tracker/page.tsx` — Medya Takibi sayfasında `userId = null` ve `supabase.auth.getUser()` engeli kaldırıldı; `useAuthStore`'a bağlanarak frame 0'da anında yükleme sağlandı ("Giriş Gerekli" kilitlenmesi ve F5 ihtiyacı tamamen bitti).
+- `src/app/goals/page.tsx` — Hedefler & Alışkanlıklar sayfasında `useAuthStore` entegrasyonu tamamlandı; hedefler ve alışkanlıklar 0ms'de render ediliyor.
+- `src/app/reminders/page.tsx` — Hatırlatıcılar sayfasında `useAuthStore` ile ilk render karesinde kullanıcı oturumu aktarıldı.
+- `src/app/music/page.tsx` — Odak Müzik sayfasında loginRequired uyarısı ve kullanıcı yükleme gecikmesi `useAuthStore` ile çözüldü.
+- `src/app/study/page.tsx` — Çalışma istatistikleri doğrudan `authUser.id` ile ağ isteği beklemeden sorgulanıyor.
+- `src/app/map/MapClient.tsx` — Harita pinleri ve kullanıcı kimliği anında tanımlanıyor.
+- `src/app/settings/page.tsx` — Profil ayarları sayfasında kullanıcı adı ve avatar beklemeden dolduruluyor.
+- `src/app/page.tsx` — Karşılama ekranındaki kullanıcı ismi `useAuthStore` ile anında yükleniyor ("Kullanıcı" parlaması yok).
+- `src/app/dashboard/page.tsx` — Dashboard veri sorgulamaları `authUser` üzerinden doğrudan başlatılıyor.
+- `src/app/components/dashboard/` (`GreetingWidget.tsx`, `TasksWidget.tsx`, `QuickNoteWidget.tsx`, `WorkTimePanel.tsx`) — Tüm widget'lar `useAuthStore` bellek verisini kullanacak şekilde güncellendi.
+- `src/app/components/layout/Sidebar.tsx` — `checkAdminStatus` fonksiyonu gereksiz uzaktan auth çağrısı yerine `useAuthStore` bellek kullanıcısı ile çalışıyor.
+- `src/app/context/MusicContext.tsx` — Beğenilen şarkılar ve bulut kanal eşitlemelerindeki tüm `getUser()` çağrıları `useAuthStore`'a taşındı.
+- `src/app/hooks/usePomodoroTimer.ts` — Pomodoro seans loglama işlemi bellek kullanıcısı üzerinden yapılıyor.
+- `src/stores/useTrackerStore.ts` — 30 saniyelik TTL bellek önbelleği (`_lastFetched`) ve mevcut veriyi koruyan kesintisiz arka plan yenileme eklendi.
+- `src/stores/useGoalStore.ts` — 30 saniyelik TTL bellek önbelleği ve kesintisiz arka plan yenileme eklendi.
+- `src/stores/useHabitStore.ts` — 30 saniyelik TTL bellek önbelleği ve kesintisiz arka plan yenileme eklendi.
+- `src/stores/useReminderStore.ts` — 30 saniyelik TTL bellek önbelleği ve kesintisiz arka plan yenileme eklendi.
+- `src/stores/useMapStore.ts` — 30 saniyelik TTL bellek önbelleği ve kesintisiz arka plan yenileme eklendi.
+- `src/stores/useConversationStore.ts` — Tüm sohbet geçmişi CRUD işlemlerinde `getUser()` yerine `useAuthStore` kullanılarak 1 dakikalık mesaj gecikmesi ortadan kaldırıldı.
+- `src/stores/useGamesStore.ts` & `src/stores/useNoteStore.ts` — Bulut oyun süresi ve sesli not yükleme işlemlerindeki `getUser()` çağrıları bellek oturumuna bağlandı.
+
+### Kritik Kararlar
+1. **F5 Kilidinin Nihai Kök Nedeninin Çözümü**: Next.js client-side navigasyonunda bileşenler sıfırdan render edilirken `userId` state'i `null` olarak başlatıldığında, uzaktaki Supabase `getUser()` network çağrısı bitene kadar sayfa `!userId` guard'ına girerek "Giriş Gerekli" ekranını gösteriyordu. `useAuthStore` oturumu hafızada hazır tuttuğu için tüm sayfalarda ilk render karesinde (frame 0) `userId = authUser.id` olarak verilerek bu kilitlenme tüm sayfalardan kalıcı olarak temizlendi.
+2. **Akıllı Önbellekleme (Smart Caching)**: `useTaskStore` ve `useNoteStore`'da başarısı kanıtlanan 30sn TTL önbellek deseni, `useTrackerStore`, `useGoalStore`, `useHabitStore`, `useReminderStore` ve `useMapStore`'a da uygulandı. Panel geçişlerinde kullanıcı artık beyaz ekran, boş liste veya spinner görmemektedir.
+3. **Sıfır Gecikmeli Chat Geçmişi**: `useConversationStore` içerisindeki her mesaj ekleme ve geçmiş sorgulama işleminde yapılan bağımsız `getUser()` çağrıları `useAuthStore`'a bağlanarak AI chat geçmişinin anında kaydedilip listelenmesi sağlandı.
+
+### Bir Sonraki Asistana Durum / Kalan İşler
+- Tüm 38 sayfa ve alt bileşenler `useAuthStore` standardına kavuşturuldu.
+- `npm run build` hatasız (0 hata) tamamlandı.
+- Canlı dağıtım ve mobil/masaüstü paketlerin derlenmesi tamamlanacak.
+
+
 
 

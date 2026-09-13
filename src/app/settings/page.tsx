@@ -8,6 +8,7 @@ import {
 import { Card, Input, Button } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore, BreakSound, ThemeType } from '@/stores/useSettingsStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 import AvatarCropModal from '@/app/components/ui/AvatarCropModal';
 
@@ -146,8 +147,9 @@ export default function SettingsPage() {
   };
 
   // User Profile
-  const [user, setUser] = useState<any>(null);
-  const [fullName, setFullName] = useState('');
+  const authUser = useAuthStore(state => state.user);
+  const [user, setUser] = useState<any>(authUser || null);
+  const [fullName, setFullName] = useState(authUser?.user_metadata?.full_name || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
@@ -188,15 +190,18 @@ export default function SettingsPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        setFullName(user.user_metadata?.full_name || '');
-      }
-    };
-    fetchUser();
-  }, []);
+    if (authUser) {
+      setUser(authUser);
+      setFullName(authUser.user_metadata?.full_name || '');
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        if (u) {
+          setUser(u);
+          setFullName(u.user_metadata?.full_name || '');
+        }
+      });
+    }
+  }, [authUser]);
 
   const handleUpdateProfile = async () => {
     if (!user) return;

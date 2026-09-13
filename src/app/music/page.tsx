@@ -8,6 +8,7 @@ import {
 import { useMusicContext } from '@/app/context/MusicContext';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { Card, Button, Input } from '@/app/components/ui';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 
 export default function MusicPage() {
@@ -26,8 +27,9 @@ export default function MusicPage() {
 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const authUser = useAuthStore(state => state.user);
+  const [userId, setUserId] = useState<string | null>(authUser?.id || null);
+  const [loadingUser, setLoadingUser] = useState(!authUser);
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelIcon, setNewChannelIcon] = useState('🎵');
@@ -36,16 +38,18 @@ export default function MusicPage() {
   const [showSleepMenu, setShowSleepMenu] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
+    if (authUser) {
+      setUserId(authUser.id);
       setLoadingUser(false);
-    };
-    checkUser();
-  }, []);
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) {
+          setUserId(user.id);
+        }
+        setLoadingUser(false);
+      });
+    }
+  }, [authUser]);
 
   if (loadingUser) {
     return (

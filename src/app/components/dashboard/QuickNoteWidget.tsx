@@ -7,6 +7,7 @@ import { Card } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useNoteStore } from '@/stores/useNoteStore';
 import { useSpeechRecognition } from '@/app/hooks/useSpeechRecognition';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 
@@ -22,14 +23,18 @@ export default function QuickNoteWidget() {
   const chunksRef = useRef<Blob[]>([]);
 
   const { addNote, uploadAudio } = useNoteStore();
-  const [user, setUser] = useState<User | null>(null);
-  const supabase = createClient();
+  const authUser = useAuthStore(state => state.user);
+  const [user, setUser] = useState<User | null>(authUser);
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => {
-      setUser(res?.data?.user || null);
-    });
-  }, []);
+    if (authUser) {
+      setUser(authUser);
+    } else {
+      useAuthStore.getState().fetchUser().then((u) => {
+        setUser(u);
+      });
+    }
+  }, [authUser]);
 
   const speech = useSpeechRecognition({
     onTranscriptChange: (text) => {

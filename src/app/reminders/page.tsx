@@ -5,6 +5,7 @@ import { Bell, BellOff, Plus, Trash2, Edit, Clock, AlertCircle, Tag, ShieldAlert
 import { Card, Button, Modal, Input } from '@/app/components/ui';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useReminderStore, Reminder } from '@/stores/useReminderStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { createClient } from '@/utils/supabase/client';
 import { requestNotificationPermission, sendNotification } from '@/utils/notifications';
 
@@ -43,8 +44,9 @@ export default function RemindersPage() {
   const { t } = useTranslation();
   const { reminders, fetchReminders, addReminder, updateReminder, deleteReminder, toggleActive } = useReminderStore();
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const authUser = useAuthStore(state => state.user);
+  const [userId, setUserId] = useState<string | null>(authUser?.id || null);
+  const [loadingUser, setLoadingUser] = useState(!authUser);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -67,22 +69,25 @@ export default function RemindersPage() {
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        fetchReminders();
-      }
+    if (authUser) {
+      setUserId(authUser.id);
       setLoadingUser(false);
-    };
-    getUser();
+      fetchReminders();
+    } else {
+      useAuthStore.getState().fetchUser().then((user) => {
+        if (user) {
+          setUserId(user.id);
+          fetchReminders();
+        }
+        setLoadingUser(false);
+      });
+    }
 
     // Check permission status
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setHasPermission(Notification.permission === 'granted');
     }
-  }, [fetchReminders]);
+  }, [authUser, fetchReminders]);
 
   const handleRequestPermission = async () => {
     try {

@@ -26,25 +26,33 @@ export interface MapPin {
 interface MapState {
   pins: MapPin[];
   isLoading: boolean;
-  fetchPins: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchPins: (force?: boolean) => Promise<void>;
   addPin: (pin: Partial<MapPin>) => Promise<void>;
   updatePin: (id: string, updates: Partial<MapPin>) => Promise<void>;
   removePin: (id: string) => Promise<void>;
 }
 
-export const useMapStore = create<MapState>((set) => ({
+export const useMapStore = create<MapState>((set, get) => ({
   pins: [],
   isLoading: false,
+  _lastFetched: null,
 
-  fetchPins: async () => {
-    set({ isLoading: true });
+  fetchPins: async (force = false) => {
+    const state = get();
+    if (!force && state.pins.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.pins.length === 0) {
+      set({ isLoading: true });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('map_pins')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      set({ pins: data || [] });
+      set({ pins: data || [], _lastFetched: Date.now() });
     } catch (e: any) {
       console.error('Harita pinleri alınamadı:', e.message);
     } finally {

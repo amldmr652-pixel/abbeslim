@@ -21,7 +21,8 @@ interface GoalState {
   goals: Goal[];
   isLoading: boolean;
   error: string | null;
-  fetchGoals: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchGoals: (force?: boolean) => Promise<void>;
   addGoal: (goal: Partial<Goal>) => Promise<void>;
   updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
@@ -31,9 +32,16 @@ export const useGoalStore = create<GoalState>((set, get) => ({
   goals: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchGoals: async () => {
-    set({ isLoading: true, error: null });
+  fetchGoals: async (force = false) => {
+    const state = get();
+    if (!force && state.goals.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.goals.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('goals')
@@ -41,7 +49,7 @@ export const useGoalStore = create<GoalState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      set({ goals: data || [] });
+      set({ goals: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching goals:', error.message);
       set({ error: error.message });

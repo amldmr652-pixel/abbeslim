@@ -27,7 +27,8 @@ interface TrackerState {
   items: MediaItem[];
   isLoading: boolean;
   error: string | null;
-  fetchItems: () => Promise<void>;
+  _lastFetched: number | null;
+  fetchItems: (force?: boolean) => Promise<void>;
   addItem: (item: Partial<MediaItem>) => Promise<void>;
   updateItem: (id: string, updates: Partial<MediaItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
@@ -37,9 +38,16 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
   items: [],
   isLoading: false,
   error: null,
+  _lastFetched: null,
 
-  fetchItems: async () => {
-    set({ isLoading: true, error: null });
+  fetchItems: async (force = false) => {
+    const state = get();
+    if (!force && state.items.length > 0 && state._lastFetched && Date.now() - state._lastFetched < 30000) {
+      return;
+    }
+    if (state.items.length === 0) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const { data, error } = await getSupabase()
         .from('media_tracker')
@@ -47,7 +55,7 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      set({ items: data || [] });
+      set({ items: data || [], _lastFetched: Date.now() });
     } catch (error: any) {
       console.error('Error fetching media items:', error.message);
       set({ error: error.message });
