@@ -230,23 +230,7 @@ export default function TrackerPage() {
     );
   };
 
-  if (loadingUser) {
-    return (
-      <div className="flex items-center justify-center h-[70vh] text-white">
-        <Loader2 size={32} className="animate-spin text-green-500" />
-      </div>
-    );
-  }
 
-  if (!userId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <AlertCircle size={48} className="text-yellow-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">{t('common.loginRequired') || 'Giriş Gerekli'}</h2>
-        <p className="text-gray-400">Takip listenizi görmek için lütfen giriş yapın.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto animate-[fadeIn_0.5s_ease-out]">

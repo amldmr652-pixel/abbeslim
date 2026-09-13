@@ -51,23 +51,7 @@ export default function MusicPage() {
     }
   }, [authUser]);
 
-  if (loadingUser) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t border-green-500"></div>
-      </div>
-    );
-  }
 
-  if (!userId) {
-    return (
-      <div className="max-w-md mx-auto py-16 px-4 text-center">
-        <AlertCircle size={48} className="text-yellow-500 mb-4 mx-auto" />
-        <h2 className="text-2xl font-bold text-white mb-2">{t('common.loginRequired') || 'Giriş Yapmanız Gerekiyor'}</h2>
-        <p className="text-gray-400">Müzik dinlemek için lütfen giriş yapın.</p>
-      </div>
-    );
-  }
 
   // Filter channels
   const filteredChannels = channels.filter(c =>

@@ -156,14 +156,7 @@ export default function StudyPage() {
 
         {/* Content Box */}
         <div className="glass rounded-[32px] p-8 border border-green-900/10 flex-1 flex flex-col justify-between relative min-h-[480px]">
-          
-          {loadingStats ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3 flex-1">
-              <div className="animate-spin rounded-full h-8 w-8 border-t border-green-500"></div>
-              <p className="text-xs text-gray-500">{t('study.loading')}</p>
-            </div>
-          ) : (
-            <div className="space-y-6 flex-1 flex flex-col justify-between">
+          <div className="space-y-6 flex-1 flex flex-col justify-between">
               <div className="space-y-6">
                 {/* Goal Progress Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -275,7 +268,6 @@ export default function StudyPage() {
                 </Button>
               </div>
             </div>
-          )}
         </div>
       </div>
     </div>

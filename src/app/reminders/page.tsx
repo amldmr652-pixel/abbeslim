@@ -214,23 +214,7 @@ export default function RemindersPage() {
     return true;
   });
 
-  if (loadingUser) {
-    return (
-      <div className="flex items-center justify-center h-[70vh] text-white">
-        <div className="animate-spin text-green-500 w-8 h-8 border-4 border-current border-t-transparent rounded-full" />
-      </div>
-    );
-  }
 
-  if (!userId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <AlertCircle size={48} className="text-yellow-500 mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">{t('common.loginRequired') || 'Giriş Gerekli'}</h2>
-        <p className="text-gray-400">Hatırlatıcılarınızı yönetmek için lütfen giriş yapın.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-out] space-y-6">
