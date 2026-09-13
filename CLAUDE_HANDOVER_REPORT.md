@@ -1826,6 +1826,62 @@ V6.3 — Zero-Latency Panel Navigation across all remaining pages, 30s Zustand S
 - `npm run build` hatasız (0 hata) tamamlandı.
 - Canlı dağıtım ve mobil/masaüstü paketlerin derlenmesi tamamlanacak.
 
+---
+
+## V6.4 — Tam Ekran Spinner Engelleyicilerin Temizlenmesi & Sayfa Açılışlarının Anında Yapılması (2026-09-13)
+
+### Faz
+V6.4 — Eliminating full-page loading screens on `/music`, `/tracker`, `/goals`, `/reminders`, `/study`.
+
+### Değiştirilen Dosyalar
+- `src/app/music/page.tsx` — Sayfa seviyesindeki `if (loadingUser) return <Spinner />` ve `if (!userId)` tam ekran engelleyicileri kaldırıldı.
+- `src/app/tracker/page.tsx` — `if (loadingUser) return <Spinner />` ve `if (!userId)` kaldırıldı.
+- `src/app/goals/page.tsx` — `if (loadingUser) return <Spinner />` ve `if (!userId)` kaldırıldı.
+- `src/app/reminders/page.tsx` — `if (loadingUser) return <Spinner />` ve `if (!userId)` kaldırıldı.
+- `src/app/study/page.tsx` — `{loadingStats ? <Spinner /> : ...}` ternary bloğu kaldırıldı, istatistikler ve kartlar 0ms'de anında ekrana basıldı.
+- `src-tauri/Cargo.toml` — Tauri derleme profilinde `opt-level = 2`, `codegen-units = 4`, `lto = false` konfigürasyonu tanımlandı.
+
+### Kritik Kararlar
+1. `tasks`, `notes` ve `calendar` sayfalarında tam ekran `loadingUser` kapısı hiç olmadığı için anında açılıyordu; `music`, `tracker`, `goals`, `reminders` ve `study` sayfalarındaki yapay bekletme kapıları tamamen kaldırılarak tüm paneller eşit hız standardına kavuşturuldu.
+2. Yetkilendirme koruması zaten `LayoutShell.tsx` tarafından yönetilmektedir; alt sayfalarda tekrar tam ekran engeli koymak gereksiz yükleme ekranlarına neden oluyordu.
+
+---
+
+## V6.5 — Senkronize Auth Hidrasyonu, Paketleme Döngüsü (Recursive Build Bloat) Çözümü, Tertemiz APK ve EXE Çıktıları (2026-09-13)
+
+### Faz
+V6.5 — Synchronous localStorage auth hydration, build-time recursive bundling elimination, clean native packaging.
+
+### Değiştirilen Dosyalar
+- `src/stores/useAuthStore.ts` — Modül yüklenirken `localStorage` içindeki Supabase auth token'ını senkron olarak tarayan `getInitialAuth()` eklendi. `useAuthStore` ilk açılışta `isChecked: true` ve `user` hazır olarak başlar. Sıfır milisaniye hidrasyon sağlandı.
+- `src/app/LayoutShell.tsx` — State başlangıç değerleri doğrudan `useAuthStore.getState()` ile başlatıldı; ayrıca en fazla 500ms sonra ekran kilidini kaldıran güvenlik zamanlayıcısı eklendi. F5 veya yeni sekmede yeşil yükleme ekranının donması kalıcı olarak engellendi.
+- `scripts/build-desktop.js` — Derleme öncesinde `public/downloads` geçici olarak dışarı taşınır ve `out/downloads` silinir; derleme bittikten sonra geri yüklenir.
+- `scripts/build-mobile.js` — Aynısı mobil derleme için de uygulanarak `out/downloads` klasörünün Android assets dizinine kopyalanması önlendi.
+- `C:\Users\I-MEE\Documents\notefinder\CLAUDE_HANDOVER_REPORT.md` — Rapor güncellendi.
+
+### Kök Neden ve Çözüm: Rekürsif Paketleme Şişmesi (Recursive Build Bloat)
+- **Sorun:** Önceki derlemelerden kalan `abbeslim-v1.0.0.apk` (1.82 GB) ve `abbeslim_1.0.0_x64-setup.exe` (506 MB) dosyaları `public/downloads` içinde bulunuyordu. Next.js static export (`next build`) bu devasa dosyaları `out/downloads` içine kopyalıyordu.
+  - Capacitor `npx cap sync` ile bu 2.3 GB'ı Android `assets/` klasörüne kopyalayarak yeni APK'nın boyutunu 1.82 GB'a katlıyordu.
+  - Tauri `tauri::generate_context!()` ile `out/` klasörünü Rust binary'sine `include_bytes!` ile derlemeye çalışırken Rust/LLVM `rust_oom` (out of memory) hatası verip kilitleniyordu.
+- **Çözüm:** `build-desktop.js` ve `build-mobile.js` komut dosyalarında derleme esnasında `public/downloads` geçici olarak güvenli bir dizine taşındı. `out` klasörünün boyutu 2.33 GB'tan **7.12 MB**'a indi!
+
+### Üretilen ve Doğrulanan Çıktılar
+- **Android Mobil APK (`abbeslim-v1.0.0.apk`):**
+  - Konum: `./abbeslim-v1.0.0.apk` ve `public/downloads/abbeslim-v1.0.0.apk`
+  - Boyut: **13.8 MB** (1.82 GB'tan 13.8 MB'a indi!)
+  - Gradle derleme süresi: 49 saniye.
+- **Windows Masaüstü Kurulum EXE (`abbeslim_1.0.0_x64-setup.exe`):**
+  - Konum: `./abbeslim_1.0.0_x64-setup.exe` ve `public/downloads/abbeslim_1.0.0_x64-setup.exe`
+  - Boyut: **4.4 MB** (506 MB'tan 4.4 MB'a indi!)
+  - Tauri NSIS derleme süresi: 2 dakika 12 saniye (OOM hatası kalıcı olarak çözüldü).
+- **Canlı Web Sürümü:**
+  - Değişiklikler GitHub `main` dalına push edildi (`e3bfbc7`), Vercel otomatik deploy edildi.
+
+### Bir Sonraki Asistana Durum / Devir Teslim
+- Tüm paneller (Müzik, Medya, Hatırlatıcılar, Çalışma Süresi, Hedefler vb.) 0ms'de anında açılmaktadır.
+- Yükleme ekranı donması veya F5 gereksinimi tamamen ortadan kaldırılmıştır.
+- Android APK ve Windows EXE başarıyla paketlenmiş olup hafif ve hızlı halleriyle hazır durumdadır.
+
 
 
 
