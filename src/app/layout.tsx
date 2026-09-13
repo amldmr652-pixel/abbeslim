@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" className="h-full antialiased">
+    <html lang="tr" className="h-full antialiased bg-[#0a0a0a] text-white" style={{ backgroundColor: '#0a0a0a', colorScheme: 'dark' }}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -50,7 +50,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} h-full`}>
+      <body className={`${inter.className} h-full bg-[#0a0a0a] text-white`} style={{ backgroundColor: '#0a0a0a' }}>
         <ClientProviders>
           <LayoutShell>
             {children}

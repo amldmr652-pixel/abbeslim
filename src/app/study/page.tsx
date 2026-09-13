@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from '@/app/hooks/useTranslation';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { createClient } from '@/utils/supabase/client';
+import { useStudyStore } from '@/stores/useStudyStore';
 import { 
   Timer as TimerIcon, BarChart2, Target, Calendar
 } from 'lucide-react';
@@ -13,9 +13,7 @@ import { Button } from '@/app/components/ui';
 export default function StudyPage() {
   const { t } = useTranslation();
   const settings = useSettingsStore();
-  
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [loadingStats, setLoadingStats] = useState(true);
+  const { sessions, fetchSessions } = useStudyStore();
 
   // Goal Form States
   const [dailyGoal, setDailyGoal] = useState(settings.workTimeDailyGoal || 120);
@@ -25,35 +23,14 @@ export default function StudyPage() {
   const authUser = useAuthStore(state => state.user);
 
   useEffect(() => {
-    const fetchSessions = async (uid: string) => {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('pomodoro_sessions')
-          .select('duration_minutes, created_at')
-          .eq('user_id', uid)
-          .eq('mode', 'pomodoro')
-          .order('created_at', { ascending: false });
-
-        if (data) {
-          setSessions(data);
-        }
-      } catch (err) {
-        console.error("Pomodoro seansları çekilemedi:", err);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
     if (authUser) {
       fetchSessions(authUser.id);
     } else {
       useAuthStore.getState().fetchUser().then((u) => {
         if (u) fetchSessions(u.id);
-        else setLoadingStats(false);
       });
     }
-  }, [authUser]);
+  }, [authUser, fetchSessions]);
 
   // Time calculations for stats
   const now = new Date();

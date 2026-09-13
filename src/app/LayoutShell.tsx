@@ -219,18 +219,6 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     );
   }
 
-  // Auth kontrolü tamamlanana kadar loading göster
-  if (!authChecked) {
-    return (
-      <div className="flex items-center justify-center h-screen" style={{ background: 'radial-gradient(ellipse at top, #001a0d 0%, #000000 60%)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-2xl font-bold tracking-wider text-green-500">abbeslim.</div>
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen overflow-hidden relative flex-col">
       {!isOnline && (

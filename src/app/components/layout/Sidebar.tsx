@@ -96,19 +96,7 @@ export default function Sidebar() {
           return;
         }
 
-        // 2. Direct Supabase query check
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin, role')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile?.is_admin || profile?.role === 'admin') {
-          if (isMounted) setIsAdmin(true);
-          return;
-        }
-
-        // 3. API route check
+        // 2. API route check (Service Role güvencesiyle)
         const res = await apiClient('/api/admin/me');
         if (res.ok) {
           const p = await res.json();
