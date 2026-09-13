@@ -27,6 +27,17 @@ try {
     console.warn('Warning: src/app/api directory not found.');
   }
 
+  // Exclude public/downloads from export if present
+  const downloadsPath = path.resolve(__dirname, '../public/downloads');
+  const tempDownloadsPath = path.resolve(__dirname, '../temp_downloads_backup');
+  let downloadsMoved = false;
+
+  if (fs.existsSync(downloadsPath)) {
+    console.log('Temporarily moving public/downloads to avoid bundling installers...');
+    fs.renameSync(downloadsPath, tempDownloadsPath);
+    downloadsMoved = true;
+  }
+
   // .next dizinini temizle
   const nextCachePath = path.resolve(__dirname, '../.next');
   if (fs.existsSync(nextCachePath)) {
@@ -49,6 +60,12 @@ try {
     }
   });
 
+  // Ensure out/downloads does not exist
+  const outDownloads = path.resolve(__dirname, '../out/downloads');
+  if (fs.existsSync(outDownloads)) {
+    fs.rmSync(outDownloads, { recursive: true, force: true });
+  }
+
   console.log('Next.js desktop build finished successfully.');
 } catch (error) {
   console.error('Error during build-desktop script execution:', error.message);
@@ -58,5 +75,14 @@ try {
     console.log('Restoring src/app/_api back to src/app/api...');
     fs.renameSync(tempApiPath, apiPath);
     console.log('Restored src/app/api successfully.');
+  }
+  const tempDownloadsPath = path.resolve(__dirname, '../temp_downloads_backup');
+  const downloadsPath = path.resolve(__dirname, '../public/downloads');
+  if (fs.existsSync(tempDownloadsPath)) {
+    console.log('Restoring public/downloads...');
+    if (fs.existsSync(downloadsPath)) {
+      fs.rmSync(downloadsPath, { recursive: true, force: true });
+    }
+    fs.renameSync(tempDownloadsPath, downloadsPath);
   }
 }

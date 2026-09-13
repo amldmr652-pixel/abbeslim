@@ -11,11 +11,36 @@ interface AuthState {
   setUser: (user: User | null, session?: Session | null) => void;
 }
 
+const getInitialAuth = () => {
+  if (typeof window === 'undefined') return { user: null, session: null, isChecked: false };
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token')) && key.endsWith('-auth-token')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const user = parsed.user || parsed.currentSession?.user;
+          const session = parsed.session || parsed.currentSession;
+          if (user) {
+            return { user, session: session || null, isChecked: true };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore JSON parse errors
+  }
+  return { user: null, session: null, isChecked: false };
+};
+
+const initialAuth = getInitialAuth();
+
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  session: null,
+  user: initialAuth.user,
+  session: initialAuth.session,
   isLoading: false,
-  isChecked: false,
+  isChecked: initialAuth.isChecked,
 
   setUser: (user, session = null) => {
     set({ user, session, isChecked: true, isLoading: false });

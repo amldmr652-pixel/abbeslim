@@ -41,8 +41,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   const pathname = usePathname();
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const initialAuthState = useAuthStore.getState();
+  const [isAuthenticated, setIsAuthenticated] = useState(initialAuthState.isChecked ? !!initialAuthState.user : false);
+  const [authChecked, setAuthChecked] = useState(initialAuthState.isChecked);
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'ai'>('none');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { setFocusMode, toggleFocusMode } = useFocusStore();
@@ -62,8 +63,14 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       setAuthChecked(state.isChecked);
     });
 
+    // Emniyet süresi: En geç 500ms içinde ekran kilidini aç (asla takılı kalmasın)
+    const safetyTimer = setTimeout(() => {
+      setAuthChecked(true);
+    }, 500);
+
     return () => {
       unsubscribe();
+      clearTimeout(safetyTimer);
     };
   }, []);
 
