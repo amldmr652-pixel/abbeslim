@@ -1882,6 +1882,41 @@ V6.5 — Synchronous localStorage auth hydration, build-time recursive bundling 
 - Yükleme ekranı donması veya F5 gereksinimi tamamen ortadan kaldırılmıştır.
 - Android APK ve Windows EXE başarıyla paketlenmiş olup hafif ve hızlı halleriyle hazır durumdadır.
 
+---
+
+## V6.6 — Beyaz Ekran Parlaması (White Flash) ve Middleware Gecikmesinin Giderilmesi (2026-09-13)
+
+### Faz
+V6.6 — White flash elimination, middleware cookie caching, LayoutShell unblocking, useStudyStore 30s TTL.
+
+### Kök Neden ve Çözüm
+1. **Beyaz Ekran Parlaması (White Canvas Flash):**
+   - `src/app/layout.tsx` dosyasında `html` ve `body` etiketlerinde varsayılan bir koyu renk / `colorScheme: 'dark'` veya arka plan stili tanımlı değildi. Tarayıcı sunucudan ilk baytı (TTFB) beklerken veya sayfa yüklenirken varsayılan boş beyaz tuvali gösteriyordu.
+   - `layout.tsx` içine `bg-[#0a0a0a] text-white` ve `style={{ backgroundColor: '#0a0a0a', colorScheme: 'dark' }}` eklenerek ekranın bir milisaniye dahi beyaz parlaması engellendi.
+2. **Middleware Ağ Yükü ve Gecikmesi (Edge Function Roundtrips):**
+   - `src/utils/supabase/middleware.ts` her sayfa isteğinde (ve Next.js `_rsc` isteklerinde) uzaktaki Supabase veritabanına gidip `adminSupabase.from('profiles')` sorgusu atıyordu.
+   - Kullanıcı onay statüsü `sb_user_status=approved` çerezinde önbelleğe alındı. Admin rotaları haricinde sonraki tüm sayfa geçişlerinde bu veritabanı sorgusu atlanarak sayfa geçişleri anlık hale getirildi.
+3. **LayoutShell Bloker Ekranının Kaldırılması:**
+   - `src/app/LayoutShell.tsx` içerisindeki `if (!authChecked) return <LoadingScreen />` kapısı kaldırıldı. UI, kenar çubuğu ve kabuk ilk render karesinde (0ms) ekrana basılır.
+4. **Çalışma Süresi (Study) Önbelleklemesi:**
+   - `src/stores/useStudyStore.ts` oluşturuldu; 30 saniyelik TTL ile pomodoro istatistikleri bellekte tutulur, her sekme değişiminde yeniden SQL sorgusu atılmaz.
+5. **Sidebar RLS Sonsuz Döngü Düzeltmesi:**
+   - `Sidebar.tsx` içinde doğrudan `supabase.from('profiles')` sorgusu RLS recursion tetikliyordu; kaldırıldı, metadata ve `/api/admin/me` rotasına bağlandı.
+
+### Değiştirilen Dosyalar
+- `src/app/layout.tsx`
+- `src/utils/supabase/middleware.ts`
+- `src/app/LayoutShell.tsx`
+- `src/app/study/page.tsx`
+- `src/stores/useStudyStore.ts` [YENİ]
+- `src/app/components/layout/Sidebar.tsx`
+- `CLAUDE_HANDOVER_REPORT.md`
+
+### Durum
+- Tüm sayfalar hatasız derlenmiştir (`npm run build` 38/38).
+- GitHub `main` dalına push edilmiştir. Beyaz ekran parlaması ve bekleme süresi tamamen ortadan kaldırılmıştır.
+
+
 
 
 
